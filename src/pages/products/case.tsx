@@ -1,0 +1,958 @@
+import React, { useState } from 'react'
+import { Link } from 'react-router-dom'
+import '../../Homepage.css'
+
+interface CaseItem {
+  id: number
+  name: string
+  brand: string
+  price: number
+  image: string
+  specs: {
+    formFactor: string
+    maxGPULength: string
+    maxCPUCoolerHeight: string
+    maxPSULength: string
+    driveBays: string
+    fans: string
+    rgb: string
+    color: string
+    transparentSidePanel: boolean
+    maxCPULength: string
+    driveBays35: number
+    driveBays25: number
+    expansionSlots: number
+    volume: string
+    weight: string
+  }
+  features: string[]
+  rating: number
+  reviews: number
+  inStock: boolean
+}
+
+function CasePage() {
+  const [selectedCase, setSelectedCase] = useState<CaseItem | null>(null)
+  const [priceRange, setPriceRange] = useState<[number, number]>([38.99, 1399.99])
+  const [searchTerm, setSearchTerm] = useState('')
+  const [selectedFormFactors, setSelectedFormFactors] = useState<string[]>([])
+  const [selectedSidePanels, setSelectedSidePanels] = useState<string[]>([])
+  const [selectedManufacturers, setSelectedManufacturers] = useState<string[]>([])
+  const [selectedColors, setSelectedColors] = useState<string[]>([])
+  const [selectedTransparentSidePanel, setSelectedTransparentSidePanel] = useState<boolean | null>(null)
+  const [selectedMaxCPULength, setSelectedMaxCPULength] = useState<string[]>([])
+  const [selectedMaxCPUCoolerHeight, setSelectedMaxCPUCoolerHeight] = useState<string[]>([])
+  const [selectedDriveBays35, setSelectedDriveBays35] = useState<string[]>([])
+  const [selectedDriveBays25, setSelectedDriveBays25] = useState<string[]>([])
+  const [selectedExpansionSlots, setSelectedExpansionSlots] = useState<string[]>([])
+  const [selectedVolume, setSelectedVolume] = useState<string[]>([])
+  const [selectedWeight, setSelectedWeight] = useState<string[]>([])
+  
+  // Popup states
+  const [showFormFactorPopup, setShowFormFactorPopup] = useState(false)
+  const [showSidePanelPopup, setShowSidePanelPopup] = useState(false)
+  const [showManufacturerPopup, setShowManufacturerPopup] = useState(false)
+  const [showColorPopup, setShowColorPopup] = useState(false)
+  const [showMaxCPULengthPopup, setShowMaxCPULengthPopup] = useState(false)
+  const [showMaxCPUCoolerHeightPopup, setShowMaxCPUCoolerHeightPopup] = useState(false)
+  const [showDriveBays35Popup, setShowDriveBays35Popup] = useState(false)
+  const [showDriveBays25Popup, setShowDriveBays25Popup] = useState(false)
+  const [showExpansionSlotsPopup, setShowExpansionSlotsPopup] = useState(false)
+  const [showVolumePopup, setShowVolumePopup] = useState(false)
+  const [showWeightPopup, setShowWeightPopup] = useState(false)
+  
+  // Search terms for popups
+  const [formFactorSearch, setFormFactorSearch] = useState('')
+  const [sidePanelSearch, setSidePanelSearch] = useState('')
+  const [manufacturerSearch, setManufacturerSearch] = useState('')
+  const [colorSearch, setColorSearch] = useState('')
+  const [maxCPULengthSearch, setMaxCPULengthSearch] = useState('')
+  const [maxCPUCoolerHeightSearch, setMaxCPUCoolerHeightSearch] = useState('')
+  const [driveBays35Search, setDriveBays35Search] = useState('')
+  const [driveBays25Search, setDriveBays25Search] = useState('')
+  const [expansionSlotsSearch, setExpansionSlotsSearch] = useState('')
+  const [volumeSearch, setVolumeSearch] = useState('')
+  const [weightSearch, setWeightSearch] = useState('')
+
+  const allCases = [
+    {
+      id: 1,
+      name: 'NZXT H7 Flow',
+      brand: 'NZXT',
+      price: 99.99,
+      image: 'https://images.unsplash.com/photo-1591799264318-7e6ef8ddb7ea?w=300&h=200&fit=crop',
+      specs: {
+        formFactor: 'ATX Mid Tower',
+        maxGPULength: '400mm',
+        maxCPUCoolerHeight: '185mm',
+        maxPSULength: '200mm',
+        driveBays: '2x 3.5", 4x 2.5"',
+        fans: '3x 120mm included',
+        rgb: 'Yes',
+        color: 'White',
+        transparentSidePanel: true,
+        maxCPULength: '180mm',
+        driveBays35: 2,
+        driveBays25: 4,
+        expansionSlots: 7,
+        volume: '45.5L',
+        weight: '8.2kg'
+      },
+      features: ['Tempered Glass Side Panel', 'Mesh Front Panel', 'Cable Management', 'RGB Ready'],
+      rating: 4.5,
+      reviews: 128,
+      inStock: true
+    },
+    {
+      id: 2,
+      name: 'Fractal Design Define 7',
+      brand: 'Fractal Design',
+      price: 149.99,
+      image: 'https://images.unsplash.com/photo-1591799264318-7e6ef8ddb7ea?w=300&h=200&fit=crop',
+      specs: {
+        formFactor: 'ATX Mid Tower',
+        maxGPULength: '315mm',
+        maxCPUCoolerHeight: '185mm',
+        maxPSULength: '200mm',
+        driveBays: '6x 3.5", 2x 2.5"',
+        fans: '2x 140mm included',
+        rgb: 'No',
+        color: 'Black',
+        transparentSidePanel: false,
+        maxCPULength: '170mm',
+        driveBays35: 6,
+        driveBays25: 2,
+        expansionSlots: 7,
+        volume: '55.2L',
+        weight: '12.8kg'
+      },
+      features: ['Sound Dampening', 'Modular Design', 'Cable Management', 'Silent Operation'],
+      rating: 4.7,
+      reviews: 89,
+      inStock: true
+    },
+    {
+      id: 3,
+      name: 'Corsair 4000D Airflow',
+      brand: 'Corsair',
+      price: 89.99,
+      image: 'https://images.unsplash.com/photo-1591799264318-7e6ef8ddb7ea?w=300&h=200&fit=crop',
+      specs: {
+        formFactor: 'ATX Mid Tower',
+        maxGPULength: '360mm',
+        maxCPUCoolerHeight: '170mm',
+        maxPSULength: '180mm',
+        driveBays: '2x 3.5", 2x 2.5"',
+        fans: '2x 120mm included',
+        rgb: 'No',
+        color: 'Black',
+        transparentSidePanel: true,
+        maxCPULength: '160mm',
+        driveBays35: 2,
+        driveBays25: 2,
+        expansionSlots: 7,
+        volume: '41.2L',
+        weight: '7.8kg'
+      },
+      features: ['Mesh Front Panel', 'Cable Management', 'Tool-Free Design', 'Airflow Optimized'],
+      rating: 4.4,
+      reviews: 156,
+      inStock: true
+    },
+    {
+      id: 4,
+      name: 'Lian Li O11 Dynamic',
+      brand: 'Lian Li',
+      price: 139.99,
+      image: 'https://images.unsplash.com/photo-1591799264318-7e6ef8ddb7ea?w=300&h=200&fit=crop',
+      specs: {
+        formFactor: 'ATX Mid Tower',
+        maxGPULength: '420mm',
+        maxCPUCoolerHeight: '155mm',
+        maxPSULength: '200mm',
+        driveBays: '2x 2.5"',
+        fans: 'None included',
+        rgb: 'Yes',
+        color: 'White',
+        transparentSidePanel: true,
+        maxCPULength: '155mm',
+        driveBays35: 0,
+        driveBays25: 2,
+        expansionSlots: 7,
+        volume: '48.5L',
+        weight: '9.2kg'
+      },
+      features: ['Dual Chamber Design', 'Tempered Glass', 'RGB Showcase', 'Water Cooling Ready'],
+      rating: 4.6,
+      reviews: 203,
+      inStock: false
+    }
+  ]
+
+  // Filter logic
+  const filteredCases = allCases.filter((caseItem) => {
+    // Price filter
+    if (caseItem.price < priceRange[0] || caseItem.price > priceRange[1]) {
+      return false
+    }
+
+    // Search filter
+    if (searchTerm && !caseItem.name.toLowerCase().includes(searchTerm.toLowerCase()) && 
+        !caseItem.brand.toLowerCase().includes(searchTerm.toLowerCase())) {
+      return false
+    }
+
+    // Form factor filter
+    if (selectedFormFactors.length > 0 && !selectedFormFactors.includes(caseItem.specs.formFactor)) {
+      return false
+    }
+
+    // Side panel filter
+    if (selectedSidePanels.length > 0 && !selectedSidePanels.includes('Tempered Glass')) {
+      return false
+    }
+
+    // Manufacturer filter
+    if (selectedManufacturers.length > 0 && !selectedManufacturers.includes(caseItem.brand)) {
+      return false
+    }
+
+    // Color filter
+    if (selectedColors.length > 0 && !selectedColors.includes(caseItem.specs.color)) {
+      return false
+    }
+
+    // Transparent side panel filter
+    if (selectedTransparentSidePanel !== null && caseItem.specs.transparentSidePanel !== selectedTransparentSidePanel) {
+      return false
+    }
+
+    // Max CPU length filter
+    if (selectedMaxCPULength.length > 0 && !selectedMaxCPULength.includes(caseItem.specs.maxCPULength)) {
+      return false
+    }
+
+    // Max CPU cooler height filter
+    if (selectedMaxCPUCoolerHeight.length > 0 && !selectedMaxCPUCoolerHeight.includes(caseItem.specs.maxCPUCoolerHeight)) {
+      return false
+    }
+
+    // 3.5" drive bays filter
+    if (selectedDriveBays35.length > 0 && !selectedDriveBays35.includes(caseItem.specs.driveBays35.toString())) {
+      return false
+    }
+
+    // 2.5" drive bays filter
+    if (selectedDriveBays25.length > 0 && !selectedDriveBays25.includes(caseItem.specs.driveBays25.toString())) {
+      return false
+    }
+
+    // Expansion slots filter
+    if (selectedExpansionSlots.length > 0 && !selectedExpansionSlots.includes(caseItem.specs.expansionSlots.toString())) {
+      return false
+    }
+
+    // Volume filter
+    if (selectedVolume.length > 0 && !selectedVolume.includes(caseItem.specs.volume)) {
+      return false
+    }
+
+    // Weight filter
+    if (selectedWeight.length > 0 && !selectedWeight.includes(caseItem.specs.weight)) {
+      return false
+    }
+
+    return true
+  })
+
+  const handleFormFactorChange = (factor: string) => {
+    setSelectedFormFactors(prev => 
+      prev.includes(factor) 
+        ? prev.filter(f => f !== factor)
+        : [...prev, factor]
+    )
+  }
+
+  const handleSidePanelChange = (panel: string) => {
+    setSelectedSidePanels(prev => 
+      prev.includes(panel) 
+        ? prev.filter(p => p !== panel)
+        : [...prev, panel]
+    )
+  }
+
+  const handleManufacturerChange = (manufacturer: string) => {
+    setSelectedManufacturers(prev => 
+      prev.includes(manufacturer) 
+        ? prev.filter(m => m !== manufacturer)
+        : [...prev, manufacturer]
+    )
+  }
+
+  const handleColorChange = (color: string) => {
+    setSelectedColors(prev => 
+      prev.includes(color) 
+        ? prev.filter(c => c !== color)
+        : [...prev, color]
+    )
+  }
+
+  const handleTransparentSidePanelChange = (value: boolean) => {
+    setSelectedTransparentSidePanel(prev => prev === value ? null : value)
+  }
+
+  const handleMaxCPULengthChange = (length: string) => {
+    setSelectedMaxCPULength(prev => 
+      prev.includes(length) 
+        ? prev.filter(l => l !== length)
+        : [...prev, length]
+    )
+  }
+
+  const handleMaxCPUCoolerHeightChange = (height: string) => {
+    setSelectedMaxCPUCoolerHeight(prev => 
+      prev.includes(height) 
+        ? prev.filter(h => h !== height)
+        : [...prev, height]
+    )
+  }
+
+  const handleDriveBays35Change = (bays: string) => {
+    setSelectedDriveBays35(prev => 
+      prev.includes(bays) 
+        ? prev.filter(b => b !== bays)
+        : [...prev, bays]
+    )
+  }
+
+  const handleDriveBays25Change = (bays: string) => {
+    setSelectedDriveBays25(prev => 
+      prev.includes(bays) 
+        ? prev.filter(b => b !== bays)
+        : [...prev, bays]
+    )
+  }
+
+  const handleExpansionSlotsChange = (slots: string) => {
+    setSelectedExpansionSlots(prev => 
+      prev.includes(slots) 
+        ? prev.filter(s => s !== slots)
+        : [...prev, slots]
+    )
+  }
+
+  const handleVolumeChange = (volume: string) => {
+    setSelectedVolume(prev => 
+      prev.includes(volume) 
+        ? prev.filter(v => v !== volume)
+        : [...prev, volume]
+    )
+  }
+
+  const handleWeightChange = (weight: string) => {
+    setSelectedWeight(prev => 
+      prev.includes(weight) 
+        ? prev.filter(w => w !== weight)
+        : [...prev, weight]
+    )
+  }
+
+  // Popup component
+  const FilterPopup = ({ 
+    isOpen, 
+    onClose, 
+    title, 
+    searchTerm, 
+    onSearchChange, 
+    options, 
+    selectedItems, 
+    onItemChange 
+  }: {
+    isOpen: boolean
+    onClose: () => void
+    title: string
+    searchTerm: string
+    onSearchChange: (value: string) => void
+    options: string[]
+    selectedItems: string[]
+    onItemChange: (item: string) => void
+  }) => {
+    if (!isOpen) return null
+
+    const filteredOptions = options.filter(option => 
+      option.toLowerCase().includes(searchTerm.toLowerCase())
+    )
+
+    return (
+      <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 p-4">
+        <div className="bg-white rounded-lg max-w-md w-full max-h-[80vh] overflow-hidden">
+          <div className="p-4 border-b">
+            <div className="flex justify-between items-center mb-4">
+              <h3 className="text-lg font-semibold">{title}</h3>
+              <button
+                onClick={onClose}
+                className="text-gray-400 hover:text-gray-600"
+              >
+                <svg className="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
+                </svg>
+              </button>
+            </div>
+            <input
+              type="text"
+              placeholder="Search..."
+              value={searchTerm}
+              onChange={(e) => onSearchChange(e.target.value)}
+              className="w-full px-3 py-2 border border-gray-300 rounded-md text-sm"
+            />
+          </div>
+          <div className="p-4 overflow-y-auto max-h-96">
+            <div className="space-y-2">
+              {filteredOptions.map((option) => (
+                <label key={option} className="flex items-center gap-2">
+                  <input
+                    type="checkbox"
+                    checked={selectedItems.includes(option)}
+                    onChange={() => onItemChange(option)}
+                    className="rounded"
+                  />
+                  <span className="text-sm">{option}</span>
+                </label>
+              ))}
+            </div>
+          </div>
+        </div>
+      </div>
+    )
+  }
+
+  return (
+    <div className="page bg-grid bg-radial">
+      <div className="layout">
+        {/* Sidebar giống HomePage */}
+        <aside className="sidebar">
+          <div className="flex items-center justify-between px-2 mb-6">
+            <div className="flex items-center gap-2">
+              <div className="size-6 rounded-lg bg-blue-600" />
+              <span className="font-semibold">EzBuild</span>
+            </div>
+          </div>
+
+          <div>
+            <div className="sidebar-group">Apps</div>
+            <Link className="nav-item" to="/">3D Builder</Link>
+            <span className="nav-item">Products</span>
+            <a className="nav-item" href="#">Sales</a>
+            <a className="nav-item" href="#">Compare</a>
+            <a className="nav-item" href="#">3D Part Gallery</a>
+          </div>
+
+          <div>
+            <div className="sidebar-group">Community</div>
+            <a className="nav-item" href="#">Completed Builds</a>
+            <a className="nav-item" href="#">Updates</a>
+            <a className="nav-item" href="#">Setup Builder</a>
+          </div>
+        </aside>
+
+        {/* Main */}
+        <main className="main">
+          {/* Breadcrumb + controls */}
+          <div className="mb-4 flex flex-col gap-3 md:flex-row md:items-center md:justify-between">
+            <div className="flex items-center gap-2 text-sm text-black/70">
+              <span>Products</span>
+              <svg className="w-3 h-3" viewBox="0 0 20 20" fill="currentColor"><path fillRule="evenodd" d="M7.293 14.707a1 1 0 010-1.414L10.586 10 7.293 6.707a1 1 0 011.414-1.414l4 4a1 1 0 010 1.414l-4 4a1 1 0 01-1.414 0z" clipRule="evenodd"/></svg>
+              <span className="font-medium text-black">Case</span>
+            </div>
+            <div className="flex items-center gap-3">
+              <select className="bg-black/5 hover:bg-black/10 text-black px-3 py-2 rounded-md text-sm">
+                <option>Default</option>
+              </select>
+              <input 
+                type="text" 
+                placeholder="Search" 
+                value={searchTerm}
+                onChange={(e) => setSearchTerm(e.target.value)}
+                className="bg-black/5 hover:bg-black/10 text-black px-3 py-2 rounded-md text-sm w-48" 
+              />
+            </div>
+          </div>
+
+          <div className="flex">
+            {/* Filters */}
+            <div className="w-80 hidden md:block pr-6">
+              <div className="rounded-lg border border-black/10 bg-white p-4 space-y-6">
+                <div>
+                  <h3 className="text-base font-semibold mb-3">Price</h3>
+                  <div className="space-y-2">
+                    <div className="flex justify-between text-xs text-black/60">
+                      <span>$38.99</span>
+                      <span>$1399.99</span>
+                    </div>
+                    <input 
+                      type="range" 
+                      min="38.99" 
+                      max="1399.99" 
+                      value={priceRange[1]}
+                      onChange={(e) => setPriceRange([priceRange[0], Number(e.target.value)])}
+                      className="w-full" 
+                    />
+                  </div>
+                </div>
+
+                <div>
+                  <h3 className="text-base font-semibold mb-3">Form Factor</h3>
+                  <div className="space-y-2 text-sm">
+                    {['ATX Desktop','ATX Full Tower','ATX Mid Tower','ATX Mini Tower','ATX Test Bench','EATX','EATX Full Tower','EATX Mid Tower'].map((factor) => (
+                      <label key={factor} className="flex items-center gap-2">
+                        <input 
+                          type="checkbox" 
+                          checked={selectedFormFactors.includes(factor)}
+                          onChange={() => handleFormFactorChange(factor)}
+                          className="rounded" 
+                        />
+                        <span>{factor}</span>
+                      </label>
+                    ))}
+                    <button onClick={() => setShowFormFactorPopup(true)} className="text-blue-600 text-xs">Show More</button>
+                  </div>
+                </div>
+
+                <div>
+                  <h3 className="text-base font-semibold mb-3">Side Panel</h3>
+                  <div className="space-y-2 text-sm">
+                    {['Acrylic','Aluminum','Mesh','None','Solid','Steel','Tempered Glass','Tinted Acrylic'].map((panel) => (
+                      <label key={panel} className="flex items-center gap-2">
+                        <input 
+                          type="checkbox" 
+                          checked={selectedSidePanels.includes(panel)}
+                          onChange={() => handleSidePanelChange(panel)}
+                          className="rounded" 
+                        />
+                        <span>{panel}</span>
+                      </label>
+                    ))}
+                    <button onClick={() => setShowSidePanelPopup(true)} className="text-blue-600 text-xs">Show More</button>
+                  </div>
+                </div>
+
+                <div>
+                  <h3 className="text-base font-semibold mb-3">Manufacturer</h3>
+                  <div className="space-y-2 text-sm">
+                    {['NZXT','Fractal Design','Corsair','Lian Li'].map((manufacturer) => (
+                      <label key={manufacturer} className="flex items-center gap-2">
+                        <input 
+                          type="checkbox" 
+                          checked={selectedManufacturers.includes(manufacturer)}
+                          onChange={() => handleManufacturerChange(manufacturer)}
+                          className="rounded" 
+                        />
+                        <span>{manufacturer}</span>
+                      </label>
+                    ))}
+                    <button onClick={() => setShowManufacturerPopup(true)} className="text-blue-600 text-xs">Show More</button>
+                  </div>
+                </div>
+
+                <div>
+                  <h3 className="text-base font-semibold mb-3">Color</h3>
+                  <div className="space-y-2 text-sm">
+                    {['Black','White','Silver','RGB'].map((color) => (
+                      <label key={color} className="flex items-center gap-2">
+                        <input 
+                          type="checkbox" 
+                          checked={selectedColors.includes(color)}
+                          onChange={() => handleColorChange(color)}
+                          className="rounded" 
+                        />
+                        <span>{color}</span>
+                      </label>
+                    ))}
+                    <button onClick={() => setShowColorPopup(true)} className="text-blue-600 text-xs">Show More</button>
+                  </div>
+                </div>
+
+                <div>
+                  <h3 className="text-base font-semibold mb-3">Transparent Side Panel</h3>
+                  <div className="space-y-2 text-sm">
+                    <label className="flex items-center gap-2">
+                      <input 
+                        type="checkbox" 
+                        checked={selectedTransparentSidePanel === true}
+                        onChange={() => handleTransparentSidePanelChange(true)}
+                        className="rounded" 
+                      />
+                      <span>Yes</span>
+                    </label>
+                    <label className="flex items-center gap-2">
+                      <input 
+                        type="checkbox" 
+                        checked={selectedTransparentSidePanel === false}
+                        onChange={() => handleTransparentSidePanelChange(false)}
+                        className="rounded" 
+                      />
+                      <span>No</span>
+                    </label>
+                  </div>
+                </div>
+
+                <div>
+                  <h3 className="text-base font-semibold mb-3">Max CPU Length</h3>
+                  <div className="space-y-2 text-sm">
+                    {['155mm','160mm','170mm','180mm'].map((length) => (
+                      <label key={length} className="flex items-center gap-2">
+                        <input 
+                          type="checkbox" 
+                          checked={selectedMaxCPULength.includes(length)}
+                          onChange={() => handleMaxCPULengthChange(length)}
+                          className="rounded" 
+                        />
+                        <span>{length}</span>
+                      </label>
+                    ))}
+                    <button onClick={() => setShowMaxCPULengthPopup(true)} className="text-blue-600 text-xs">Show More</button>
+                  </div>
+                </div>
+
+                <div>
+                  <h3 className="text-base font-semibold mb-3">Max CPU Cooler Height</h3>
+                  <div className="space-y-2 text-sm">
+                    {['155mm','170mm','185mm'].map((height) => (
+                      <label key={height} className="flex items-center gap-2">
+                        <input 
+                          type="checkbox" 
+                          checked={selectedMaxCPUCoolerHeight.includes(height)}
+                          onChange={() => handleMaxCPUCoolerHeightChange(height)}
+                          className="rounded" 
+                        />
+                        <span>{height}</span>
+                      </label>
+                    ))}
+                    <button onClick={() => setShowMaxCPUCoolerHeightPopup(true)} className="text-blue-600 text-xs">Show More</button>
+                  </div>
+                </div>
+
+                <div>
+                  <h3 className="text-base font-semibold mb-3">3.5 Drive Bays</h3>
+                  <div className="space-y-2 text-sm">
+                    {['0','2','6'].map((bays) => (
+                      <label key={bays} className="flex items-center gap-2">
+                        <input 
+                          type="checkbox" 
+                          checked={selectedDriveBays35.includes(bays)}
+                          onChange={() => handleDriveBays35Change(bays)}
+                          className="rounded" 
+                        />
+                        <span>{bays}</span>
+                      </label>
+                    ))}
+                    <button onClick={() => setShowDriveBays35Popup(true)} className="text-blue-600 text-xs">Show More</button>
+                  </div>
+                </div>
+
+                <div>
+                  <h3 className="text-base font-semibold mb-3">2.5 Drive Bays</h3>
+                  <div className="space-y-2 text-sm">
+                    {['2','4'].map((bays) => (
+                      <label key={bays} className="flex items-center gap-2">
+                        <input 
+                          type="checkbox" 
+                          checked={selectedDriveBays25.includes(bays)}
+                          onChange={() => handleDriveBays25Change(bays)}
+                          className="rounded" 
+                        />
+                        <span>{bays}</span>
+                      </label>
+                    ))}
+                    <button onClick={() => setShowDriveBays25Popup(true)} className="text-blue-600 text-xs">Show More</button>
+                  </div>
+                </div>
+
+                <div>
+                  <h3 className="text-base font-semibold mb-3">Expansion Slots</h3>
+                  <div className="space-y-2 text-sm">
+                    {['7'].map((slots) => (
+                      <label key={slots} className="flex items-center gap-2">
+                        <input 
+                          type="checkbox" 
+                          checked={selectedExpansionSlots.includes(slots)}
+                          onChange={() => handleExpansionSlotsChange(slots)}
+                          className="rounded" 
+                        />
+                        <span>{slots}</span>
+                      </label>
+                    ))}
+                    <button onClick={() => setShowExpansionSlotsPopup(true)} className="text-blue-600 text-xs">Show More</button>
+                  </div>
+                </div>
+
+                <div>
+                  <h3 className="text-base font-semibold mb-3">Volume</h3>
+                  <div className="space-y-2 text-sm">
+                    {['41.2L','45.5L','48.5L','55.2L'].map((volume) => (
+                      <label key={volume} className="flex items-center gap-2">
+                        <input 
+                          type="checkbox" 
+                          checked={selectedVolume.includes(volume)}
+                          onChange={() => handleVolumeChange(volume)}
+                          className="rounded" 
+                        />
+                        <span>{volume}</span>
+                      </label>
+                    ))}
+                    <button onClick={() => setShowVolumePopup(true)} className="text-blue-600 text-xs">Show More</button>
+                  </div>
+                </div>
+
+                <div>
+                  <h3 className="text-base font-semibold mb-3">Weight</h3>
+                  <div className="space-y-2 text-sm">
+                    {['7.8kg','8.2kg','9.2kg','12.8kg'].map((weight) => (
+                      <label key={weight} className="flex items-center gap-2">
+                        <input 
+                          type="checkbox" 
+                          checked={selectedWeight.includes(weight)}
+                          onChange={() => handleWeightChange(weight)}
+                          className="rounded" 
+                        />
+                        <span>{weight}</span>
+                      </label>
+                    ))}
+                    <button onClick={() => setShowWeightPopup(true)} className="text-blue-600 text-xs">Show More</button>
+                  </div>
+                </div>
+              </div>
+            </div>
+
+            {/* Grid */}
+            <div className="flex-1">
+              <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4 md:gap-6">
+                {filteredCases.map((caseItem) => (
+                  <div key={caseItem.id} className="rounded-lg border border-black/10 bg-white hover:bg-black/5 transition cursor-pointer" onClick={() => setSelectedCase(caseItem)}>
+                    <div className="p-4">
+                      <img src={caseItem.image} alt={caseItem.name} className="w-full h-48 object-cover rounded-lg mb-4" />
+                      <div className="text-sm font-medium mb-2 line-clamp-2">{caseItem.name}</div>
+                      <div className="text-lg font-bold mb-3">${caseItem.price}</div>
+                      <div className="space-y-1 text-xs text-black/60 mb-4">
+                        <div className="flex justify-between"><span>Form Factor:</span><span className="text-black">{caseItem.specs.formFactor}</span></div>
+                        <div className="flex justify-between"><span>Side Panel:</span><span className="text-black">{caseItem.specs.transparentSidePanel ? 'Tempered Glass' : 'Solid'}</span></div>
+                        <div className="flex justify-between"><span>Max GPU Length:</span><span className="text-black">{caseItem.specs.maxGPULength}</span></div>
+                        <div className="flex justify-between"><span>Color:</span><span className="text-black">{caseItem.specs.color}</span></div>
+                        <div className="flex justify-between"><span>Weight:</span><span className="text-black">{caseItem.specs.weight}</span></div>
+                      </div>
+                      <button className="w-full btn-primary">+ Add to build</button>
+                    </div>
+                  </div>
+                ))}
+              </div>
+            </div>
+          </div>
+        </main>
+      </div>
+
+      {/* Product Detail Modal */}
+      {selectedCase && (
+        <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 p-4">
+          <div className="bg-white rounded-lg max-w-4xl w-full max-h-[90vh] overflow-y-auto">
+            <div className="p-6">
+              <div className="flex justify-between items-start mb-6">
+                <div>
+                  <h2 className="text-3xl font-bold text-gray-900">{selectedCase.name}</h2>
+                  <p className="text-lg text-gray-600">{selectedCase.brand}</p>
+                </div>
+                <button
+                  onClick={() => setSelectedCase(null)}
+                  className="text-gray-400 hover:text-gray-600"
+                >
+                  <svg className="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
+                  </svg>
+                </button>
+              </div>
+              
+              <div className="grid grid-cols-1 lg:grid-cols-2 gap-8">
+                <div>
+                  <img
+                    src={selectedCase.image}
+                    alt={selectedCase.name}
+                    className="w-full h-96 object-cover rounded-lg"
+                  />
+                </div>
+                
+                <div>
+                  <div className="text-3xl font-bold text-blue-600 mb-4">${selectedCase.price}</div>
+                  
+                  <div className="mb-6">
+                    <h3 className="text-lg font-semibold mb-3">Specifications</h3>
+                    <div className="space-y-2">
+                      {Object.entries(selectedCase.specs).map(([key, value]) => (
+                        <div key={key} className="flex justify-between">
+                          <span className="text-gray-600 capitalize">{key.replace(/([A-Z])/g, ' $1').trim()}:</span>
+                          <span className="font-medium">{value}</span>
+                        </div>
+                      ))}
+                    </div>
+                  </div>
+                  
+                  <div className="mb-6">
+                    <h3 className="text-lg font-semibold mb-3">Features</h3>
+                    <div className="flex flex-wrap gap-2">
+                      {selectedCase.features.map((feature, index) => (
+                        <span
+                          key={index}
+                          className="px-3 py-1 bg-blue-100 text-blue-800 text-sm rounded-full"
+                        >
+                          {feature}
+                        </span>
+                      ))}
+                    </div>
+                  </div>
+                  
+                  <div className="flex space-x-4">
+                    <button 
+                      className={`flex-1 px-6 py-3 rounded-lg font-semibold transition-colors ${
+                        selectedCase.inStock 
+                          ? 'bg-blue-600 text-white hover:bg-blue-700' 
+                          : 'bg-gray-300 text-gray-500 cursor-not-allowed'
+                      }`}
+                      disabled={!selectedCase.inStock}
+                    >
+                      {selectedCase.inStock ? 'Add to Build' : 'Out of Stock'}
+                    </button>
+                    <button className="flex-1 border border-blue-600 text-blue-600 px-6 py-3 rounded-lg font-semibold hover:bg-blue-50 transition-colors">
+                      Compare
+                    </button>
+                  </div>
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* Filter Popups */}
+      <FilterPopup
+        isOpen={showFormFactorPopup}
+        onClose={() => setShowFormFactorPopup(false)}
+        title="Form Factor"
+        searchTerm={formFactorSearch}
+        onSearchChange={setFormFactorSearch}
+        options={['ATX Desktop','ATX Full Tower','ATX Mid Tower','ATX Mini Tower','ATX Test Bench','EATX','EATX Full Tower','EATX Mid Tower','Micro ATX Desktop','Micro ATX Mid Tower','Micro ATX Mini Tower','Micro ATX Slim Tower','Mini-ITX Desktop','Mini-ITX Test Bench','Mini-ITX Tower']}
+        selectedItems={selectedFormFactors}
+        onItemChange={handleFormFactorChange}
+      />
+
+      <FilterPopup
+        isOpen={showSidePanelPopup}
+        onClose={() => setShowSidePanelPopup(false)}
+        title="Side Panel"
+        searchTerm={sidePanelSearch}
+        onSearchChange={setSidePanelSearch}
+        options={['Acrylic','Aluminum','Mesh','None','Solid','Steel','Tempered Glass','Tinted Acrylic']}
+        selectedItems={selectedSidePanels}
+        onItemChange={handleSidePanelChange}
+      />
+
+      <FilterPopup
+        isOpen={showManufacturerPopup}
+        onClose={() => setShowManufacturerPopup(false)}
+        title="Manufacturer"
+        searchTerm={manufacturerSearch}
+        onSearchChange={setManufacturerSearch}
+        options={['NZXT','Fractal Design','Corsair','Lian Li','Cooler Master','Thermaltake','Phanteks','be quiet!','Antec','Rosewill']}
+        selectedItems={selectedManufacturers}
+        onItemChange={handleManufacturerChange}
+      />
+
+      <FilterPopup
+        isOpen={showColorPopup}
+        onClose={() => setShowColorPopup(false)}
+        title="Color"
+        searchTerm={colorSearch}
+        onSearchChange={setColorSearch}
+        options={['Black','White','Silver','RGB','Red','Blue','Green','Yellow','Orange','Purple']}
+        selectedItems={selectedColors}
+        onItemChange={handleColorChange}
+      />
+
+      <FilterPopup
+        isOpen={showMaxCPULengthPopup}
+        onClose={() => setShowMaxCPULengthPopup(false)}
+        title="Max CPU Length"
+        searchTerm={maxCPULengthSearch}
+        onSearchChange={setMaxCPULengthSearch}
+        options={['155mm','160mm','170mm','180mm','190mm','200mm']}
+        selectedItems={selectedMaxCPULength}
+        onItemChange={handleMaxCPULengthChange}
+      />
+
+      <FilterPopup
+        isOpen={showMaxCPUCoolerHeightPopup}
+        onClose={() => setShowMaxCPUCoolerHeightPopup(false)}
+        title="Max CPU Cooler Height"
+        searchTerm={maxCPUCoolerHeightSearch}
+        onSearchChange={setMaxCPUCoolerHeightSearch}
+        options={['155mm','160mm','170mm','180mm','185mm','190mm','200mm']}
+        selectedItems={selectedMaxCPUCoolerHeight}
+        onItemChange={handleMaxCPUCoolerHeightChange}
+      />
+
+      <FilterPopup
+        isOpen={showDriveBays35Popup}
+        onClose={() => setShowDriveBays35Popup(false)}
+        title="3.5 Drive Bays"
+        searchTerm={driveBays35Search}
+        onSearchChange={setDriveBays35Search}
+        options={['0','1','2','3','4','5','6','7','8','9','10']}
+        selectedItems={selectedDriveBays35}
+        onItemChange={handleDriveBays35Change}
+      />
+
+      <FilterPopup
+        isOpen={showDriveBays25Popup}
+        onClose={() => setShowDriveBays25Popup(false)}
+        title="2.5 Drive Bays"
+        searchTerm={driveBays25Search}
+        onSearchChange={setDriveBays25Search}
+        options={['0','1','2','3','4','5','6','7','8','9','10']}
+        selectedItems={selectedDriveBays25}
+        onItemChange={handleDriveBays25Change}
+      />
+
+      <FilterPopup
+        isOpen={showExpansionSlotsPopup}
+        onClose={() => setShowExpansionSlotsPopup(false)}
+        title="Expansion Slots"
+        searchTerm={expansionSlotsSearch}
+        onSearchChange={setExpansionSlotsSearch}
+        options={['4','5','6','7','8','9','10']}
+        selectedItems={selectedExpansionSlots}
+        onItemChange={handleExpansionSlotsChange}
+      />
+
+      <FilterPopup
+        isOpen={showVolumePopup}
+        onClose={() => setShowVolumePopup(false)}
+        title="Volume"
+        searchTerm={volumeSearch}
+        onSearchChange={setVolumeSearch}
+        options={['20L','25L','30L','35L','40L','41.2L','45L','45.5L','48L','48.5L','50L','55L','55.2L','60L','65L','70L']}
+        selectedItems={selectedVolume}
+        onItemChange={handleVolumeChange}
+      />
+
+      <FilterPopup
+        isOpen={showWeightPopup}
+        onClose={() => setShowWeightPopup(false)}
+        title="Weight"
+        searchTerm={weightSearch}
+        onSearchChange={setWeightSearch}
+        options={['5kg','6kg','7kg','7.8kg','8kg','8.2kg','9kg','9.2kg','10kg','11kg','12kg','12.8kg','13kg','14kg','15kg']}
+        selectedItems={selectedWeight}
+        onItemChange={handleWeightChange}
+      />
+    </div>
+  )
+}
+
+export default CasePage

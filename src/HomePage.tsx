@@ -1,5 +1,6 @@
 import './Homepage.css'
 import { useEffect, useRef, useState } from 'react'
+import { Link } from 'react-router-dom'
 
 function HomePage() {
   const [isProductsOpen, setIsProductsOpen] = useState(false)
@@ -111,31 +112,204 @@ function HomePage() {
         {isProductsOpen && (
           <div
             ref={popoverRef}
-            className="fixed left-64 top-24 z-50 w-[760px] rounded-xl border border-black bg-white/95 backdrop-blur shadow-2xl p-4"
+            className="fixed left-64 top-24 z-50 w-[900px] rounded-xl border border-black bg-white/95 backdrop-blur shadow-2xl p-4"
           >
-            <div className="grid grid-cols-3 gap-3">
-              {[
-                'Case',
-                'CPU',
-                'Motherboard',
-                'GPU',
-                'RAM',
-                'Storage',
-                'Power Supply',
-                'CPU Cooler',
-                'Case Fan',
-                'Monitor',
-                'Mouse',
-                'Keyboard',
-              ].map((label) => (
-                <button
-                  key={label}
-                  className="text-left rounded-lg border border-black bg-white hover:bg-black/5 px-3 py-2 text-sm text-white"
-                  onClick={() => setIsProductsOpen(false)}
-                >
-                  {label}
-                </button>
-              ))}
+            <div className="flex gap-6">
+              {/* Main Product Grid - 12 boxes */}
+              <div className="flex-1">
+                <div className="grid grid-cols-3 gap-3">
+                  {[
+                    'Case',
+                    'CPU',
+                    'Mainboard',
+                    'GPU',
+                    'RAM',
+                    'Storage',
+                    'Power Supply',
+                    'CPU Cooler',
+                    'Case Fan',
+                    'Monitor',
+                    'Mouse',
+                    'Keyboard',
+                  ].map((label) => (
+                    label === 'Case' ? (
+                      <Link
+                        key={label}
+                        to="/products/case"
+                        className="text-left rounded-lg border border-black bg-white hover:bg-black/5 px-3 py-2 text-sm text-black transition-colors block"
+                        onClick={() => setIsProductsOpen(false)}
+                      >
+                        {label}
+                      </Link>
+                    ) : label === 'CPU' ? (
+                      <Link
+                        key={label}
+                        to="/products/cpu"
+                        className="text-left rounded-lg border border-black bg-white hover:bg-black/5 px-3 py-2 text-sm text-black transition-colors block"
+                        onClick={() => setIsProductsOpen(false)}
+                      >
+                        {label}
+                      </Link>
+                    ) : label === 'Mainboard' ? (
+                      <Link
+                        key={label}
+                        to="/products/mainboard"
+                        className="text-left rounded-lg border border-black bg-white hover:bg-black/5 px-3 py-2 text-sm text-black transition-colors block"
+                        onClick={() => setIsProductsOpen(false)}
+                      >
+                        {label}
+                      </Link>
+                    ) : label === 'GPU' ? (
+                      <Link
+                        key={label}
+                        to="/products/gpu"
+                        className="text-left rounded-lg border border-black bg-white hover:bg-black/5 px-3 py-2 text-sm text-black transition-colors block"
+                        onClick={() => setIsProductsOpen(false)}
+                      >
+                        {label}
+                      </Link>
+                    ) : label === 'RAM' ? (
+                      <Link
+                        key={label}
+                        to="/products/ram"
+                        className="text-left rounded-lg border border-black bg-white hover:bg-black/5 px-3 py-2 text-sm text-black transition-colors block"
+                        onClick={() => setIsProductsOpen(false)}
+                      >
+                        {label}
+                      </Link>
+                    ) : label === 'Storage' ? (
+                      <Link
+                        key={label}
+                        to="/products/storage"
+                        className="text-left rounded-lg border border-black bg-white hover:bg-black/5 px-3 py-2 text-sm text-black transition-colors block"
+                        onClick={() => setIsProductsOpen(false)}
+                      >
+                        {label}
+                      </Link>
+                    ) : label === 'Power Supply' ? (
+                      <Link
+                        key={label}
+                        to="/products/psu"
+                        className="text-left rounded-lg border border-black bg-white hover:bg-black/5 px-3 py-2 text-sm text-black transition-colors block"
+                        onClick={() => setIsProductsOpen(false)}
+                      >
+                        {label}
+                      </Link>
+                    ) : label === 'CPU Cooler' ? (
+                      <Link
+                        key={label}
+                        to="/products/cpu-cooler"
+                        className="text-left rounded-lg border border-black bg-white hover:bg-black/5 px-3 py-2 text-sm text-black transition-colors block"
+                        onClick={() => setIsProductsOpen(false)}
+                      >
+                        {label}
+                      </Link>
+                    ) : label === 'Case Fan' ? (
+                      <Link
+                        key={label}
+                        to="/products/case-fan"
+                        className="text-left rounded-lg border border-black bg-white hover:bg-black/5 px-3 py-2 text-sm text-black transition-colors block"
+                        onClick={() => setIsProductsOpen(false)}
+                      >
+                        {label}
+                      </Link>
+                    ) : label === 'Monitor' ? (
+                      <Link
+                        key={label}
+                        to="/products/monitor"
+                        className="text-left rounded-lg border border-black bg-white hover:bg-black/5 px-3 py-2 text-sm text-black transition-colors block"
+                        onClick={() => setIsProductsOpen(false)}
+                      >
+                        {label}
+                      </Link>
+                    ) : label === 'Mouse' ? (
+                      <Link
+                        key={label}
+                        to="/products/mouse"
+                        className="text-left rounded-lg border border-black bg-white hover:bg-black/5 px-3 py-2 text-sm text-black transition-colors block"
+                        onClick={() => setIsProductsOpen(false)}
+                      >
+                        {label}
+                      </Link>
+                    ) : label === 'Keyboard' ? (
+                      <Link
+                        key={label}
+                        to="/products/keyboard"
+                        className="text-left rounded-lg border border-black bg-white hover:bg-black/5 px-3 py-2 text-sm text-black transition-colors block"
+                        onClick={() => setIsProductsOpen(false)}
+                      >
+                        {label}
+                      </Link>
+                    ) : (
+                      <button
+                        key={label}
+                        className="text-left rounded-lg border border-black bg-white hover:bg-black/5 px-3 py-2 text-sm text-black transition-colors block"
+                        onClick={() => setIsProductsOpen(false)}
+                      >
+                        {label}
+                      </button>
+                    )
+                  ))}
+                </div>
+              </div>
+
+              {/* Additional 4 boxes on the right */}
+              <div className="w-48">
+                <div className="grid grid-cols-1 gap-3">
+                  {[
+                    'Headphones',
+                    'Webcam',
+                    'Microphone',
+                    'Speakers',
+                  ].map((label) => (
+                    label === 'Headphones' ? (
+                      <Link
+                        key={label}
+                        to="/products/headphones"
+                        className="text-left rounded-lg border border-black bg-white hover:bg-black/5 px-3 py-2 text-sm text-black transition-colors block"
+                        onClick={() => setIsProductsOpen(false)}
+                      >
+                        {label}
+                      </Link>
+                    ) : label === 'Webcam' ? (
+                      <Link
+                        key={label}
+                        to="/products/webcam"
+                        className="text-left rounded-lg border border-black bg-white hover:bg-black/5 px-3 py-2 text-sm text-black transition-colors block"
+                        onClick={() => setIsProductsOpen(false)}
+                      >
+                        {label}
+                      </Link>
+                    ) : label === 'Microphone' ? (
+                      <Link
+                        key={label}
+                        to="/products/microphone"
+                        className="text-left rounded-lg border border-black bg-white hover:bg-black/5 px-3 py-2 text-sm text-black transition-colors block"
+                        onClick={() => setIsProductsOpen(false)}
+                      >
+                        {label}
+                      </Link>
+                    ) : label === 'Speakers' ? (
+                      <Link
+                        key={label}
+                        to="/products/speakers"
+                        className="text-left rounded-lg border border-black bg-white hover:bg-black/5 px-3 py-2 text-sm text-black transition-colors block"
+                        onClick={() => setIsProductsOpen(false)}
+                      >
+                        {label}
+                      </Link>
+                    ) : (
+                      <button
+                        key={label}
+                        className="text-left rounded-lg border border-black bg-white hover:bg-black/5 px-3 py-2 text-sm text-black transition-colors block"
+                        onClick={() => setIsProductsOpen(false)}
+                      >
+                        {label}
+                      </button>
+                    )
+                  ))}
+                </div>
+              </div>
             </div>
             <div className="mt-3 text-xs text-black/60">Other Products: OS, Sound Card, Network, VR, Capture...</div>
           </div>
