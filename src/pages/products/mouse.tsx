@@ -1,0 +1,798 @@
+import React, { useState } from 'react'
+import { Link } from 'react-router-dom'
+import '../../Homepage.css'
+
+interface MouseItem {
+  id: number
+  name: string
+  brand: string
+  price: number
+  image: string
+  specs: {
+    dpi: string
+    sensorType: string
+    connectivity: string
+    buttons: string
+    weight: string
+    dimensions: string
+    battery: string
+    pollingRate: string
+    acceleration: string
+    warranty: string
+    rgb: boolean
+    gaming: boolean
+    wireless: boolean
+  }
+  features: string[]
+  rating: number
+  reviews: number
+  inStock: boolean
+}
+
+function MousePage() {
+  const [selectedMouse, setSelectedMouse] = useState<MouseItem | null>(null)
+  const [priceRange, setPriceRange] = useState<[number, number]>([20, 200])
+  const [searchTerm, setSearchTerm] = useState('')
+  const [selectedDPIs, setSelectedDPIs] = useState<string[]>([])
+  const [selectedSensorTypes, setSelectedSensorTypes] = useState<string[]>([])
+  const [selectedConnectivities, setSelectedConnectivities] = useState<string[]>([])
+  const [selectedButtons, setSelectedButtons] = useState<string[]>([])
+  const [selectedBrands, setSelectedBrands] = useState<string[]>([])
+  const [selectedRGB, setSelectedRGB] = useState<boolean | null>(null)
+  const [selectedGaming, setSelectedGaming] = useState<boolean | null>(null)
+  const [selectedWireless, setSelectedWireless] = useState<boolean | null>(null)
+  
+  // Popup states
+  const [showDPIPopup, setShowDPIPopup] = useState(false)
+  const [showSensorTypePopup, setShowSensorTypePopup] = useState(false)
+  const [showConnectivityPopup, setShowConnectivityPopup] = useState(false)
+  const [showButtonsPopup, setShowButtonsPopup] = useState(false)
+  const [showBrandPopup, setShowBrandPopup] = useState(false)
+  
+  // Search terms for popups
+  const [dpiSearch, setDpiSearch] = useState('')
+  const [sensorTypeSearch, setSensorTypeSearch] = useState('')
+  const [connectivitySearch, setConnectivitySearch] = useState('')
+  const [buttonsSearch, setButtonsSearch] = useState('')
+  const [brandSearch, setBrandSearch] = useState('')
+
+  const allMice = [
+    {
+      id: 1,
+      name: 'Logitech G Pro X Superlight',
+      brand: 'Logitech',
+      price: 149.99,
+      image: 'https://images.unsplash.com/photo-1591799264318-7e6ef8ddb7ea?w=300&h=200&fit=crop',
+      specs: {
+        dpi: '25,600 DPI',
+        sensorType: 'Optical',
+        connectivity: 'Wireless',
+        buttons: '5',
+        weight: '63g',
+        dimensions: '125 x 63.5 x 40mm',
+        battery: '70 hours',
+        pollingRate: '1000Hz',
+        acceleration: '40G',
+        warranty: '2 Years',
+        rgb: false,
+        gaming: true,
+        wireless: true
+      },
+      features: ['Ultra Lightweight', 'HERO 25K Sensor', 'Wireless', 'Gaming', 'Pro Grade'],
+      rating: 4.8,
+      reviews: 342,
+      inStock: true
+    },
+    {
+      id: 2,
+      name: 'Razer DeathAdder V3 Pro',
+      brand: 'Razer',
+      price: 149.99,
+      image: 'https://images.unsplash.com/photo-1591799264318-7e6ef8ddb7ea?w=300&h=200&fit=crop',
+      specs: {
+        dpi: '30,000 DPI',
+        sensorType: 'Optical',
+        connectivity: 'Wireless',
+        buttons: '5',
+        weight: '63g',
+        dimensions: '128 x 68 x 44mm',
+        battery: '90 hours',
+        pollingRate: '1000Hz',
+        acceleration: '70G',
+        warranty: '2 Years',
+        rgb: true,
+        gaming: true,
+        wireless: true
+      },
+      features: ['Focus Pro 30K Sensor', 'Wireless', 'RGB Lighting', 'Gaming', 'Ergonomic'],
+      rating: 4.7,
+      reviews: 289,
+      inStock: true
+    },
+    {
+      id: 3,
+      name: 'Corsair Dark Core RGB Pro SE',
+      brand: 'Corsair',
+      price: 99.99,
+      image: 'https://images.unsplash.com/photo-1591799264318-7e6ef8ddb7ea?w=300&h=200&fit=crop',
+      specs: {
+        dpi: '18,000 DPI',
+        sensorType: 'Optical',
+        connectivity: 'Wireless',
+        buttons: '8',
+        weight: '133g',
+        dimensions: '130 x 80 x 43mm',
+        battery: '50 hours',
+        pollingRate: '2000Hz',
+        acceleration: '50G',
+        warranty: '2 Years',
+        rgb: true,
+        gaming: true,
+        wireless: true
+      },
+      features: ['Wireless', 'RGB Lighting', 'Gaming', 'iCUE Software', 'Multi-Device'],
+      rating: 4.5,
+      reviews: 156,
+      inStock: true
+    },
+    {
+      id: 4,
+      name: 'SteelSeries Rival 600',
+      brand: 'SteelSeries',
+      price: 79.99,
+      image: 'https://images.unsplash.com/photo-1591799264318-7e6ef8ddb7ea?w=300&h=200&fit=crop',
+      specs: {
+        dpi: '12,000 DPI',
+        sensorType: 'Optical',
+        connectivity: 'Wired',
+        buttons: '7',
+        weight: '96g',
+        dimensions: '131 x 69 x 43mm',
+        battery: 'N/A',
+        pollingRate: '1000Hz',
+        acceleration: '50G',
+        warranty: '1 Year',
+        rgb: true,
+        gaming: true,
+        wireless: false
+      },
+      features: ['TrueMove3+ Sensor', 'RGB Lighting', 'Gaming', 'Dual Sensor', 'Tactile Alerts'],
+      rating: 4.4,
+      reviews: 203,
+      inStock: false
+    },
+    {
+      id: 5,
+      name: 'Microsoft Pro IntelliMouse',
+      brand: 'Microsoft',
+      price: 69.99,
+      image: 'https://images.unsplash.com/photo-1591799264318-7e6ef8ddb7ea?w=300&h=200&fit=crop',
+      specs: {
+        dpi: '16,000 DPI',
+        sensorType: 'Optical',
+        connectivity: 'Wired',
+        buttons: '5',
+        weight: '135g',
+        dimensions: '130 x 70 x 45mm',
+        battery: 'N/A',
+        pollingRate: '1000Hz',
+        acceleration: '40G',
+        warranty: '3 Years',
+        rgb: false,
+        gaming: false,
+        wireless: false
+      },
+      features: ['Professional', 'High DPI', 'Ergonomic', 'Reliable', 'Office Use'],
+      rating: 4.3,
+      reviews: 178,
+      inStock: true
+    },
+    {
+      id: 6,
+      name: 'ASUS ROG Gladius III',
+      brand: 'ASUS',
+      price: 89.99,
+      image: 'https://images.unsplash.com/photo-1591799264318-7e6ef8ddb7ea?w=300&h=200&fit=crop',
+      specs: {
+        dpi: '19,000 DPI',
+        sensorType: 'Optical',
+        connectivity: 'Wired',
+        buttons: '6',
+        weight: '79g',
+        dimensions: '126 x 67 x 45mm',
+        battery: 'N/A',
+        pollingRate: '8000Hz',
+        acceleration: '50G',
+        warranty: '2 Years',
+        rgb: true,
+        gaming: true,
+        wireless: false
+      },
+      features: ['ROG AimPoint Sensor', 'RGB Lighting', 'Gaming', 'Hot-Swappable Switches', '8000Hz Polling'],
+      rating: 4.6,
+      reviews: 145,
+      inStock: true
+    }
+  ]
+
+  // Filter logic
+  const filteredMice = allMice.filter((mouseItem) => {
+    // Price filter
+    if (mouseItem.price < priceRange[0] || mouseItem.price > priceRange[1]) {
+      return false
+    }
+
+    // Search filter
+    if (searchTerm && !mouseItem.name.toLowerCase().includes(searchTerm.toLowerCase()) && 
+        !mouseItem.brand.toLowerCase().includes(searchTerm.toLowerCase())) {
+      return false
+    }
+
+    // DPI filter
+    if (selectedDPIs.length > 0 && !selectedDPIs.includes(mouseItem.specs.dpi)) {
+      return false
+    }
+
+    // Sensor type filter
+    if (selectedSensorTypes.length > 0 && !selectedSensorTypes.includes(mouseItem.specs.sensorType)) {
+      return false
+    }
+
+    // Connectivity filter
+    if (selectedConnectivities.length > 0 && !selectedConnectivities.includes(mouseItem.specs.connectivity)) {
+      return false
+    }
+
+    // Buttons filter
+    if (selectedButtons.length > 0 && !selectedButtons.includes(mouseItem.specs.buttons)) {
+      return false
+    }
+
+    // Brand filter
+    if (selectedBrands.length > 0 && !selectedBrands.includes(mouseItem.brand)) {
+      return false
+    }
+
+    // RGB filter
+    if (selectedRGB !== null && mouseItem.specs.rgb !== selectedRGB) {
+      return false
+    }
+
+    // Gaming filter
+    if (selectedGaming !== null && mouseItem.specs.gaming !== selectedGaming) {
+      return false
+    }
+
+    // Wireless filter
+    if (selectedWireless !== null && mouseItem.specs.wireless !== selectedWireless) {
+      return false
+    }
+
+    return true
+  })
+
+  const handleDPIChange = (dpi: string) => {
+    setSelectedDPIs(prev => 
+      prev.includes(dpi) 
+        ? prev.filter(d => d !== dpi)
+        : [...prev, dpi]
+    )
+  }
+
+  const handleSensorTypeChange = (sensorType: string) => {
+    setSelectedSensorTypes(prev => 
+      prev.includes(sensorType) 
+        ? prev.filter(s => s !== sensorType)
+        : [...prev, sensorType]
+    )
+  }
+
+  const handleConnectivityChange = (connectivity: string) => {
+    setSelectedConnectivities(prev => 
+      prev.includes(connectivity) 
+        ? prev.filter(c => c !== connectivity)
+        : [...prev, connectivity]
+    )
+  }
+
+  const handleButtonsChange = (buttons: string) => {
+    setSelectedButtons(prev => 
+      prev.includes(buttons) 
+        ? prev.filter(b => b !== buttons)
+        : [...prev, buttons]
+    )
+  }
+
+  const handleBrandChange = (brand: string) => {
+    setSelectedBrands(prev => 
+      prev.includes(brand) 
+        ? prev.filter(b => b !== brand)
+        : [...prev, brand]
+    )
+  }
+
+  const handleRGBChange = (value: boolean) => {
+    setSelectedRGB(prev => prev === value ? null : value)
+  }
+
+  const handleGamingChange = (value: boolean) => {
+    setSelectedGaming(prev => prev === value ? null : value)
+  }
+
+  const handleWirelessChange = (value: boolean) => {
+    setSelectedWireless(prev => prev === value ? null : value)
+  }
+
+  // Popup component
+  const FilterPopup = ({ 
+    isOpen, 
+    onClose, 
+    title, 
+    searchTerm, 
+    onSearchChange, 
+    options, 
+    selectedItems, 
+    onItemChange 
+  }: {
+    isOpen: boolean
+    onClose: () => void
+    title: string
+    searchTerm: string
+    onSearchChange: (value: string) => void
+    options: string[]
+    selectedItems: string[]
+    onItemChange: (item: string) => void
+  }) => {
+    if (!isOpen) return null
+
+    const filteredOptions = options.filter(option => 
+      option.toLowerCase().includes(searchTerm.toLowerCase())
+    )
+
+    return (
+      <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 p-4">
+        <div className="bg-white rounded-lg max-w-md w-full max-h-[80vh] overflow-hidden">
+          <div className="p-4 border-b">
+            <div className="flex justify-between items-center mb-4">
+              <h3 className="text-lg font-semibold">{title}</h3>
+              <button
+                onClick={onClose}
+                className="text-gray-400 hover:text-gray-600"
+              >
+                <svg className="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
+                </svg>
+              </button>
+            </div>
+            <input
+              type="text"
+              placeholder="Search..."
+              value={searchTerm}
+              onChange={(e) => onSearchChange(e.target.value)}
+              className="w-full px-3 py-2 border border-gray-300 rounded-md text-sm"
+            />
+          </div>
+          <div className="p-4 overflow-y-auto max-h-96">
+            <div className="space-y-2">
+              {filteredOptions.map((option) => (
+                <label key={option} className="flex items-center gap-2">
+                  <input
+                    type="checkbox"
+                    checked={selectedItems.includes(option)}
+                    onChange={() => onItemChange(option)}
+                    className="rounded"
+                  />
+                  <span className="text-sm">{option}</span>
+                </label>
+              ))}
+            </div>
+          </div>
+        </div>
+      </div>
+    )
+  }
+
+  return (
+    <div className="page bg-grid bg-radial">
+      <div className="layout">
+        {/* Sidebar giống HomePage */}
+        <aside className="sidebar">
+          <div className="flex items-center justify-between px-2 mb-6">
+            <div className="flex items-center gap-2">
+              <div className="size-6 rounded-lg bg-blue-600" />
+              <span className="font-semibold">EzBuild</span>
+            </div>
+          </div>
+
+          <div>
+            <div className="sidebar-group">Apps</div>
+            <Link className="nav-item" to="/">3D Builder</Link>
+            <span className="nav-item">Products</span>
+            <a className="nav-item" href="#">Sales</a>
+            <a className="nav-item" href="#">Compare</a>
+            <a className="nav-item" href="#">3D Part Gallery</a>
+          </div>
+
+          <div>
+            <div className="sidebar-group">Community</div>
+            <a className="nav-item" href="#">Completed Builds</a>
+            <a className="nav-item" href="#">Updates</a>
+            <a className="nav-item" href="#">Setup Builder</a>
+          </div>
+        </aside>
+
+        {/* Main */}
+        <main className="main">
+          {/* Breadcrumb + controls */}
+          <div className="mb-4 flex flex-col gap-3 md:flex-row md:items-center md:justify-between">
+            <div className="flex items-center gap-2 text-sm text-black/70">
+              <span>Products</span>
+              <svg className="w-3 h-3" viewBox="0 0 20 20" fill="currentColor"><path fillRule="evenodd" d="M7.293 14.707a1 1 0 010-1.414L10.586 10 7.293 6.707a1 1 0 011.414-1.414l4 4a1 1 0 010 1.414l-4 4a1 1 0 01-1.414 0z" clipRule="evenodd"/></svg>
+              <span className="font-medium text-black">Mouse</span>
+            </div>
+            <div className="flex items-center gap-3">
+              <select className="bg-black/5 hover:bg-black/10 text-black px-3 py-2 rounded-md text-sm">
+                <option>Default</option>
+              </select>
+              <input 
+                type="text" 
+                placeholder="Search" 
+                value={searchTerm}
+                onChange={(e) => setSearchTerm(e.target.value)}
+                className="bg-black/5 hover:bg-black/10 text-black px-3 py-2 rounded-md text-sm w-48" 
+              />
+            </div>
+          </div>
+
+          <div className="flex">
+            {/* Filters */}
+            <div className="w-80 hidden md:block pr-6">
+              <div className="rounded-lg border border-black/10 bg-white p-4 space-y-6">
+                <div>
+                  <h3 className="text-base font-semibold mb-3">Price</h3>
+                  <div className="space-y-2">
+                    <div className="flex justify-between text-xs text-black/60">
+                      <span>$20</span>
+                      <span>$200</span>
+                    </div>
+                    <input 
+                      type="range" 
+                      min="20" 
+                      max="200" 
+                      value={priceRange[1]}
+                      onChange={(e) => setPriceRange([priceRange[0], Number(e.target.value)])}
+                      className="w-full" 
+                    />
+                  </div>
+                </div>
+
+                <div>
+                  <h3 className="text-base font-semibold mb-3">DPI</h3>
+                  <div className="space-y-2 text-sm">
+                    {['12,000 DPI','16,000 DPI','18,000 DPI','19,000 DPI','25,600 DPI','30,000 DPI'].map((dpi) => (
+                      <label key={dpi} className="flex items-center gap-2">
+                        <input 
+                          type="checkbox" 
+                          checked={selectedDPIs.includes(dpi)}
+                          onChange={() => handleDPIChange(dpi)}
+                          className="rounded" 
+                        />
+                        <span>{dpi}</span>
+                      </label>
+                    ))}
+                    <button onClick={() => setShowDPIPopup(true)} className="text-blue-600 text-xs">Show More</button>
+                  </div>
+                </div>
+
+                <div>
+                  <h3 className="text-base font-semibold mb-3">Sensor Type</h3>
+                  <div className="space-y-2 text-sm">
+                    {['Optical'].map((sensorType) => (
+                      <label key={sensorType} className="flex items-center gap-2">
+                        <input 
+                          type="checkbox" 
+                          checked={selectedSensorTypes.includes(sensorType)}
+                          onChange={() => handleSensorTypeChange(sensorType)}
+                          className="rounded" 
+                        />
+                        <span>{sensorType}</span>
+                      </label>
+                    ))}
+                    <button onClick={() => setShowSensorTypePopup(true)} className="text-blue-600 text-xs">Show More</button>
+                  </div>
+                </div>
+
+                <div>
+                  <h3 className="text-base font-semibold mb-3">Connectivity</h3>
+                  <div className="space-y-2 text-sm">
+                    {['Wired','Wireless'].map((connectivity) => (
+                      <label key={connectivity} className="flex items-center gap-2">
+                        <input 
+                          type="checkbox" 
+                          checked={selectedConnectivities.includes(connectivity)}
+                          onChange={() => handleConnectivityChange(connectivity)}
+                          className="rounded" 
+                        />
+                        <span>{connectivity}</span>
+                      </label>
+                    ))}
+                    <button onClick={() => setShowConnectivityPopup(true)} className="text-blue-600 text-xs">Show More</button>
+                  </div>
+                </div>
+
+                <div>
+                  <h3 className="text-base font-semibold mb-3">Buttons</h3>
+                  <div className="space-y-2 text-sm">
+                    {['5','6','7','8'].map((buttons) => (
+                      <label key={buttons} className="flex items-center gap-2">
+                        <input 
+                          type="checkbox" 
+                          checked={selectedButtons.includes(buttons)}
+                          onChange={() => handleButtonsChange(buttons)}
+                          className="rounded" 
+                        />
+                        <span>{buttons}</span>
+                      </label>
+                    ))}
+                    <button onClick={() => setShowButtonsPopup(true)} className="text-blue-600 text-xs">Show More</button>
+                  </div>
+                </div>
+
+                <div>
+                  <h3 className="text-base font-semibold mb-3">Brand</h3>
+                  <div className="space-y-2 text-sm">
+                    {['Logitech','Razer','Corsair','SteelSeries','Microsoft','ASUS'].map((brand) => (
+                      <label key={brand} className="flex items-center gap-2">
+                        <input 
+                          type="checkbox" 
+                          checked={selectedBrands.includes(brand)}
+                          onChange={() => handleBrandChange(brand)}
+                          className="rounded" 
+                        />
+                        <span>{brand}</span>
+                      </label>
+                    ))}
+                    <button onClick={() => setShowBrandPopup(true)} className="text-blue-600 text-xs">Show More</button>
+                  </div>
+                </div>
+
+                <div>
+                  <h3 className="text-base font-semibold mb-3">RGB</h3>
+                  <div className="space-y-2 text-sm">
+                    <label className="flex items-center gap-2">
+                      <input 
+                        type="checkbox" 
+                        checked={selectedRGB === true}
+                        onChange={() => handleRGBChange(true)}
+                        className="rounded" 
+                      />
+                      <span>Yes</span>
+                    </label>
+                    <label className="flex items-center gap-2">
+                      <input 
+                        type="checkbox" 
+                        checked={selectedRGB === false}
+                        onChange={() => handleRGBChange(false)}
+                        className="rounded" 
+                      />
+                      <span>No</span>
+                    </label>
+                  </div>
+                </div>
+
+                <div>
+                  <h3 className="text-base font-semibold mb-3">Gaming</h3>
+                  <div className="space-y-2 text-sm">
+                    <label className="flex items-center gap-2">
+                      <input 
+                        type="checkbox" 
+                        checked={selectedGaming === true}
+                        onChange={() => handleGamingChange(true)}
+                        className="rounded" 
+                      />
+                      <span>Yes</span>
+                    </label>
+                    <label className="flex items-center gap-2">
+                      <input 
+                        type="checkbox" 
+                        checked={selectedGaming === false}
+                        onChange={() => handleGamingChange(false)}
+                        className="rounded" 
+                      />
+                      <span>No</span>
+                    </label>
+                  </div>
+                </div>
+
+                <div>
+                  <h3 className="text-base font-semibold mb-3">Wireless</h3>
+                  <div className="space-y-2 text-sm">
+                    <label className="flex items-center gap-2">
+                      <input 
+                        type="checkbox" 
+                        checked={selectedWireless === true}
+                        onChange={() => handleWirelessChange(true)}
+                        className="rounded" 
+                      />
+                      <span>Yes</span>
+                    </label>
+                    <label className="flex items-center gap-2">
+                      <input 
+                        type="checkbox" 
+                        checked={selectedWireless === false}
+                        onChange={() => handleWirelessChange(false)}
+                        className="rounded" 
+                      />
+                      <span>No</span>
+                    </label>
+                  </div>
+                </div>
+              </div>
+            </div>
+
+            {/* Grid */}
+            <div className="flex-1">
+              <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4 md:gap-6">
+                {filteredMice.map((mouseItem) => (
+                  <div key={mouseItem.id} className="rounded-lg border border-black/10 bg-white hover:bg-black/5 transition cursor-pointer" onClick={() => setSelectedMouse(mouseItem)}>
+                    <div className="p-4">
+                      <img src={mouseItem.image} alt={mouseItem.name} className="w-full h-48 object-cover rounded-lg mb-4" />
+                      <div className="text-sm font-medium mb-2 line-clamp-2">{mouseItem.name}</div>
+                      <div className="text-lg font-bold mb-3">${mouseItem.price}</div>
+                      <div className="space-y-1 text-xs text-black/60 mb-4">
+                        <div className="flex justify-between"><span>DPI:</span><span className="text-black">{mouseItem.specs.dpi}</span></div>
+                        <div className="flex justify-between"><span>Sensor:</span><span className="text-black">{mouseItem.specs.sensorType}</span></div>
+                        <div className="flex justify-between"><span>Connectivity:</span><span className="text-black">{mouseItem.specs.connectivity}</span></div>
+                        <div className="flex justify-between"><span>Buttons:</span><span className="text-black">{mouseItem.specs.buttons}</span></div>
+                        <div className="flex justify-between"><span>Weight:</span><span className="text-black">{mouseItem.specs.weight}</span></div>
+                      </div>
+                      <button className="w-full btn-primary">+ Add to build</button>
+                    </div>
+                  </div>
+                ))}
+              </div>
+            </div>
+          </div>
+        </main>
+      </div>
+
+      {/* Product Detail Modal */}
+      {selectedMouse && (
+        <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 p-4">
+          <div className="bg-white rounded-lg max-w-4xl w-full max-h-[90vh] overflow-y-auto">
+            <div className="p-6">
+              <div className="flex justify-between items-start mb-6">
+                <div>
+                  <h2 className="text-3xl font-bold text-gray-900">{selectedMouse.name}</h2>
+                  <p className="text-lg text-gray-600">{selectedMouse.brand}</p>
+                </div>
+                <button
+                  onClick={() => setSelectedMouse(null)}
+                  className="text-gray-400 hover:text-gray-600"
+                >
+                  <svg className="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
+                  </svg>
+                </button>
+              </div>
+              
+              <div className="grid grid-cols-1 lg:grid-cols-2 gap-8">
+                <div>
+                  <img
+                    src={selectedMouse.image}
+                    alt={selectedMouse.name}
+                    className="w-full h-96 object-cover rounded-lg"
+                  />
+                </div>
+                
+                <div>
+                  <div className="text-3xl font-bold text-blue-600 mb-4">${selectedMouse.price}</div>
+                  
+                  <div className="mb-6">
+                    <h3 className="text-lg font-semibold mb-3">Specifications</h3>
+                    <div className="space-y-2">
+                      {Object.entries(selectedMouse.specs).map(([key, value]) => (
+                        <div key={key} className="flex justify-between">
+                          <span className="text-gray-600 capitalize">{key.replace(/([A-Z])/g, ' $1').trim()}:</span>
+                          <span className="font-medium">{value.toString()}</span>
+                        </div>
+                      ))}
+                    </div>
+                  </div>
+                  
+                  <div className="mb-6">
+                    <h3 className="text-lg font-semibold mb-3">Features</h3>
+                    <div className="flex flex-wrap gap-2">
+                      {selectedMouse.features.map((feature, index) => (
+                        <span
+                          key={index}
+                          className="px-3 py-1 bg-blue-100 text-blue-800 text-sm rounded-full"
+                        >
+                          {feature}
+                        </span>
+                      ))}
+                    </div>
+                  </div>
+                  
+                  <div className="flex space-x-4">
+                    <button 
+                      className={`flex-1 px-6 py-3 rounded-lg font-semibold transition-colors ${
+                        selectedMouse.inStock 
+                          ? 'bg-blue-600 text-white hover:bg-blue-700' 
+                          : 'bg-gray-300 text-gray-500 cursor-not-allowed'
+                      }`}
+                      disabled={!selectedMouse.inStock}
+                    >
+                      {selectedMouse.inStock ? 'Add to Build' : 'Out of Stock'}
+                    </button>
+                    <button className="flex-1 border border-blue-600 text-blue-600 px-6 py-3 rounded-lg font-semibold hover:bg-blue-50 transition-colors">
+                      Compare
+                    </button>
+                  </div>
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* Filter Popups */}
+      <FilterPopup
+        isOpen={showDPIPopup}
+        onClose={() => setShowDPIPopup(false)}
+        title="DPI"
+        searchTerm={dpiSearch}
+        onSearchChange={setDpiSearch}
+        options={['400 DPI','800 DPI','1000 DPI','1600 DPI','3200 DPI','6400 DPI','8000 DPI','12,000 DPI','16,000 DPI','18,000 DPI','19,000 DPI','25,600 DPI','30,000 DPI','32,000 DPI']}
+        selectedItems={selectedDPIs}
+        onItemChange={handleDPIChange}
+      />
+
+      <FilterPopup
+        isOpen={showSensorTypePopup}
+        onClose={() => setShowSensorTypePopup(false)}
+        title="Sensor Type"
+        searchTerm={sensorTypeSearch}
+        onSearchChange={setSensorTypeSearch}
+        options={['Optical','Laser','Trackball','Touchpad']}
+        selectedItems={selectedSensorTypes}
+        onItemChange={handleSensorTypeChange}
+      />
+
+      <FilterPopup
+        isOpen={showConnectivityPopup}
+        onClose={() => setShowConnectivityPopup(false)}
+        title="Connectivity"
+        searchTerm={connectivitySearch}
+        onSearchChange={setConnectivitySearch}
+        options={['Wired','Wireless','Bluetooth','USB-C','USB-A','2.4GHz','RF']}
+        selectedItems={selectedConnectivities}
+        onItemChange={handleConnectivityChange}
+      />
+
+      <FilterPopup
+        isOpen={showButtonsPopup}
+        onClose={() => setShowButtonsPopup(false)}
+        title="Buttons"
+        searchTerm={buttonsSearch}
+        onSearchChange={setButtonsSearch}
+        options={['2','3','4','5','6','7','8','9','10','11','12','13','14','15','16','17','18','19','20']}
+        selectedItems={selectedButtons}
+        onItemChange={handleButtonsChange}
+      />
+
+      <FilterPopup
+        isOpen={showBrandPopup}
+        onClose={() => setShowBrandPopup(false)}
+        title="Brand"
+        searchTerm={brandSearch}
+        onSearchChange={setBrandSearch}
+        options={['Logitech','Razer','Corsair','SteelSeries','Microsoft','ASUS','HyperX','BenQ','ROCCAT','Glorious','Finalmouse','Pulsar','Vaxee','Zowie']}
+        selectedItems={selectedBrands}
+        onItemChange={handleBrandChange}
+      />
+    </div>
+  )
+}
+
+export default MousePage
