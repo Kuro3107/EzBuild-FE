@@ -47,7 +47,7 @@ function HomePage() {
 
           <div>
             <div className="sidebar-group">Apps</div>
-            <a className="nav-item" href="#">3D Builder</a>
+            <Link className="nav-item" to="/">3D Builder</Link>
             <a
               className="nav-item cursor-pointer"
               href="#"
@@ -59,7 +59,7 @@ function HomePage() {
             >
               Products
             </a>
-            <a className="nav-item" href="#">Sales</a>
+            <Link className="nav-item" to="/sales">Sales</Link>
             <a className="nav-item" href="#">Compare</a>
             <a className="nav-item" href="#">3D Part Gallery</a>
           </div>

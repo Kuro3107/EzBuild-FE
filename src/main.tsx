@@ -3,6 +3,7 @@ import { createRoot } from 'react-dom/client'
 import { BrowserRouter as Router, Routes, Route } from 'react-router-dom'
 import './index.css'
 import HomePage from './HomePage.tsx'
+import SalesPage from './pages/sales.tsx'
 import CasePage from './pages/products/case.tsx'
 import CPUPage from './pages/products/cpu.tsx'
 import MainboardPage from './pages/products/mainboard.tsx'
@@ -25,6 +26,7 @@ createRoot(document.getElementById('root')!).render(
     <Router>
       <Routes>
         <Route path="/" element={<HomePage />} />
+        <Route path="/sales" element={<SalesPage />} />
         <Route path="/products/case" element={<CasePage />} />
         <Route path="/products/cpu" element={<CPUPage />} />
         <Route path="/products/mainboard" element={<MainboardPage />} />
