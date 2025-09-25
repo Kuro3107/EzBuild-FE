@@ -60,7 +60,7 @@ function HomePage() {
               Products
             </a>
             <Link className="nav-item" to="/sales">Sales</Link>
-            <a className="nav-item" href="#">Compare</a>
+            <Link className="nav-item" to="/compare">Compare</Link>
             <a className="nav-item" href="#">3D Part Gallery</a>
           </div>
 
@@ -88,6 +88,8 @@ function HomePage() {
             <div className="hero-actions">
               <a href="#" className="btn-secondary">Download Mobile App</a>
               <a href="#" className="btn-primary">Start Building</a>
+              <Link to="/login" className="btn-secondary">Log In</Link>
+              <Link to="/register" className="btn-primary">Sign Up</Link>
             </div>
           </section>
 
