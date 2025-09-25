@@ -20,6 +20,9 @@ import HeadphonesPage from './pages/products/headphones.tsx'
 import WebcamPage from './pages/products/webcam.tsx'
 import MicrophonePage from './pages/products/microphone.tsx'
 import SpeakersPage from './pages/products/speakers.tsx'
+import LoginPage from './pages/login&register/login.tsx'
+import RegisterPage from './pages/login&register/register.tsx'
+import ComparePage from './pages/compare/compare.tsx'
 
 createRoot(document.getElementById('root')!).render(
   <StrictMode>
@@ -27,6 +30,9 @@ createRoot(document.getElementById('root')!).render(
       <Routes>
         <Route path="/" element={<HomePage />} />
         <Route path="/sales" element={<SalesPage />} />
+        <Route path="/compare" element={<ComparePage />} />
+        <Route path="/login" element={<LoginPage />} />
+        <Route path="/register" element={<RegisterPage />} />
         <Route path="/products/case" element={<CasePage />} />
         <Route path="/products/cpu" element={<CPUPage />} />
         <Route path="/products/mainboard" element={<MainboardPage />} />
