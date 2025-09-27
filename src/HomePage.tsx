@@ -1,6 +1,7 @@
 import './Homepage.css'
 import { useEffect, useRef, useState } from 'react'
 import { Link } from 'react-router-dom'
+import ApiDebugger from './components/ApiDebugger'
 
 function HomePage() {
   const [isProductsOpen, setIsProductsOpen] = useState(false)
@@ -317,6 +318,9 @@ function HomePage() {
           </div>
         )}
       </div>
+      
+      {/* API Debugger - chỉ hiển thị trong development */}
+      {import.meta.env.DEV && <ApiDebugger />}
     </div>
   )
 }

@@ -1,11 +1,21 @@
 import { Link, useLocation, useNavigate } from 'react-router-dom'
 import { useState } from 'react'
+import ApiService from '../../services/api'
 import './index.css'
 
 function RegisterPage() {
-  const [email, setEmail] = useState('')
-  const [password, setPassword] = useState('')
+  const [formData, setFormData] = useState({
+    username: '',
+    fullname: '',
+    email: '',
+    password: '',
+    phone: '',
+    dob: '',
+    address: ''
+  })
   const [isPasswordVisible, setIsPasswordVisible] = useState(false)
+  const [isSubmitting, setIsSubmitting] = useState(false)
+  const [errorMessage, setErrorMessage] = useState<string | null>(null)
   const navigate = useNavigate()
   const location = useLocation() as { state?: { from?: string } }
 
@@ -20,9 +30,46 @@ function RegisterPage() {
     navigate(location.state?.from || '/')
   }
 
-  function handleSubmit(event: React.FormEvent<HTMLFormElement>) {
+  function handleInputChange(field: keyof typeof formData) {
+    return (e: React.ChangeEvent<HTMLInputElement>) => {
+      setFormData(prev => ({
+        ...prev,
+        [field]: e.target.value
+      }))
+    }
+  }
+
+  async function handleSubmit(event: React.FormEvent<HTMLFormElement>) {
     event.preventDefault()
-    alert(`Create account with\nEmail: ${email}`)
+    if (isSubmitting) return
+    setErrorMessage(null)
+    setIsSubmitting(true)
+
+    try {
+      const data = await ApiService.register({
+        username: formData.username,
+        fullname: formData.fullname,
+        email: formData.email,
+        password: formData.password,
+        phone: formData.phone,
+        dob: formData.dob,
+        address: formData.address
+      })
+
+      localStorage.setItem('authToken', data.token)
+      if (data.user) {
+        localStorage.setItem('authUser', JSON.stringify(data.user))
+      }
+
+      const redirectTo = location.state?.from || '/'
+      navigate(redirectTo)
+    } catch (error: unknown) {
+      console.error('Register error:', error)
+      const message = error instanceof Error ? error.message : 'Có lỗi xảy ra'
+      setErrorMessage(message)
+    } finally {
+      setIsSubmitting(false)
+    }
   }
 
   return (
@@ -53,27 +100,102 @@ function RegisterPage() {
           <div className="auth-divider"><span>OR CONTINUE WITH EMAIL</span></div>
 
           <form onSubmit={handleSubmit} className="auth-form">
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+              <label className="auth-label">
+                <span className="mb-1 block">Username *</span>
+                <div className="auth-input-wrap">
+                  <input
+                    type="text"
+                    required
+                    value={formData.username}
+                    onChange={handleInputChange('username')}
+                    placeholder="username"
+                    className="auth-input"
+                  />
+                </div>
+              </label>
+              
+              <label className="auth-label">
+                <span className="mb-1 block">Full Name *</span>
+                <div className="auth-input-wrap">
+                  <input
+                    type="text"
+                    required
+                    value={formData.fullname}
+                    onChange={handleInputChange('fullname')}
+                    placeholder="fullname"
+                    className="auth-input"
+                  />
+                </div>
+              </label>
+            </div>
+
             <label className="auth-label">
-              <span className="mb-1 block">Email</span>
+              <span className="mb-1 block">Email *</span>
               <div className="auth-input-wrap">
                 <input
                   type="email"
                   required
-                  value={email}
-                  onChange={(e) => setEmail(e.target.value)}
-                  placeholder="linus@gmail.com"
+                  value={formData.email}
+                  onChange={handleInputChange('email')}
+                  placeholder="email"
                   className="auth-input"
                 />
               </div>
             </label>
+
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+              <label className="auth-label">
+                <span className="mb-1 block">Phone *</span>
+                <div className="auth-input-wrap">
+                  <input
+                    type="tel"
+                    required
+                    value={formData.phone}
+                    onChange={handleInputChange('phone')}
+                    placeholder="phone"
+                    className="auth-input"
+                  />
+                </div>
+              </label>
+              
+              <label className="auth-label">
+                <span className="mb-1 block">Date of Birth *</span>
+                <div className="auth-input-wrap">
+                  <input
+                    type="date"
+                    required
+                    value={formData.dob}
+                    onChange={handleInputChange('dob')}
+                    className="auth-input"
+                  />
+                </div>
+              </label>
+            </div>
+
             <label className="auth-label">
-              <span className="mb-1 block">Password</span>
+              <span className="mb-1 block">Address *</span>
+              <div className="auth-input-wrap">
+                <input
+                  type="text"
+                  required
+                  value={formData.address}
+                  onChange={handleInputChange('address')}
+                  placeholder="address"
+                  className="auth-input"
+                />
+              </div>
+            </label>
+
+            <label className="auth-label">
+              <span className="mb-1 block">Password *</span>
               <div className="auth-input-wrap">
                 <input
                   type={isPasswordVisible ? 'text' : 'password'}
                   required
-                  value={password}
-                  onChange={(e) => setPassword(e.target.value)}
+                  value={formData.password}
+                  onChange={handleInputChange('password')}
+                  placeholder="Enter your password"
                   className="auth-input"
                 />
                 <button
@@ -91,11 +213,16 @@ function RegisterPage() {
               </div>
             </label>
 
+            {errorMessage ? (
+              <div className="auth-error" role="alert">{errorMessage}</div>
+            ) : null}
+
             <button
               type="submit"
               className="auth-submit"
+              disabled={isSubmitting}
             >
-              Create account
+              {isSubmitting ? 'Creating account…' : 'Create account'}
             </button>
           </form>
 

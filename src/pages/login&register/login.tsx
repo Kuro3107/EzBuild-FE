@@ -1,5 +1,6 @@
 import { Link, useLocation, useNavigate } from 'react-router-dom'
 import { useState } from 'react'
+import ApiService from '../../services/api'
 import './index.css'
 
 function LoginPage() {
@@ -27,30 +28,10 @@ function LoginPage() {
     setIsSubmitting(true)
 
     try {
-      const baseUrl = import.meta.env?.VITE_API_BASE_URL || ''
-      const url = `${baseUrl}/auth/login`
-
-      const response = await fetch(url, {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-        },
-        body: JSON.stringify({
-          identifier, // email or username
-          password,
-        }),
+      const data = await ApiService.login({
+        identifier, // email or username
+        password,
       })
-
-      if (!response.ok) {
-        const problem = await response.json().catch(() => ({}))
-        throw new Error(problem?.message || 'Đăng nhập thất bại')
-      }
-
-      type AuthResponse = { token?: string, user?: Record<string, unknown> }
-      const data = await response.json() as AuthResponse
-      if (!data?.token) {
-        throw new Error('Thiếu token từ máy chủ')
-      }
 
       localStorage.setItem('authToken', data.token)
       if (data.user) {
@@ -60,6 +41,7 @@ function LoginPage() {
       const redirectTo = location.state?.from || '/'
       navigate(redirectTo)
     } catch (error: unknown) {
+      console.error('Login error:', error)
       const message = error instanceof Error ? error.message : 'Có lỗi xảy ra'
       setErrorMessage(message)
     } finally {
