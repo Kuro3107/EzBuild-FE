@@ -1,6 +1,7 @@
-import React, { useState } from 'react'
+import { useState, useEffect } from 'react'
 import { Link } from 'react-router-dom'
 import '../../Homepage.css'
+import { ApiService } from '../../services/api'
 
 interface CPUItem {
   id: number
@@ -41,6 +42,10 @@ function CPUPage() {
   const [selectedLithography, setSelectedLithography] = useState<string[]>([])
   const [selectedMemoryTypes, setSelectedMemoryTypes] = useState<string[]>([])
   
+  // API states
+  const [cpus, setCpus] = useState<CPUItem[]>([])
+  const [loading, setLoading] = useState(false)
+  
   // Popup states
   const [showSocketTypePopup, setShowSocketTypePopup] = useState(false)
   const [showCoresPopup, setShowCoresPopup] = useState(false)
@@ -61,157 +66,80 @@ function CPUPage() {
   const [lithographySearch, setLithographySearch] = useState('')
   const [memoryTypeSearch, setMemoryTypeSearch] = useState('')
 
-  const allCPUs = [
-    {
-      id: 1,
-      name: 'Intel Core i9-13900K',
-      brand: 'Intel',
-      price: 589.99,
-      image: 'https://images.unsplash.com/photo-1591799264318-7e6ef8ddb7ea?w=300&h=200&fit=crop',
-      specs: {
-        socketType: 'LGA 1700',
-        cores: 24,
-        threads: 32,
-        baseClock: '3.0 GHz',
-        boostClock: '5.8 GHz',
-        tdp: '125W',
-        integratedGraphics: true,
-        cache: '36MB',
-        lithography: '10nm',
-        memoryType: 'DDR4-3200, DDR5-5600',
-        maxMemory: '128GB'
-      },
-      features: ['Unlocked Multiplier', 'Intel UHD Graphics 770', 'PCIe 5.0 Support', 'DDR5 Support'],
-      rating: 4.8,
-      reviews: 342,
-      inStock: true
-    },
-    {
-      id: 2,
-      name: 'AMD Ryzen 9 7950X',
-      brand: 'AMD',
-      price: 699.99,
-      image: 'https://images.unsplash.com/photo-1591799264318-7e6ef8ddb7ea?w=300&h=200&fit=crop',
-      specs: {
-        socketType: 'AM5',
-        cores: 16,
-        threads: 32,
-        baseClock: '4.5 GHz',
-        boostClock: '5.7 GHz',
-        tdp: '170W',
-        integratedGraphics: true,
-        cache: '80MB',
-        lithography: '5nm',
-        memoryType: 'DDR5-5200',
-        maxMemory: '128GB'
-      },
-      features: ['Unlocked Multiplier', 'Radeon Graphics', 'PCIe 5.0 Support', 'DDR5 Only'],
-      rating: 4.7,
-      reviews: 289,
-      inStock: true
-    },
-    {
-      id: 3,
-      name: 'Intel Core i7-13700K',
-      brand: 'Intel',
-      price: 419.99,
-      image: 'https://images.unsplash.com/photo-1591799264318-7e6ef8ddb7ea?w=300&h=200&fit=crop',
-      specs: {
-        socketType: 'LGA 1700',
-        cores: 16,
-        threads: 24,
-        baseClock: '3.4 GHz',
-        boostClock: '5.4 GHz',
-        tdp: '125W',
-        integratedGraphics: true,
-        cache: '30MB',
-        lithography: '10nm',
-        memoryType: 'DDR4-3200, DDR5-5600',
-        maxMemory: '128GB'
-      },
-      features: ['Unlocked Multiplier', 'Intel UHD Graphics 770', 'PCIe 5.0 Support', 'DDR5 Support'],
-      rating: 4.6,
-      reviews: 156,
-      inStock: true
-    },
-    {
-      id: 4,
-      name: 'AMD Ryzen 7 7700X',
-      brand: 'AMD',
-      price: 399.99,
-      image: 'https://images.unsplash.com/photo-1591799264318-7e6ef8ddb7ea?w=300&h=200&fit=crop',
-      specs: {
-        socketType: 'AM5',
-        cores: 8,
-        threads: 16,
-        baseClock: '4.5 GHz',
-        boostClock: '5.4 GHz',
-        tdp: '105W',
-        integratedGraphics: true,
-        cache: '40MB',
-        lithography: '5nm',
-        memoryType: 'DDR5-5200',
-        maxMemory: '128GB'
-      },
-      features: ['Unlocked Multiplier', 'Radeon Graphics', 'PCIe 5.0 Support', 'DDR5 Only'],
-      rating: 4.5,
-      reviews: 203,
-      inStock: false
-    },
-    {
-      id: 5,
-      name: 'Intel Core i5-13600K',
-      brand: 'Intel',
-      price: 319.99,
-      image: 'https://images.unsplash.com/photo-1591799264318-7e6ef8ddb7ea?w=300&h=200&fit=crop',
-      specs: {
-        socketType: 'LGA 1700',
-        cores: 14,
-        threads: 20,
-        baseClock: '3.5 GHz',
-        boostClock: '5.1 GHz',
-        tdp: '125W',
-        integratedGraphics: true,
-        cache: '24MB',
-        lithography: '10nm',
-        memoryType: 'DDR4-3200, DDR5-5600',
-        maxMemory: '128GB'
-      },
-      features: ['Unlocked Multiplier', 'Intel UHD Graphics 770', 'PCIe 5.0 Support', 'DDR5 Support'],
-      rating: 4.4,
-      reviews: 178,
-      inStock: true
-    },
-    {
-      id: 6,
-      name: 'AMD Ryzen 5 7600X',
-      brand: 'AMD',
-      price: 299.99,
-      image: 'https://images.unsplash.com/photo-1591799264318-7e6ef8ddb7ea?w=300&h=200&fit=crop',
-      specs: {
-        socketType: 'AM5',
-        cores: 6,
-        threads: 12,
-        baseClock: '4.7 GHz',
-        boostClock: '5.3 GHz',
-        tdp: '105W',
-        integratedGraphics: true,
-        cache: '38MB',
-        lithography: '5nm',
-        memoryType: 'DDR5-5200',
-        maxMemory: '128GB'
-      },
-      features: ['Unlocked Multiplier', 'Radeon Graphics', 'PCIe 5.0 Support', 'DDR5 Only'],
-      rating: 4.3,
-      reviews: 145,
-      inStock: true
+  // Fetch CPUs from API
+  useEffect(() => {
+    fetchCPUs()
+  }, [])
+
+  const fetchCPUs = async () => {
+    setLoading(true)
+    try {
+      const cpuData = await ApiService.getCPUsOnly()
+      
+      if (cpuData.length === 0) {
+        setCpus([])
+        return
+      }
+      
+      // Convert API data to CPUItem format
+      const formattedCPUs: CPUItem[] = cpuData.map((item: Record<string, unknown>) => {
+        
+        // Parse specs string (e.g., "4.3 GHz 16-Core")
+        const specsString = String(item.specs || '')
+        const baseClockMatch = specsString.match(/(\d+\.?\d*)\s*GHz/)
+        const coresMatch = specsString.match(/(\d+)-Core/)
+        const baseClock = baseClockMatch ? `${baseClockMatch[1]} GHz` : 'Unknown'
+        const cores = coresMatch ? parseInt(coresMatch[1]) : 0
+        const threads = cores * 2 // AMD thường có 2 threads per core
+        
+        // Lấy giá từ productPrices (lấy giá thấp nhất)
+        const productPrices = item.productPrices as Array<{price: number}> || []
+        const minPrice = productPrices.length > 0 
+          ? Math.min(...productPrices.map(p => p.price)) 
+          : 0
+        
+        return {
+          id: Number(item.id) || 0,
+          name: String(item.name) || 'Unknown CPU',
+          brand: String(item.brand) || 'Unknown',
+          price: minPrice,
+          image: String(item.image_url1 || item.imageUrl1 || 'https://images.unsplash.com/photo-1591799264318-7e6ef8ddb7ea?w=300&h=200&fit=crop'),
+          specs: {
+            socketType: String(item.socket) || 'Unknown',
+            cores: cores,
+            threads: threads,
+            baseClock: baseClock,
+            boostClock: 'Unknown',
+            tdp: `${Number(item.tdp_watt || item.tdpWatt) || 0}W`,
+            integratedGraphics: true,
+            cache: 'Unknown',
+            lithography: 'Unknown',
+            memoryType: 'Unknown',
+            maxMemory: 'Unknown'
+          },
+          features: ['Unknown'],
+          rating: 4.0,
+          reviews: 0,
+          inStock: true
+        }
+      })
+      
+      setCpus(formattedCPUs)
+    } catch (err) {
+      console.error('Error fetching CPUs:', err)
+      setCpus([]) // Sử dụng fallback data
+    } finally {
+      setLoading(false)
     }
-  ]
+  }
+
+  // Chỉ sử dụng dữ liệu từ API
+  const allCPUs = cpus
 
   // Filter logic
   const filteredCPUs = allCPUs.filter((cpuItem) => {
-    // Price filter
-    if (cpuItem.price < priceRange[0] || cpuItem.price > priceRange[1]) {
+    // Price filter - chỉ filter nếu có giá > 0
+    if (cpuItem.price > 0 && (cpuItem.price < priceRange[0] || cpuItem.price > priceRange[1])) {
       return false
     }
 
@@ -652,13 +580,52 @@ function CPUPage() {
 
             {/* Grid */}
             <div className="flex-1">
-              <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4 md:gap-6">
-                {filteredCPUs.map((cpuItem) => (
+              {loading && (
+                <div className="flex justify-center items-center py-12">
+                  <div className="text-lg text-gray-600">Đang tải dữ liệu CPU...</div>
+                </div>
+              )}
+              
+              
+              {filteredCPUs.length === 0 ? (
+                <div className="text-center py-12">
+                  <div className="text-lg text-gray-600 mb-4">
+                    {cpus.length === 0 ? 'Không có CPU nào trong database' : 'Không tìm thấy CPU nào phù hợp'}
+                  </div>
+                  <div className="text-sm text-gray-500 mb-4">
+                    {cpus.length === 0 ? 'Vui lòng thêm CPU vào database' : 'Thử điều chỉnh bộ lọc hoặc tìm kiếm khác'}
+                  </div>
+                  {cpus.length > 0 && (
+                    <button 
+                      onClick={() => {
+                        setSearchTerm('')
+                        setSelectedSocketTypes([])
+                        setSelectedCores([])
+                        setSelectedBaseClocks([])
+                        setSelectedBoostClocks([])
+                        setSelectedTDPs([])
+                        setSelectedIntegratedGraphics(null)
+                        setSelectedManufacturers([])
+                        setSelectedLithography([])
+                        setSelectedMemoryTypes([])
+                        setPriceRange([50, 2000])
+                      }}
+                      className="px-4 py-2 bg-blue-500 text-white rounded hover:bg-blue-600"
+                    >
+                      Xóa tất cả bộ lọc
+                    </button>
+                  )}
+                </div>
+              ) : (
+                <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4 md:gap-6">
+                  {filteredCPUs.map((cpuItem) => (
                   <div key={cpuItem.id} className="rounded-lg border border-black/10 bg-white hover:bg-black/5 transition cursor-pointer" onClick={() => setSelectedCPU(cpuItem)}>
                     <div className="p-4">
                       <img src={cpuItem.image} alt={cpuItem.name} className="w-full h-48 object-cover rounded-lg mb-4" />
                       <div className="text-sm font-medium mb-2 line-clamp-2">{cpuItem.name}</div>
-                      <div className="text-lg font-bold mb-3">${cpuItem.price}</div>
+                      <div className="text-lg font-bold mb-3">
+                        {cpuItem.price > 0 ? `${cpuItem.price.toLocaleString('vi-VN')} VND` : 'Liên hệ'}
+                      </div>
                       <div className="space-y-1 text-xs text-black/60 mb-4">
                         <div className="flex justify-between"><span>Socket:</span><span className="text-black">{cpuItem.specs.socketType}</span></div>
                         <div className="flex justify-between"><span>Cores:</span><span className="text-black">{cpuItem.specs.cores}</span></div>
@@ -669,8 +636,9 @@ function CPUPage() {
                       <button className="w-full btn-primary">+ Add to build</button>
                     </div>
                   </div>
-                ))}
-              </div>
+                  ))}
+                </div>
+              )}
             </div>
           </div>
         </main>
@@ -706,7 +674,9 @@ function CPUPage() {
                 </div>
                 
                 <div>
-                  <div className="text-3xl font-bold text-blue-600 mb-4">${selectedCPU.price}</div>
+                  <div className="text-3xl font-bold text-blue-600 mb-4">
+                    {selectedCPU.price > 0 ? `${selectedCPU.price.toLocaleString('vi-VN')} VND` : 'Liên hệ'}
+                  </div>
                   
                   <div className="mb-6">
                     <h3 className="text-lg font-semibold mb-3">Specifications</h3>

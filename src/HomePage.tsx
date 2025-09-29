@@ -1,12 +1,33 @@
 import './Homepage.css'
 import { useEffect, useRef, useState } from 'react'
 import { Link } from 'react-router-dom'
-import ApiDebugger from './components/ApiDebugger'
+import { ApiService } from './services/api'
 
 function HomePage() {
   const [isProductsOpen, setIsProductsOpen] = useState(false)
+  const [isUserMenuOpen, setIsUserMenuOpen] = useState(false)
+  const [currentUser, setCurrentUser] = useState<Record<string, unknown> | null>(null)
   const productsBtnRef = useRef<HTMLAnchorElement | null>(null)
   const popoverRef = useRef<HTMLDivElement | null>(null)
+  const userMenuRef = useRef<HTMLDivElement | null>(null)
+
+  // Kiểm tra trạng thái đăng nhập khi component mount
+  useEffect(() => {
+    const user = ApiService.getCurrentUser()
+    console.log('Current user:', user) // Debug
+    
+    // Test tạm thời - nếu không có user, tạo user test
+    if (!user) {
+      const testUser = {
+        email: 'info.leminhthuan@gmail.com',
+        username: 'leminhthuan',
+        id: 'test123'
+      }
+      setCurrentUser(testUser)
+    } else {
+      setCurrentUser(user)
+    }
+  }, [])
 
   useEffect(() => {
     if (!isProductsOpen) return
@@ -34,6 +55,41 @@ function HomePage() {
       document.removeEventListener('keydown', handleEscape)
     }
   }, [isProductsOpen])
+
+  // Xử lý click outside cho user menu
+  useEffect(() => {
+    if (!isUserMenuOpen) return
+
+    function handleClickOutside(event: MouseEvent) {
+      const target = event.target as Node
+      if (
+        userMenuRef.current &&
+        !userMenuRef.current.contains(target)
+      ) {
+        setIsUserMenuOpen(false)
+      }
+    }
+
+    function handleEscape(event: KeyboardEvent) {
+      if (event.key === 'Escape') setIsUserMenuOpen(false)
+    }
+
+    document.addEventListener('mousedown', handleClickOutside)
+    document.addEventListener('keydown', handleEscape)
+    return () => {
+      document.removeEventListener('mousedown', handleClickOutside)
+      document.removeEventListener('keydown', handleEscape)
+    }
+  }, [isUserMenuOpen])
+
+  // Xử lý logout
+  const handleLogout = () => {
+    localStorage.removeItem('authToken')
+    setCurrentUser(null)
+    setIsUserMenuOpen(false)
+    // Có thể thêm redirect về trang login nếu cần
+  }
+
 
   return (
     <div className="page bg-grid bg-radial">
@@ -78,6 +134,43 @@ function HomePage() {
               <a href="#">FAQ</a>
             </div>
           </div>
+
+          {/* User Menu - nằm trong sidebar */}
+          {currentUser && (
+            <div className="mt-4">
+              <div className="relative">
+                <button
+                  onClick={() => setIsUserMenuOpen(!isUserMenuOpen)}
+                  className="w-full px-2 py-2 bg-white border border-black rounded-lg text-black hover:bg-gray-50 transition-colors text-xs text-left shadow-sm"
+                >
+                  <span className="break-all font-medium">
+                    {currentUser.email as string || 'User'}
+                  </span>
+                </button>
+                
+                {isUserMenuOpen && (
+                  <div
+                    ref={userMenuRef}
+                    className="absolute bottom-0 left-full ml-2 w-48 bg-white/95 backdrop-blur-sm rounded-xl border border-black shadow-2xl py-2"
+                  >
+                    <button className="w-full px-4 py-2 text-left text-black hover:bg-black/5 transition-colors text-sm">
+                      Profile
+                    </button>
+                    <button className="w-full px-4 py-2 text-left text-black hover:bg-black/5 transition-colors text-sm">
+                      Favorites
+                    </button>
+                    <hr className="my-2 border-black/10" />
+                    <button 
+                      onClick={handleLogout}
+                      className="w-full px-4 py-2 text-left text-black hover:bg-black/5 transition-colors text-sm"
+                    >
+                      Log out
+                    </button>
+                  </div>
+                )}
+              </div>
+            </div>
+          )}
         </aside>
 
         <main className="main">
@@ -89,9 +182,14 @@ function HomePage() {
             <div className="hero-actions">
               <a href="#" className="btn-secondary">Download Mobile App</a>
               <a href="#" className="btn-primary">Start Building</a>
-              <Link to="/login" className="btn-secondary">Log In</Link>
-              <Link to="/register" className="btn-primary">Sign Up</Link>
+              {!currentUser && (
+                <>
+                  <Link to="/login" className="btn-secondary">Log In</Link>
+                  <Link to="/register" className="btn-primary">Sign Up</Link>
+                </>
+              )}
             </div>
+
           </section>
 
           <div className="section-title">Quick Start</div>
@@ -319,8 +417,6 @@ function HomePage() {
         )}
       </div>
       
-      {/* API Debugger - chỉ hiển thị trong development */}
-      {import.meta.env.DEV && <ApiDebugger />}
     </div>
   )
 }
