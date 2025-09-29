@@ -221,6 +221,226 @@ export class ApiService {
     return this.handleResponse<Record<string, unknown>>(response)
   }
 
+  // Product APIs
+  static async getCPUs(): Promise<Record<string, unknown>[]> {
+    try {
+      // Thử nhiều cách để lấy tất cả 28 CPU
+      let allProducts: Record<string, unknown>[] = []
+      
+      // Thử 1: API bình thường
+      try {
+        const response = await fetch(`${API_BASE_URL}/api/product`, {
+          method: 'GET',
+          headers: { 'Content-Type': 'application/json' },
+        })
+        if (response.ok) {
+          allProducts = await this.handleResponse<Record<string, unknown>[]>(response)
+          console.log('API bình thường:', allProducts.length, 'products')
+        }
+      } catch (err) {
+        console.log('API bình thường lỗi:', err)
+      }
+      
+      // Thử 2: API với limit cao
+      const limitParams = ['limit=1000', 'limit=9999', 'size=1000', 'size=9999']
+      for (const param of limitParams) {
+        try {
+          const response = await fetch(`${API_BASE_URL}/api/product?${param}`, {
+            method: 'GET',
+            headers: { 'Content-Type': 'application/json' },
+          })
+          if (response.ok) {
+            const products = await this.handleResponse<Record<string, unknown>[]>(response)
+            if (products.length > allProducts.length) {
+              allProducts = products
+              console.log(`API với ${param}:`, allProducts.length, 'products')
+            }
+          }
+        } catch (err) {
+          console.log(`API với ${param} lỗi:`, err)
+        }
+      }
+      
+      // Thử 3: API với page=all hoặc page=0
+      const pageParams = ['page=all', 'page=0', 'page=1&size=1000', 'offset=0&limit=1000']
+      for (const param of pageParams) {
+        try {
+          const response = await fetch(`${API_BASE_URL}/api/product?${param}`, {
+            method: 'GET',
+            headers: { 'Content-Type': 'application/json' },
+          })
+          if (response.ok) {
+            const products = await this.handleResponse<Record<string, unknown>[]>(response)
+            if (products.length > allProducts.length) {
+              allProducts = products
+              console.log(`API với ${param}:`, allProducts.length, 'products')
+            }
+          }
+        } catch (err) {
+          console.log(`API với ${param} lỗi:`, err)
+        }
+      }
+
+      console.log('=== KẾT QUẢ CUỐI CÙNG ===')
+      console.log('Tổng số products từ API:', allProducts.length)
+      
+      // Filter chỉ lấy CPU (category_id = 1)
+      const cpus = allProducts.filter(product => {
+        const categoryId = product.category_id || (product.category as { id?: number })?.id
+        const isCPU = categoryId === 1
+        console.log(`Product: ${product.name}, category_id: ${product.category_id}, category.id: ${(product.category as { id?: number })?.id}, isCPU: ${isCPU}`)
+        return isCPU
+      })
+      
+      console.log(`Tìm thấy ${cpus.length} CPU (category_id=1)`)
+      console.log('Danh sách CPU:', cpus.map(cpu => `${cpu.name} (ID: ${cpu.id})`))
+      
+      if (cpus.length < 28) {
+        console.warn(`⚠️ Chỉ tìm thấy ${cpus.length}/28 CPU. Backend có thể có pagination!`)
+      } else {
+        console.log(`✅ Đã lấy đủ ${cpus.length} CPU từ database!`)
+      }
+      
+      return cpus
+    } catch (error) {
+      console.error('Error fetching products from backend:', error)
+      throw error
+    }
+  }
+
+
+  // Function để lấy tất cả categories
+  static async getCategories(): Promise<Record<string, unknown>[]> {
+    try {
+      const response = await fetch(`${API_BASE_URL}/api/category`, {
+        method: 'GET',
+        headers: { 'Content-Type': 'application/json' },
+      })
+
+      if (!response.ok) {
+        throw new Error(`HTTP ${response.status}: ${response.statusText}`)
+      }
+
+      return await this.handleResponse<Record<string, unknown>[]>(response)
+    } catch (error) {
+      console.error('Error fetching categories:', error)
+      throw error
+    }
+  }
+
+  // Function riêng để lấy CPU (category_id = 1)
+  static async getCPUsOnly(): Promise<Record<string, unknown>[]> {
+    try {
+      console.log('Fetching CPUs with category_id = 1...')
+      
+      // Lấy tất cả products
+      const response = await fetch(`${API_BASE_URL}/api/product`, {
+        method: 'GET',
+        headers: { 'Content-Type': 'application/json' },
+      })
+
+      if (!response.ok) {
+        throw new Error(`HTTP ${response.status}: ${response.statusText}`)
+      }
+
+      const allProducts = await this.handleResponse<Record<string, unknown>[]>(response)
+      console.log(`Total products from API: ${allProducts.length}`)
+      
+      // Filter CHỈ lấy CPU (category_id = 1)
+      const cpus = allProducts.filter(product => {
+        const categoryId = product.category_id || (product.category as { id?: number })?.id
+        const isCPU = categoryId === 1
+        if (isCPU) {
+          console.log(`Found CPU: ${product.name} (category_id: ${categoryId})`)
+        }
+        return isCPU
+      })
+      
+      console.log(`Found ${cpus.length} CPUs with category_id = 1`)
+      return cpus
+    } catch (error) {
+      console.error('Error fetching CPUs only:', error)
+      throw error
+    }
+  }
+
+  static async getProductsByCategory(categoryId: number): Promise<Record<string, unknown>[]> {
+    try {
+      const response = await fetch(`${API_BASE_URL}/api/product`, {
+        method: 'GET',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+      })
+
+      if (!response.ok) {
+        throw new Error(`HTTP ${response.status}: ${response.statusText}`)
+      }
+
+      const allProducts = await this.handleResponse<Record<string, unknown>[]>(response)
+      
+      // Filter theo category_id
+      const products = allProducts.filter(product => 
+        product.category_id === categoryId || product.categoryId === categoryId
+      )
+      
+      console.log(`Tìm thấy ${products.length} products với category_id=${categoryId}`)
+      return products
+    } catch (error) {
+      console.error('Error fetching products by category:', error)
+      throw error
+    }
+  }
+
+  static async getProductById(id: number): Promise<Record<string, unknown>> {
+    const response = await fetch(`${API_BASE_URL}/api/product/${id}`, {
+      method: 'GET',
+      headers: {
+        'Content-Type': 'application/json',
+      },
+    })
+
+    return this.handleResponse<Record<string, unknown>>(response)
+  }
+
+  static async createProduct(product: Record<string, unknown>): Promise<Record<string, unknown>> {
+    const response = await fetch(`${API_BASE_URL}/api/product`, {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+      },
+      body: JSON.stringify(product),
+    })
+
+    return this.handleResponse<Record<string, unknown>>(response)
+  }
+
+  static async updateProduct(id: number, product: Record<string, unknown>): Promise<Record<string, unknown>> {
+    const response = await fetch(`${API_BASE_URL}/api/product/${id}`, {
+      method: 'PUT',
+      headers: {
+        'Content-Type': 'application/json',
+      },
+      body: JSON.stringify(product),
+    })
+
+    return this.handleResponse<Record<string, unknown>>(response)
+  }
+
+  static async deleteProduct(id: number): Promise<void> {
+    const response = await fetch(`${API_BASE_URL}/api/product/${id}`, {
+      method: 'DELETE',
+      headers: {
+        'Content-Type': 'application/json',
+      },
+    })
+
+    if (!response.ok) {
+      const errorData = await response.json().catch(() => ({}))
+      throw new Error(errorData?.message || 'Có lỗi xảy ra khi xóa sản phẩm')
+    }
+  }
+
   // Utility functions để làm việc với token
 
   static isTokenValid(token: string): boolean {
