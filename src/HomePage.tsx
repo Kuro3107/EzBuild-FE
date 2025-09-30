@@ -151,7 +151,7 @@ function HomePage() {
               <div className="relative">
                 <button
                   onClick={() => setIsUserMenuOpen(!isUserMenuOpen)}
-                  className="w-full px-2 py-2 bg-white border border-black rounded-lg text-black hover:bg-gray-50 transition-colors text-xs text-left shadow-sm"
+                  className="w-full px-2 py-2 !bg-white border border-black rounded-lg text-black hover:bg-gray-50 transition-colors text-xs text-left shadow-sm"
                 >
                   <span className="break-all font-medium">
                     {currentUser.email as string || 'User'}
@@ -163,16 +163,16 @@ function HomePage() {
                     ref={userMenuRef}
                     className="absolute bottom-0 left-full ml-2 w-48 bg-white/95 backdrop-blur-sm rounded-xl border border-black shadow-2xl py-2"
                   >
-                    <button className="w-full px-4 py-2 text-left text-black hover:bg-black/5 transition-colors text-sm">
+                    <button className="w-full px-4 py-2 text-left !bg-white text-black hover:bg-black/5 transition-colors text-sm">
                       Profile
                     </button>
-                    <button className="w-full px-4 py-2 text-left text-black hover:bg-black/5 transition-colors text-sm">
+                    <button className="w-full px-4 py-2 text-left !bg-white text-black hover:bg-black/5 transition-colors text-sm">
                       Favorites
                     </button>
                     <hr className="my-2 border-black/10" />
                     <button 
                       onClick={handleLogout}
-                      className="w-full px-4 py-2 text-left text-black hover:bg-black/5 transition-colors text-sm"
+                      className="w-full px-4 py-2 text-left !bg-white text-black hover:bg-black/5 transition-colors text-sm"
                     >
                       Log out
                     </button>
