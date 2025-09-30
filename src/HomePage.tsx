@@ -104,7 +104,7 @@ function HomePage() {
 
           <div>
             <div className="sidebar-group">Apps</div>
-            <Link className="nav-item" to="/">3D Builder</Link>
+            <Link className="nav-item" to="/">PC Builder</Link>
             <a
               className="nav-item cursor-pointer"
               href="#"
@@ -118,7 +118,7 @@ function HomePage() {
             </a>
             <Link className="nav-item" to="/sales">Sales</Link>
             <Link className="nav-item" to="/compare">Compare</Link>
-            <a className="nav-item" href="#">3D Part Gallery</a>
+            <a className="nav-item" href="#">PC Part Gallery</a>
           </div>
 
           <div>
@@ -185,9 +185,9 @@ function HomePage() {
 
         <main className="main">
           <section className="hero">
-            <h1 className="hero-title">Interactive PC Building in 3D</h1>
+            <h1 className="hero-title">Interactive PC Building</h1>
             <p className="hero-subtitle">
-              Featuring compatibility, price comparison, <span className="text-blue-600 font-semibold">3D models</span>, and more.
+              Featuring compatibility, price comparison, <span className="text-blue-600 font-semibold">models</span>, and more.
             </p>
             <div className="hero-actions">
               <a href="#" className="btn-secondary">Download Mobile App</a>

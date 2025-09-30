@@ -78,7 +78,7 @@ function ComparePage() {
 
           <div>
             <div className="sidebar-group">Apps</div>
-            <Link className="nav-item" to="/">3D Builder</Link>
+            <Link className="nav-item" to="/">PC Builder</Link>
             <a
               className="nav-item cursor-pointer"
               href="#"
@@ -92,7 +92,7 @@ function ComparePage() {
             </a>
             <Link className="nav-item" to="/sales">Sales</Link>
             <Link className="nav-item" to="/compare">Compare</Link>
-            <a className="nav-item" href="#">3D Part Gallery</a>
+            <a className="nav-item" href="#">PC Part Gallery</a>
           </div>
 
           <div>
