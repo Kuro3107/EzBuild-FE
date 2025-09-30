@@ -348,11 +348,11 @@ function CPUPage() {
 
           <div>
             <div className="sidebar-group">Apps</div>
-            <Link className="nav-item" to="/">3D Builder</Link>
+            <Link className="nav-item" to="/">PC Builder</Link>
             <span className="nav-item">Products</span>
             <Link className="nav-item" to="/sales">Sales</Link>
             <a className="nav-item" href="#">Compare</a>
-            <a className="nav-item" href="#">3D Part Gallery</a>
+            <a className="nav-item" href="#">PC Part Gallery</a>
           </div>
 
           <div>
