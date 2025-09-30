@@ -1,6 +1,7 @@
-import React, { useState } from 'react'
+import { useEffect, useState } from 'react'
 import { Link } from 'react-router-dom'
 import '../../Homepage.css'
+import { ApiService } from '../../services/api'
 
 interface StorageItem {
   id: number
@@ -43,6 +44,10 @@ function StoragePage() {
   const [selectedEncryption, setSelectedEncryption] = useState<boolean | null>(null)
   const [selectedRGB, setSelectedRGB] = useState<boolean | null>(null)
   
+  // API states
+  const [storages, setStorages] = useState<StorageItem[]>([])
+  const [loading, setLoading] = useState(false)
+  
   // Popup states
   const [showCapacityPopup, setShowCapacityPopup] = useState(false)
   const [showTypePopup, setShowTypePopup] = useState(false)
@@ -63,163 +68,78 @@ function StoragePage() {
   const [readSpeedSearch, setReadSpeedSearch] = useState('')
   const [writeSpeedSearch, setWriteSpeedSearch] = useState('')
 
-  const allStorages = [
-    {
-      id: 1,
-      name: 'Samsung 980 PRO 2TB NVMe SSD',
-      brand: 'Samsung',
-      price: 199.99,
-      image: 'https://images.unsplash.com/photo-1591799264318-7e6ef8ddb7ea?w=300&h=200&fit=crop',
-      specs: {
-        capacity: '2TB',
-        type: 'SSD',
-        interface: 'PCIe 4.0 x4',
-        readSpeed: '7000 MB/s',
-        writeSpeed: '5000 MB/s',
-        formFactor: 'M.2 2280',
-        nandType: '3D V-NAND',
-        controller: 'Samsung Elpis',
-        endurance: '1200 TBW',
-        warranty: '5 Years',
-        encryption: true,
-        rgb: false
-      },
-      features: ['PCIe 4.0', 'High Performance', 'Gaming Optimized', 'Heat Spreader', 'Samsung Magician'],
-      rating: 4.8,
-      reviews: 342,
-      inStock: true
-    },
-    {
-      id: 2,
-      name: 'WD Black SN850X 1TB NVMe SSD',
-      brand: 'WD',
-      price: 129.99,
-      image: 'https://images.unsplash.com/photo-1591799264318-7e6ef8ddb7ea?w=300&h=200&fit=crop',
-      specs: {
-        capacity: '1TB',
-        type: 'SSD',
-        interface: 'PCIe 4.0 x4',
-        readSpeed: '7300 MB/s',
-        writeSpeed: '6300 MB/s',
-        formFactor: 'M.2 2280',
-        nandType: '3D NAND',
-        controller: 'WD Black G2',
-        endurance: '600 TBW',
-        warranty: '5 Years',
-        encryption: true,
-        rgb: false
-      },
-      features: ['PCIe 4.0', 'High Performance', 'Gaming Optimized', 'WD Dashboard', 'Heat Spreader'],
-      rating: 4.7,
-      reviews: 289,
-      inStock: true
-    },
-    {
-      id: 3,
-      name: 'Crucial MX4 1TB SATA SSD',
-      brand: 'Crucial',
-      price: 79.99,
-      image: 'https://images.unsplash.com/photo-1591799264318-7e6ef8ddb7ea?w=300&h=200&fit=crop',
-      specs: {
-        capacity: '1TB',
-        type: 'SSD',
-        interface: 'SATA 6Gb/s',
-        readSpeed: '560 MB/s',
-        writeSpeed: '510 MB/s',
-        formFactor: '2.5"',
-        nandType: '3D NAND',
-        controller: 'Crucial DM01A',
-        endurance: '360 TBW',
-        warranty: '5 Years',
-        encryption: true,
-        rgb: false
-      },
-      features: ['SATA Interface', 'Reliable', 'Budget Friendly', 'Crucial Storage Executive', 'Compatible'],
-      rating: 4.5,
-      reviews: 156,
-      inStock: true
-    },
-    {
-      id: 4,
-      name: 'Seagate BarraCuda 2TB HDD',
-      brand: 'Seagate',
-      price: 49.99,
-      image: 'https://images.unsplash.com/photo-1591799264318-7e6ef8ddb7ea?w=300&h=200&fit=crop',
-      specs: {
-        capacity: '2TB',
-        type: 'HDD',
-        interface: 'SATA 6Gb/s',
-        readSpeed: '210 MB/s',
-        writeSpeed: '210 MB/s',
-        formFactor: '3.5"',
-        nandType: 'N/A',
-        controller: 'Seagate',
-        endurance: 'N/A',
-        warranty: '2 Years',
-        encryption: false,
-        rgb: false
-      },
-      features: ['High Capacity', 'Budget Friendly', 'Reliable', 'Compatible', 'Storage'],
-      rating: 4.2,
-      reviews: 203,
-      inStock: false
-    },
-    {
-      id: 5,
-      name: 'Corsair MP600 PRO XT 1TB NVMe SSD',
-      brand: 'Corsair',
-      price: 149.99,
-      image: 'https://images.unsplash.com/photo-1591799264318-7e6ef8ddb7ea?w=300&h=200&fit=crop',
-      specs: {
-        capacity: '1TB',
-        type: 'SSD',
-        interface: 'PCIe 4.0 x4',
-        readSpeed: '7100 MB/s',
-        writeSpeed: '6800 MB/s',
-        formFactor: 'M.2 2280',
-        nandType: '3D TLC NAND',
-        controller: 'Phison E18',
-        endurance: '1800 TBW',
-        warranty: '5 Years',
-        encryption: true,
-        rgb: true
-      },
-      features: ['PCIe 4.0', 'High Performance', 'RGB Lighting', 'Gaming Optimized', 'Corsair SSD Toolbox'],
-      rating: 4.6,
-      reviews: 178,
-      inStock: true
-    },
-    {
-      id: 6,
-      name: 'Kingston NV1 500GB NVMe SSD',
-      brand: 'Kingston',
-      price: 39.99,
-      image: 'https://images.unsplash.com/photo-1591799264318-7e6ef8ddb7ea?w=300&h=200&fit=crop',
-      specs: {
-        capacity: '500GB',
-        type: 'SSD',
-        interface: 'PCIe 3.0 x4',
-        readSpeed: '2100 MB/s',
-        writeSpeed: '1700 MB/s',
-        formFactor: 'M.2 2280',
-        nandType: '3D NAND',
-        controller: 'Kingston',
-        endurance: '150 TBW',
-        warranty: '3 Years',
-        encryption: false,
-        rgb: false
-      },
-      features: ['PCIe 3.0', 'Budget Friendly', 'Compact', 'Compatible', 'Kingston SSD Manager'],
-      rating: 4.3,
-      reviews: 145,
-      inStock: true
+  // Fetch storages from API (category_id = 5)
+  useEffect(() => {
+    const fetchStorages = async () => {
+      setLoading(true)
+      try {
+        const products = await ApiService.getProductsByCategory(5)
+
+        interface StorageApiProduct {
+          id?: number
+          name?: string
+          brand?: string
+          specs?: string
+          image_url1?: string
+          productPrices?: Array<{ price: number }>
+        }
+
+        const formatted: StorageItem[] = (products as StorageApiProduct[]).map((item) => {
+          const specsString = String(item.specs || '')
+          const capacityMatch = specsString.match(/(\d+\s*(GB|TB))/i)
+          const typeMatch = specsString.match(/\b(SSD|HDD|NVMe)\b/i)
+          const ifaceMatch = specsString.match(/(SATA\s*6Gb\/s|PCIe\s*[2-5]\.0\s*x\s*\d)/i)
+          const readMatch = specsString.match(/(\d{2,4})\s*MB\/s\s*(read)?/i)
+          const writeMatch = specsString.match(/(\d{2,4})\s*MB\/s\s*(write)?/i)
+
+          const prices = item.productPrices || []
+          const minPrice = prices.length ? Math.min(...prices.map(p => p.price)) : 0
+
+          return {
+            id: Number(item.id) || 0,
+            name: String(item.name) || 'Unknown Storage',
+            brand: String(item.brand) || 'Unknown',
+            price: minPrice,
+            image: String(item.image_url1 || 'https://images.unsplash.com/photo-1591799264318-7e6ef8ddb7ea?w=300&h=200&fit=crop'),
+            specs: {
+              capacity: capacityMatch ? capacityMatch[1].toUpperCase() : 'Unknown',
+              type: typeMatch ? typeMatch[1].toUpperCase() : 'SSD',
+              interface: ifaceMatch ? ifaceMatch[1].toUpperCase() : 'SATA 6Gb/s',
+              readSpeed: readMatch ? `${readMatch[1]} MB/s` : 'Unknown',
+              writeSpeed: writeMatch ? `${writeMatch[1]} MB/s` : 'Unknown',
+              formFactor: 'M.2 2280',
+              nandType: 'Unknown',
+              controller: 'Unknown',
+              endurance: 'Unknown',
+              warranty: 'Unknown',
+              encryption: true,
+              rgb: false
+            },
+            features: ['Unknown'],
+            rating: 4.0,
+            reviews: 0,
+            inStock: true
+          }
+        })
+
+        setStorages(formatted)
+      } catch (err) {
+        console.error('Error fetching Storages:', err)
+        setStorages([])
+      } finally {
+        setLoading(false)
+      }
     }
-  ]
+
+    fetchStorages()
+  }, [])
+
+  const allStorages = storages
 
   // Filter logic
   const filteredStorages = allStorages.filter((storageItem) => {
-    // Price filter
-    if (storageItem.price < priceRange[0] || storageItem.price > priceRange[1]) {
+    // Price filter - chỉ lọc nếu có giá > 0
+    if (storageItem.price > 0 && (storageItem.price < priceRange[0] || storageItem.price > priceRange[1])) {
       return false
     }
 
@@ -693,25 +613,65 @@ function StoragePage() {
 
             {/* Grid */}
             <div className="flex-1">
-              <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4 md:gap-6">
-                {filteredStorages.map((storageItem) => (
-                  <div key={storageItem.id} className="rounded-lg border border-black/10 bg-white hover:bg-black/5 transition cursor-pointer" onClick={() => setSelectedStorage(storageItem)}>
-                    <div className="p-4">
-                      <img src={storageItem.image} alt={storageItem.name} className="w-full h-48 object-cover rounded-lg mb-4" />
-                      <div className="text-sm font-medium mb-2 line-clamp-2">{storageItem.name}</div>
-                      <div className="text-lg font-bold mb-3">${storageItem.price}</div>
-                      <div className="space-y-1 text-xs text-black/60 mb-4">
-                        <div className="flex justify-between"><span>Capacity:</span><span className="text-black">{storageItem.specs.capacity}</span></div>
-                        <div className="flex justify-between"><span>Type:</span><span className="text-black">{storageItem.specs.type}</span></div>
-                        <div className="flex justify-between"><span>Interface:</span><span className="text-black">{storageItem.specs.interface}</span></div>
-                        <div className="flex justify-between"><span>Read Speed:</span><span className="text-black">{storageItem.specs.readSpeed}</span></div>
-                        <div className="flex justify-between"><span>Write Speed:</span><span className="text-black">{storageItem.specs.writeSpeed}</span></div>
-                      </div>
-                      <button className="w-full btn-primary">+ Add to build</button>
-                    </div>
+              {loading && (
+                <div className="flex justify-center items-center py-12">
+                  <div className="text-lg text-gray-600">Đang tải dữ liệu Storage...</div>
+                </div>
+              )}
+
+              {filteredStorages.length === 0 ? (
+                <div className="text-center py-12">
+                  <div className="text-lg text-gray-600 mb-4">
+                    {storages.length === 0 ? 'Không có Storage nào trong database' : 'Không tìm thấy Storage nào phù hợp'}
                   </div>
-                ))}
-              </div>
+                  <div className="text-sm text-gray-500 mb-4">
+                    {storages.length === 0 ? 'Vui lòng thêm Storage vào database' : 'Thử điều chỉnh bộ lọc hoặc tìm kiếm khác'}
+                  </div>
+                  {storages.length > 0 && (
+                    <button 
+                      onClick={() => {
+                        setSearchTerm('')
+                        setSelectedCapacities([])
+                        setSelectedTypes([])
+                        setSelectedInterfaces([])
+                        setSelectedBrands([])
+                        setSelectedFormFactors([])
+                        setSelectedNandTypes([])
+                        setSelectedReadSpeeds([])
+                        setSelectedWriteSpeeds([])
+                        setSelectedEncryption(null)
+                        setSelectedRGB(null)
+                        setPriceRange([20, 1000])
+                      }}
+                      className="px-4 py-2 bg-blue-500 text-white rounded hover:bg-blue-600"
+                    >
+                      Xóa tất cả bộ lọc
+                    </button>
+                  )}
+                </div>
+              ) : (
+                <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4 md:gap-6">
+                  {filteredStorages.map((storageItem) => (
+                    <div key={storageItem.id} className="rounded-lg border border-black/10 bg-white hover:bg-black/5 transition cursor-pointer" onClick={() => setSelectedStorage(storageItem)}>
+                      <div className="p-4">
+                        <img src={storageItem.image} alt={storageItem.name} className="w-full h-48 object-cover rounded-lg mb-4" />
+                        <div className="text-sm font-medium mb-2 line-clamp-2">{storageItem.name}</div>
+                        <div className="text-lg font-bold mb-3">
+                          {storageItem.price > 0 ? `${storageItem.price.toLocaleString('vi-VN')} VND` : 'Liên hệ'}
+                        </div>
+                        <div className="space-y-1 text-xs text-black/60 mb-4">
+                          <div className="flex justify-between"><span>Capacity:</span><span className="text-black">{storageItem.specs.capacity}</span></div>
+                          <div className="flex justify-between"><span>Type:</span><span className="text-black">{storageItem.specs.type}</span></div>
+                          <div className="flex justify-between"><span>Interface:</span><span className="text-black">{storageItem.specs.interface}</span></div>
+                          <div className="flex justify-between"><span>Read Speed:</span><span className="text-black">{storageItem.specs.readSpeed}</span></div>
+                          <div className="flex justify-between"><span>Write Speed:</span><span className="text-black">{storageItem.specs.writeSpeed}</span></div>
+                        </div>
+                        <button className="w-full btn-primary">+ Add to build</button>
+                      </div>
+                    </div>
+                  ))}
+                </div>
+              )}
             </div>
           </div>
         </main>

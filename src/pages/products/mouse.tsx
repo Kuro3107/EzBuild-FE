@@ -1,6 +1,7 @@
-import React, { useState } from 'react'
+import { useEffect, useState } from 'react'
 import { Link } from 'react-router-dom'
 import '../../Homepage.css'
+import { ApiService } from '../../services/api'
 
 interface MouseItem {
   id: number
@@ -56,169 +57,83 @@ function MousePage() {
   const [buttonsSearch, setButtonsSearch] = useState('')
   const [brandSearch, setBrandSearch] = useState('')
 
-  const allMice = [
-    {
-      id: 1,
-      name: 'Logitech G Pro X Superlight',
-      brand: 'Logitech',
-      price: 149.99,
-      image: 'https://images.unsplash.com/photo-1591799264318-7e6ef8ddb7ea?w=300&h=200&fit=crop',
-      specs: {
-        dpi: '25,600 DPI',
-        sensorType: 'Optical',
-        connectivity: 'Wireless',
-        buttons: '5',
-        weight: '63g',
-        dimensions: '125 x 63.5 x 40mm',
-        battery: '70 hours',
-        pollingRate: '1000Hz',
-        acceleration: '40G',
-        warranty: '2 Years',
-        rgb: false,
-        gaming: true,
-        wireless: true
-      },
-      features: ['Ultra Lightweight', 'HERO 25K Sensor', 'Wireless', 'Gaming', 'Pro Grade'],
-      rating: 4.8,
-      reviews: 342,
-      inStock: true
-    },
-    {
-      id: 2,
-      name: 'Razer DeathAdder V3 Pro',
-      brand: 'Razer',
-      price: 149.99,
-      image: 'https://images.unsplash.com/photo-1591799264318-7e6ef8ddb7ea?w=300&h=200&fit=crop',
-      specs: {
-        dpi: '30,000 DPI',
-        sensorType: 'Optical',
-        connectivity: 'Wireless',
-        buttons: '5',
-        weight: '63g',
-        dimensions: '128 x 68 x 44mm',
-        battery: '90 hours',
-        pollingRate: '1000Hz',
-        acceleration: '70G',
-        warranty: '2 Years',
-        rgb: true,
-        gaming: true,
-        wireless: true
-      },
-      features: ['Focus Pro 30K Sensor', 'Wireless', 'RGB Lighting', 'Gaming', 'Ergonomic'],
-      rating: 4.7,
-      reviews: 289,
-      inStock: true
-    },
-    {
-      id: 3,
-      name: 'Corsair Dark Core RGB Pro SE',
-      brand: 'Corsair',
-      price: 99.99,
-      image: 'https://images.unsplash.com/photo-1591799264318-7e6ef8ddb7ea?w=300&h=200&fit=crop',
-      specs: {
-        dpi: '18,000 DPI',
-        sensorType: 'Optical',
-        connectivity: 'Wireless',
-        buttons: '8',
-        weight: '133g',
-        dimensions: '130 x 80 x 43mm',
-        battery: '50 hours',
-        pollingRate: '2000Hz',
-        acceleration: '50G',
-        warranty: '2 Years',
-        rgb: true,
-        gaming: true,
-        wireless: true
-      },
-      features: ['Wireless', 'RGB Lighting', 'Gaming', 'iCUE Software', 'Multi-Device'],
-      rating: 4.5,
-      reviews: 156,
-      inStock: true
-    },
-    {
-      id: 4,
-      name: 'SteelSeries Rival 600',
-      brand: 'SteelSeries',
-      price: 79.99,
-      image: 'https://images.unsplash.com/photo-1591799264318-7e6ef8ddb7ea?w=300&h=200&fit=crop',
-      specs: {
-        dpi: '12,000 DPI',
-        sensorType: 'Optical',
-        connectivity: 'Wired',
-        buttons: '7',
-        weight: '96g',
-        dimensions: '131 x 69 x 43mm',
-        battery: 'N/A',
-        pollingRate: '1000Hz',
-        acceleration: '50G',
-        warranty: '1 Year',
-        rgb: true,
-        gaming: true,
-        wireless: false
-      },
-      features: ['TrueMove3+ Sensor', 'RGB Lighting', 'Gaming', 'Dual Sensor', 'Tactile Alerts'],
-      rating: 4.4,
-      reviews: 203,
-      inStock: false
-    },
-    {
-      id: 5,
-      name: 'Microsoft Pro IntelliMouse',
-      brand: 'Microsoft',
-      price: 69.99,
-      image: 'https://images.unsplash.com/photo-1591799264318-7e6ef8ddb7ea?w=300&h=200&fit=crop',
-      specs: {
-        dpi: '16,000 DPI',
-        sensorType: 'Optical',
-        connectivity: 'Wired',
-        buttons: '5',
-        weight: '135g',
-        dimensions: '130 x 70 x 45mm',
-        battery: 'N/A',
-        pollingRate: '1000Hz',
-        acceleration: '40G',
-        warranty: '3 Years',
-        rgb: false,
-        gaming: false,
-        wireless: false
-      },
-      features: ['Professional', 'High DPI', 'Ergonomic', 'Reliable', 'Office Use'],
-      rating: 4.3,
-      reviews: 178,
-      inStock: true
-    },
-    {
-      id: 6,
-      name: 'ASUS ROG Gladius III',
-      brand: 'ASUS',
-      price: 89.99,
-      image: 'https://images.unsplash.com/photo-1591799264318-7e6ef8ddb7ea?w=300&h=200&fit=crop',
-      specs: {
-        dpi: '19,000 DPI',
-        sensorType: 'Optical',
-        connectivity: 'Wired',
-        buttons: '6',
-        weight: '79g',
-        dimensions: '126 x 67 x 45mm',
-        battery: 'N/A',
-        pollingRate: '8000Hz',
-        acceleration: '50G',
-        warranty: '2 Years',
-        rgb: true,
-        gaming: true,
-        wireless: false
-      },
-      features: ['ROG AimPoint Sensor', 'RGB Lighting', 'Gaming', 'Hot-Swappable Switches', '8000Hz Polling'],
-      rating: 4.6,
-      reviews: 145,
-      inStock: true
+  // API states
+  const [mice, setMice] = useState<MouseItem[]>([])
+  const [loading, setLoading] = useState(false)
+
+  // Fetch Mice from API (category_id = 11)
+  useEffect(() => {
+    const fetchMice = async () => {
+      setLoading(true)
+      try {
+        const products = await ApiService.getProductsByCategory(11)
+
+        interface MouseApiProduct {
+          id?: number
+          name?: string
+          brand?: string
+          specs?: string
+          image_url1?: string
+          productPrices?: Array<{ price: number }>
+        }
+
+        const formatted: MouseItem[] = (products as MouseApiProduct[]).map((item) => {
+          const specsString = String(item.specs || '')
+          const dpiMatch = specsString.match(/(\d{3,5},?\d{0,3})\s*DPI/i)
+          const sensorMatch = specsString.match(/(Optical|Laser)/i)
+          const connMatch = specsString.match(/(Wired|Wireless|Bluetooth)/i)
+          const buttonsMatch = specsString.match(/(\d{1,2})\s*buttons?/i)
+          const weightMatch = specsString.match(/(\d+\.?\d*)\s*g/i)
+
+          const prices = item.productPrices || []
+          const minPrice = prices.length ? Math.min(...prices.map(p => p.price)) : 0
+
+          return {
+            id: Number(item.id) || 0,
+            name: String(item.name) || 'Unknown Mouse',
+            brand: String(item.brand) || 'Unknown',
+            price: minPrice,
+            image: String(item.image_url1 || 'https://images.unsplash.com/photo-1591799264318-7e6ef8ddb7ea?w=300&h=200&fit=crop'),
+            specs: {
+              dpi: dpiMatch ? `${dpiMatch[1]} DPI` : 'Unknown',
+              sensorType: sensorMatch ? sensorMatch[1] : 'Optical',
+              connectivity: connMatch ? connMatch[1] : 'Wired',
+              buttons: buttonsMatch ? buttonsMatch[1] : '5',
+              weight: weightMatch ? `${weightMatch[1]}g` : 'Unknown',
+              dimensions: 'Unknown',
+              battery: 'Unknown',
+              pollingRate: '1000Hz',
+              acceleration: 'Unknown',
+              warranty: 'Unknown',
+              rgb: true,
+              gaming: true,
+              wireless: /Wireless|Bluetooth/i.test(connMatch?.[1] || '')
+            },
+            features: ['Unknown'],
+            rating: 4.0,
+            reviews: 0,
+            inStock: true
+          }
+        })
+
+        setMice(formatted)
+      } catch (err) {
+        console.error('Error fetching Mice:', err)
+        setMice([])
+      } finally {
+        setLoading(false)
+      }
     }
-  ]
+
+    fetchMice()
+  }, [])
+
+  const allMice = mice
 
   // Filter logic
   const filteredMice = allMice.filter((mouseItem) => {
-    // Price filter
-    if (mouseItem.price < priceRange[0] || mouseItem.price > priceRange[1]) {
+    // Price filter - chỉ lọc nếu có giá > 0
+    if (mouseItem.price > 0 && (mouseItem.price < priceRange[0] || mouseItem.price > priceRange[1])) {
       return false
     }
 
@@ -632,25 +547,44 @@ function MousePage() {
 
             {/* Grid */}
             <div className="flex-1">
-              <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4 md:gap-6">
-                {filteredMice.map((mouseItem) => (
-                  <div key={mouseItem.id} className="rounded-lg border border-black/10 bg-white hover:bg-black/5 transition cursor-pointer" onClick={() => setSelectedMouse(mouseItem)}>
-                    <div className="p-4">
-                      <img src={mouseItem.image} alt={mouseItem.name} className="w-full h-48 object-cover rounded-lg mb-4" />
-                      <div className="text-sm font-medium mb-2 line-clamp-2">{mouseItem.name}</div>
-                      <div className="text-lg font-bold mb-3">${mouseItem.price}</div>
-                      <div className="space-y-1 text-xs text-black/60 mb-4">
-                        <div className="flex justify-between"><span>DPI:</span><span className="text-black">{mouseItem.specs.dpi}</span></div>
-                        <div className="flex justify-between"><span>Sensor:</span><span className="text-black">{mouseItem.specs.sensorType}</span></div>
-                        <div className="flex justify-between"><span>Connectivity:</span><span className="text-black">{mouseItem.specs.connectivity}</span></div>
-                        <div className="flex justify-between"><span>Buttons:</span><span className="text-black">{mouseItem.specs.buttons}</span></div>
-                        <div className="flex justify-between"><span>Weight:</span><span className="text-black">{mouseItem.specs.weight}</span></div>
-                      </div>
-                      <button className="w-full btn-primary">+ Add to build</button>
-                    </div>
+              {loading && (
+                <div className="flex justify-center items-center py-12">
+                  <div className="text-lg text-gray-600">Đang tải dữ liệu Mouse...</div>
+                </div>
+              )}
+
+              {filteredMice.length === 0 ? (
+                <div className="text-center py-12">
+                  <div className="text-lg text-gray-600 mb-4">
+                    {mice.length === 0 ? 'Không có Mouse nào trong database' : 'Không tìm thấy Mouse nào phù hợp'}
                   </div>
-                ))}
-              </div>
+                  <div className="text-sm text-gray-500 mb-4">
+                    {mice.length === 0 ? 'Vui lòng thêm Mouse vào database' : 'Thử điều chỉnh bộ lọc hoặc tìm kiếm khác'}
+                  </div>
+                </div>
+              ) : (
+                <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4 md:gap-6">
+                  {filteredMice.map((mouseItem) => (
+                    <div key={mouseItem.id} className="rounded-lg border border-black/10 bg-white hover:bg-black/5 transition cursor-pointer" onClick={() => setSelectedMouse(mouseItem)}>
+                      <div className="p-4">
+                        <img src={mouseItem.image} alt={mouseItem.name} className="w-full h-48 object-cover rounded-lg mb-4" />
+                        <div className="text-sm font-medium mb-2 line-clamp-2">{mouseItem.name}</div>
+                        <div className="text-lg font-bold mb-3">
+                          {mouseItem.price > 0 ? `${mouseItem.price.toLocaleString('vi-VN')} VND` : 'Liên hệ'}
+                        </div>
+                        <div className="space-y-1 text-xs text-black/60 mb-4">
+                          <div className="flex justify-between"><span>DPI:</span><span className="text-black">{mouseItem.specs.dpi}</span></div>
+                          <div className="flex justify-between"><span>Sensor:</span><span className="text-black">{mouseItem.specs.sensorType}</span></div>
+                          <div className="flex justify-between"><span>Connectivity:</span><span className="text-black">{mouseItem.specs.connectivity}</span></div>
+                          <div className="flex justify-between"><span>Buttons:</span><span className="text-black">{mouseItem.specs.buttons}</span></div>
+                          <div className="flex justify-between"><span>Weight:</span><span className="text-black">{mouseItem.specs.weight}</span></div>
+                        </div>
+                        <button className="w-full btn-primary">+ Add to build</button>
+                      </div>
+                    </div>
+                  ))}
+                </div>
+              )}
             </div>
           </div>
         </main>

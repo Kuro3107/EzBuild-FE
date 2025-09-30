@@ -6,7 +6,6 @@ export interface LoginRequest {
 }
 
 export interface RegisterRequest {
-  username: string
   fullname: string
   email: string
   password: string
@@ -69,7 +68,7 @@ export class ApiService {
     if (user && typeof user === 'object') {
       const tokenData = {
         userId: user.id || Date.now(),
-        username: user.username || 'unknown_username',
+        fullname: user.fullname || 'unknown_user',
         email: user.email || 'unknown@example.com',
         role: user.role || 'User',
         timestamp: Date.now(),
@@ -83,7 +82,7 @@ export class ApiService {
     // Nếu không có user info (trường hợp register), tạo token với thông tin tối thiểu
     const tokenData = {
       userId: Date.now(),
-      username: 'new_user',
+      fullname: 'new_user',
       email: 'unknown@example.com',
       role: 'User',
       timestamp: Date.now(),
@@ -379,10 +378,14 @@ export class ApiService {
 
       const allProducts = await this.handleResponse<Record<string, unknown>[]>(response)
       
-      // Filter theo category_id
-      const products = allProducts.filter(product => 
-        product.category_id === categoryId || product.categoryId === categoryId
-      )
+      // Filter theo category_id (hỗ trợ nhiều dạng trường như CPU page)
+      const products = allProducts.filter((product: Record<string, unknown>) => {
+        const rawId = (product as Record<string, unknown>).category_id
+          ?? (product as Record<string, unknown>).categoryId
+          ?? ((product.category as { id?: number })?.id)
+        const normalized = typeof rawId === 'string' ? parseInt(rawId, 10) : Number(rawId)
+        return normalized === categoryId
+      })
       
       console.log(`Tìm thấy ${products.length} products với category_id=${categoryId}`)
       return products
@@ -466,6 +469,42 @@ export class ApiService {
 
     const decoded = this.decodeToken(token)
     return decoded || null
+  }
+
+  static getUserRole(): string | null {
+    const user = this.getCurrentUser()
+    return user?.role as string || null
+  }
+
+  static isAdmin(): boolean {
+    return this.getUserRole() === 'Admin'
+  }
+
+  static isStaff(): boolean {
+    const role = this.getUserRole()
+    return role === 'Staff'  // Chỉ Staff, không bao gồm Admin
+  }
+
+  static isUser(): boolean {
+    const role = this.getUserRole()
+    return role === 'Customer' || role === 'User'
+  }
+
+  static hasRole(requiredRole: string): boolean {
+    const userRole = this.getUserRole()
+    
+    // Kiểm tra role cụ thể - Admin KHÔNG có quyền vào Staff
+    switch (requiredRole) {
+      case 'Admin':
+        return userRole === 'Admin'
+      case 'Staff':
+        return userRole === 'Staff'  // Chỉ Staff, Admin không được vào
+      case 'User':
+      case 'Customer':
+        return userRole === 'Customer' || userRole === 'User'
+      default:
+        return false
+    }
   }
 }
 

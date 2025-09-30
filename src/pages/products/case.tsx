@@ -1,6 +1,7 @@
-import React, { useState } from 'react'
+import { useEffect, useState } from 'react'
 import { Link } from 'react-router-dom'
 import '../../Homepage.css'
+import { ApiService } from '../../services/api'
 
 interface CaseItem {
   id: number
@@ -73,126 +74,84 @@ function CasePage() {
   const [expansionSlotsSearch, setExpansionSlotsSearch] = useState('')
   const [volumeSearch, setVolumeSearch] = useState('')
   const [weightSearch, setWeightSearch] = useState('')
+  // API states
+  const [cases, setCases] = useState<CaseItem[]>([])
+  const [loading, setLoading] = useState(false)
 
-  const allCases = [
-    {
-      id: 1,
-      name: 'NZXT H7 Flow',
-      brand: 'NZXT',
-      price: 99.99,
-      image: 'https://images.unsplash.com/photo-1591799264318-7e6ef8ddb7ea?w=300&h=200&fit=crop',
-      specs: {
-        formFactor: 'ATX Mid Tower',
-        maxGPULength: '400mm',
-        maxCPUCoolerHeight: '185mm',
-        maxPSULength: '200mm',
-        driveBays: '2x 3.5", 4x 2.5"',
-        fans: '3x 120mm included',
-        rgb: 'Yes',
-        color: 'White',
-        transparentSidePanel: true,
-        maxCPULength: '180mm',
-        driveBays35: 2,
-        driveBays25: 4,
-        expansionSlots: 7,
-        volume: '45.5L',
-        weight: '8.2kg'
-      },
-      features: ['Tempered Glass Side Panel', 'Mesh Front Panel', 'Cable Management', 'RGB Ready'],
-      rating: 4.5,
-      reviews: 128,
-      inStock: true
-    },
-    {
-      id: 2,
-      name: 'Fractal Design Define 7',
-      brand: 'Fractal Design',
-      price: 149.99,
-      image: 'https://images.unsplash.com/photo-1591799264318-7e6ef8ddb7ea?w=300&h=200&fit=crop',
-      specs: {
-        formFactor: 'ATX Mid Tower',
-        maxGPULength: '315mm',
-        maxCPUCoolerHeight: '185mm',
-        maxPSULength: '200mm',
-        driveBays: '6x 3.5", 2x 2.5"',
-        fans: '2x 140mm included',
-        rgb: 'No',
-        color: 'Black',
-        transparentSidePanel: false,
-        maxCPULength: '170mm',
-        driveBays35: 6,
-        driveBays25: 2,
-        expansionSlots: 7,
-        volume: '55.2L',
-        weight: '12.8kg'
-      },
-      features: ['Sound Dampening', 'Modular Design', 'Cable Management', 'Silent Operation'],
-      rating: 4.7,
-      reviews: 89,
-      inStock: true
-    },
-    {
-      id: 3,
-      name: 'Corsair 4000D Airflow',
-      brand: 'Corsair',
-      price: 89.99,
-      image: 'https://images.unsplash.com/photo-1591799264318-7e6ef8ddb7ea?w=300&h=200&fit=crop',
-      specs: {
-        formFactor: 'ATX Mid Tower',
-        maxGPULength: '360mm',
-        maxCPUCoolerHeight: '170mm',
-        maxPSULength: '180mm',
-        driveBays: '2x 3.5", 2x 2.5"',
-        fans: '2x 120mm included',
-        rgb: 'No',
-        color: 'Black',
-        transparentSidePanel: true,
-        maxCPULength: '160mm',
-        driveBays35: 2,
-        driveBays25: 2,
-        expansionSlots: 7,
-        volume: '41.2L',
-        weight: '7.8kg'
-      },
-      features: ['Mesh Front Panel', 'Cable Management', 'Tool-Free Design', 'Airflow Optimized'],
-      rating: 4.4,
-      reviews: 156,
-      inStock: true
-    },
-    {
-      id: 4,
-      name: 'Lian Li O11 Dynamic',
-      brand: 'Lian Li',
-      price: 139.99,
-      image: 'https://images.unsplash.com/photo-1591799264318-7e6ef8ddb7ea?w=300&h=200&fit=crop',
-      specs: {
-        formFactor: 'ATX Mid Tower',
-        maxGPULength: '420mm',
-        maxCPUCoolerHeight: '155mm',
-        maxPSULength: '200mm',
-        driveBays: '2x 2.5"',
-        fans: 'None included',
-        rgb: 'Yes',
-        color: 'White',
-        transparentSidePanel: true,
-        maxCPULength: '155mm',
-        driveBays35: 0,
-        driveBays25: 2,
-        expansionSlots: 7,
-        volume: '48.5L',
-        weight: '9.2kg'
-      },
-      features: ['Dual Chamber Design', 'Tempered Glass', 'RGB Showcase', 'Water Cooling Ready'],
-      rating: 4.6,
-      reviews: 203,
-      inStock: false
+  // Fetch Cases from API (category_id = 7)
+  useEffect(() => {
+    const fetchCases = async () => {
+      setLoading(true)
+      try {
+        const products = await ApiService.getProductsByCategory(7)
+
+        interface CaseApiProduct {
+          id?: number
+          name?: string
+          brand?: string
+          specs?: string
+          image_url1?: string
+          productPrices?: Array<{ price: number }>
+        }
+
+        const formatted: CaseItem[] = (products as CaseApiProduct[]).map((item) => {
+          const specsString = String(item.specs || '')
+          const formMatch = specsString.match(/(ATX|EATX|Micro ATX|Mini-ITX)[^,]*/i)
+          const colorMatch = specsString.match(/(Black|White|Silver|RGB)/i)
+          const gpuLenMatch = specsString.match(/(\d{3,4})\s*mm/i)
+          const weightMatch = specsString.match(/(\d+\.?\d*)\s*kg/i)
+
+          const prices = item.productPrices || []
+          const minPrice = prices.length ? Math.min(...prices.map(p => p.price)) : 0
+
+          return {
+            id: Number(item.id) || 0,
+            name: String(item.name) || 'Unknown Case',
+            brand: String(item.brand) || 'Unknown',
+            price: minPrice,
+            image: String(item.image_url1 || 'https://images.unsplash.com/photo-1591799264318-7e6ef8ddb7ea?w=300&h=200&fit=crop'),
+            specs: {
+              formFactor: formMatch ? formMatch[0] : 'ATX Mid Tower',
+              maxGPULength: gpuLenMatch ? `${gpuLenMatch[1]}mm` : 'Unknown',
+              maxCPUCoolerHeight: 'Unknown',
+              maxPSULength: 'Unknown',
+              driveBays: 'Unknown',
+              fans: 'Unknown',
+              rgb: 'Unknown',
+              color: colorMatch ? colorMatch[1] : 'Black',
+              transparentSidePanel: true,
+              maxCPULength: 'Unknown',
+              driveBays35: 0,
+              driveBays25: 0,
+              expansionSlots: 7,
+              volume: 'Unknown',
+              weight: weightMatch ? `${weightMatch[1]}kg` : 'Unknown'
+            },
+            features: ['Unknown'],
+            rating: 4.0,
+            reviews: 0,
+            inStock: true
+          }
+        })
+
+        setCases(formatted)
+      } catch (err) {
+        console.error('Error fetching Cases:', err)
+        setCases([])
+      } finally {
+        setLoading(false)
+      }
     }
-  ]
+
+    fetchCases()
+  }, [])
+
+  const allCases = cases
 
   // Filter logic
   const filteredCases = allCases.filter((caseItem) => {
-    // Price filter
-    if (caseItem.price < priceRange[0] || caseItem.price > priceRange[1]) {
+    // Price filter - chỉ lọc nếu có giá > 0
+    if (caseItem.price > 0 && (caseItem.price < priceRange[0] || caseItem.price > priceRange[1])) {
       return false
     }
 
@@ -726,25 +685,67 @@ function CasePage() {
 
             {/* Grid */}
             <div className="flex-1">
-              <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4 md:gap-6">
-                {filteredCases.map((caseItem) => (
-                  <div key={caseItem.id} className="rounded-lg border border-black/10 bg-white hover:bg-black/5 transition cursor-pointer" onClick={() => setSelectedCase(caseItem)}>
-                    <div className="p-4">
-                      <img src={caseItem.image} alt={caseItem.name} className="w-full h-48 object-cover rounded-lg mb-4" />
-                      <div className="text-sm font-medium mb-2 line-clamp-2">{caseItem.name}</div>
-                      <div className="text-lg font-bold mb-3">${caseItem.price}</div>
-                      <div className="space-y-1 text-xs text-black/60 mb-4">
-                        <div className="flex justify-between"><span>Form Factor:</span><span className="text-black">{caseItem.specs.formFactor}</span></div>
-                        <div className="flex justify-between"><span>Side Panel:</span><span className="text-black">{caseItem.specs.transparentSidePanel ? 'Tempered Glass' : 'Solid'}</span></div>
-                        <div className="flex justify-between"><span>Max GPU Length:</span><span className="text-black">{caseItem.specs.maxGPULength}</span></div>
-                        <div className="flex justify-between"><span>Color:</span><span className="text-black">{caseItem.specs.color}</span></div>
-                        <div className="flex justify-between"><span>Weight:</span><span className="text-black">{caseItem.specs.weight}</span></div>
-                      </div>
-                      <button className="w-full btn-primary">+ Add to build</button>
-                    </div>
+              {loading && (
+                <div className="flex justify-center items-center py-12">
+                  <div className="text-lg text-gray-600">Đang tải dữ liệu Case...</div>
+                </div>
+              )}
+
+              {filteredCases.length === 0 ? (
+                <div className="text-center py-12">
+                  <div className="text-lg text-gray-600 mb-4">
+                    {cases.length === 0 ? 'Không có Case nào trong database' : 'Không tìm thấy Case nào phù hợp'}
                   </div>
-                ))}
-              </div>
+                  <div className="text-sm text-gray-500 mb-4">
+                    {cases.length === 0 ? 'Vui lòng thêm Case vào database' : 'Thử điều chỉnh bộ lọc hoặc tìm kiếm khác'}
+                  </div>
+                  {cases.length > 0 && (
+                    <button 
+                      onClick={() => {
+                        setSearchTerm('')
+                        setSelectedFormFactors([])
+                        setSelectedSidePanels([])
+                        setSelectedManufacturers([])
+                        setSelectedColors([])
+                        setSelectedTransparentSidePanel(null)
+                        setSelectedMaxCPULength([])
+                        setSelectedMaxCPUCoolerHeight([])
+                        setSelectedDriveBays35([])
+                        setSelectedDriveBays25([])
+                        setSelectedExpansionSlots([])
+                        setSelectedVolume([])
+                        setSelectedWeight([])
+                        setPriceRange([38.99, 1399.99])
+                      }}
+                      className="px-4 py-2 bg-blue-500 text-white rounded hover:bg-blue-600"
+                    >
+                      Xóa tất cả bộ lọc
+                    </button>
+                  )}
+                </div>
+              ) : (
+                <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4 md:gap-6">
+                  {filteredCases.map((caseItem) => (
+                    <div key={caseItem.id} className="rounded-lg border border-black/10 bg-white hover:bg-black/5 transition cursor-pointer" onClick={() => setSelectedCase(caseItem)}>
+                      <div className="p-4">
+                        <img src={caseItem.image} alt={caseItem.name} className="w-full h-48 object-cover rounded-lg mb-4" />
+                        <div className="text-sm font-medium mb-2 line-clamp-2">{caseItem.name}</div>
+                        <div className="text-lg font-bold mb-3">
+                          {caseItem.price > 0 ? `${caseItem.price.toLocaleString('vi-VN')} VND` : 'Liên hệ'}
+                        </div>
+                        <div className="space-y-1 text-xs text-black/60 mb-4">
+                          <div className="flex justify-between"><span>Form Factor:</span><span className="text-black">{caseItem.specs.formFactor}</span></div>
+                          <div className="flex justify-between"><span>Side Panel:</span><span className="text-black">{caseItem.specs.transparentSidePanel ? 'Tempered Glass' : 'Solid'}</span></div>
+                          <div className="flex justify-between"><span>Max GPU Length:</span><span className="text-black">{caseItem.specs.maxGPULength}</span></div>
+                          <div className="flex justify-between"><span>Color:</span><span className="text-black">{caseItem.specs.color}</span></div>
+                          <div className="flex justify-between"><span>Weight:</span><span className="text-black">{caseItem.specs.weight}</span></div>
+                        </div>
+                        <button className="w-full btn-primary">+ Add to build</button>
+                      </div>
+                    </div>
+                  ))}
+                </div>
+              )}
             </div>
           </div>
         </main>

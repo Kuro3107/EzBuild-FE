@@ -1,6 +1,7 @@
-import React, { useState } from 'react'
+import { useEffect, useState } from 'react'
 import { Link } from 'react-router-dom'
 import '../../Homepage.css'
+import { ApiService } from '../../services/api'
 
 interface PSUItem {
   id: number
@@ -61,164 +62,81 @@ function PSUPage() {
   const [brandSearch, setBrandSearch] = useState('')
   const [fanSizeSearch, setFanSizeSearch] = useState('')
   const [fanTypeSearch, setFanTypeSearch] = useState('')
+  // API states
+  const [psus, setPsus] = useState<PSUItem[]>([])
+  const [loading, setLoading] = useState(false)
 
-  const allPSUs = [
-    {
-      id: 1,
-      name: 'Corsair RM850x 850W 80+ Gold Fully Modular',
-      brand: 'Corsair',
-      price: 149.99,
-      image: 'https://images.unsplash.com/photo-1591799264318-7e6ef8ddb7ea?w=300&h=200&fit=crop',
-      specs: {
-        wattage: '850W',
-        efficiency: '80+ Gold',
-        modular: 'Fully Modular',
-        formFactor: 'ATX',
-        certification: '80+ Gold',
-        fanSize: '140mm',
-        fanType: 'Fluid Dynamic Bearing',
-        connectors: 'ATX 24-pin, EPS 8-pin, PCIe 6+2-pin x4, SATA x8, Molex x4',
-        dimensions: '150mm x 86mm x 180mm',
-        weight: '1.8kg',
-        warranty: '10 Years',
-        rgb: false
-      },
-      features: ['Fully Modular', '80+ Gold', 'Zero RPM Mode', 'Japanese Capacitors', 'Corsair Link'],
-      rating: 4.7,
-      reviews: 234,
-      inStock: true
-    },
-    {
-      id: 2,
-      name: 'EVGA SuperNOVA 750 G6 750W 80+ Gold Fully Modular',
-      brand: 'EVGA',
-      price: 119.99,
-      image: 'https://images.unsplash.com/photo-1591799264318-7e6ef8ddb7ea?w=300&h=200&fit=crop',
-      specs: {
-        wattage: '750W',
-        efficiency: '80+ Gold',
-        modular: 'Fully Modular',
-        formFactor: 'ATX',
-        certification: '80+ Gold',
-        fanSize: '135mm',
-        fanType: 'Fluid Dynamic Bearing',
-        connectors: 'ATX 24-pin, EPS 8-pin, PCIe 6+2-pin x4, SATA x8, Molex x4',
-        dimensions: '150mm x 86mm x 180mm',
-        weight: '1.7kg',
-        warranty: '10 Years',
-        rgb: false
-      },
-      features: ['Fully Modular', '80+ Gold', 'Zero RPM Mode', 'Japanese Capacitors', 'EVGA ECO Mode'],
-      rating: 4.6,
-      reviews: 189,
-      inStock: true
-    },
-    {
-      id: 3,
-      name: 'Seasonic Focus GX-650 650W 80+ Gold Semi-Modular',
-      brand: 'Seasonic',
-      price: 99.99,
-      image: 'https://images.unsplash.com/photo-1591799264318-7e6ef8ddb7ea?w=300&h=200&fit=crop',
-      specs: {
-        wattage: '650W',
-        efficiency: '80+ Gold',
-        modular: 'Semi-Modular',
-        formFactor: 'ATX',
-        certification: '80+ Gold',
-        fanSize: '120mm',
-        fanType: 'Fluid Dynamic Bearing',
-        connectors: 'ATX 24-pin, EPS 8-pin, PCIe 6+2-pin x2, SATA x6, Molex x3',
-        dimensions: '150mm x 86mm x 160mm',
-        weight: '1.5kg',
-        warranty: '10 Years',
-        rgb: false
-      },
-      features: ['Semi-Modular', '80+ Gold', 'Hybrid Mode', 'Japanese Capacitors', 'Compact Design'],
-      rating: 4.5,
-      reviews: 156,
-      inStock: true
-    },
-    {
-      id: 4,
-      name: 'Thermaltake Toughpower GF1 1000W 80+ Gold Fully Modular',
-      brand: 'Thermaltake',
-      price: 199.99,
-      image: 'https://images.unsplash.com/photo-1591799264318-7e6ef8ddb7ea?w=300&h=200&fit=crop',
-      specs: {
-        wattage: '1000W',
-        efficiency: '80+ Gold',
-        modular: 'Fully Modular',
-        formFactor: 'ATX',
-        certification: '80+ Gold',
-        fanSize: '140mm',
-        fanType: 'Fluid Dynamic Bearing',
-        connectors: 'ATX 24-pin, EPS 8-pin, PCIe 6+2-pin x6, SATA x12, Molex x4',
-        dimensions: '150mm x 86mm x 180mm',
-        weight: '2.0kg',
-        warranty: '10 Years',
-        rgb: true
-      },
-      features: ['Fully Modular', '80+ Gold', 'RGB Lighting', 'Zero RPM Mode', 'Japanese Capacitors'],
-      rating: 4.8,
-      reviews: 67,
-      inStock: false
-    },
-    {
-      id: 5,
-      name: 'Cooler Master MWE Gold 550W 80+ Gold Non-Modular',
-      brand: 'Cooler Master',
-      price: 79.99,
-      image: 'https://images.unsplash.com/photo-1591799264318-7e6ef8ddb7ea?w=300&h=200&fit=crop',
-      specs: {
-        wattage: '550W',
-        efficiency: '80+ Gold',
-        modular: 'Non-Modular',
-        formFactor: 'ATX',
-        certification: '80+ Gold',
-        fanSize: '120mm',
-        fanType: 'Sleeve Bearing',
-        connectors: 'ATX 24-pin, EPS 8-pin, PCIe 6+2-pin x2, SATA x6, Molex x3',
-        dimensions: '150mm x 86mm x 160mm',
-        weight: '1.4kg',
-        warranty: '5 Years',
-        rgb: false
-      },
-      features: ['Non-Modular', '80+ Gold', 'Budget Friendly', 'Reliable', 'Compatible'],
-      rating: 4.3,
-      reviews: 203,
-      inStock: true
-    },
-    {
-      id: 6,
-      name: 'ASUS ROG Thor 1200W 80+ Platinum Fully Modular',
-      brand: 'ASUS',
-      price: 399.99,
-      image: 'https://images.unsplash.com/photo-1591799264318-7e6ef8ddb7ea?w=300&h=200&fit=crop',
-      specs: {
-        wattage: '1200W',
-        efficiency: '80+ Platinum',
-        modular: 'Fully Modular',
-        formFactor: 'ATX',
-        certification: '80+ Platinum',
-        fanSize: '135mm',
-        fanType: 'Fluid Dynamic Bearing',
-        connectors: 'ATX 24-pin, EPS 8-pin, PCIe 6+2-pin x8, SATA x12, Molex x4',
-        dimensions: '150mm x 86mm x 180mm',
-        weight: '2.2kg',
-        warranty: '10 Years',
-        rgb: true
-      },
-      features: ['Fully Modular', '80+ Platinum', 'RGB Lighting', 'OLED Display', 'Zero RPM Mode'],
-      rating: 4.9,
-      reviews: 89,
-      inStock: true
+  // Fetch PSUs from API (category_id = 6)
+  useEffect(() => {
+    const fetchPSUs = async () => {
+      setLoading(true)
+      try {
+        const products = await ApiService.getProductsByCategory(6)
+
+        interface PSUApiProduct {
+          id?: number
+          name?: string
+          brand?: string
+          specs?: string
+          image_url1?: string
+          productPrices?: Array<{ price: number }>
+        }
+
+        const formatted: PSUItem[] = (products as PSUApiProduct[]).map((item) => {
+          const specsString = String(item.specs || '')
+          const wattMatch = specsString.match(/(\d{3,4})\s*W/i)
+          const effMatch = specsString.match(/80\+\s*(Bronze|Silver|Gold|Platinum|Titanium)/i)
+          const modularMatch = specsString.match(/(Non-Modular|Semi-Modular|Fully Modular)/i)
+          const fanSizeMatch = specsString.match(/(120mm|135mm|140mm)/i)
+
+          const prices = item.productPrices || []
+          const minPrice = prices.length ? Math.min(...prices.map(p => p.price)) : 0
+
+          return {
+            id: Number(item.id) || 0,
+            name: String(item.name) || 'Unknown PSU',
+            brand: String(item.brand) || 'Unknown',
+            price: minPrice,
+            image: String(item.image_url1 || 'https://images.unsplash.com/photo-1591799264318-7e6ef8ddb7ea?w=300&h=200&fit=crop'),
+            specs: {
+              wattage: wattMatch ? `${wattMatch[1]}W` : 'Unknown',
+              efficiency: effMatch ? `80+ ${effMatch[1]}` : 'Unknown',
+              modular: modularMatch ? modularMatch[1] : 'Unknown',
+              formFactor: 'ATX',
+              certification: effMatch ? `80+ ${effMatch[1]}` : 'Unknown',
+              fanSize: fanSizeMatch ? fanSizeMatch[1] : '120mm',
+              fanType: 'Unknown',
+              connectors: 'Unknown',
+              dimensions: 'Unknown',
+              weight: 'Unknown',
+              warranty: 'Unknown',
+              rgb: false
+            },
+            features: ['Unknown'],
+            rating: 4.0,
+            reviews: 0,
+            inStock: true
+          }
+        })
+
+        setPsus(formatted)
+      } catch (err) {
+        console.error('Error fetching PSUs:', err)
+        setPsus([])
+      } finally {
+        setLoading(false)
+      }
     }
-  ]
+
+    fetchPSUs()
+  }, [])
+
+  const allPSUs = psus
 
   // Filter logic
   const filteredPSUs = allPSUs.filter((psuItem) => {
-    // Price filter
-    if (psuItem.price < priceRange[0] || psuItem.price > priceRange[1]) {
+    // Price filter - chỉ lọc nếu có giá > 0
+    if (psuItem.price > 0 && (psuItem.price < priceRange[0] || psuItem.price > priceRange[1])) {
       return false
     }
 
@@ -659,25 +577,64 @@ function PSUPage() {
 
             {/* Grid */}
             <div className="flex-1">
-              <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4 md:gap-6">
-                {filteredPSUs.map((psuItem) => (
-                  <div key={psuItem.id} className="rounded-lg border border-black/10 bg-white hover:bg-black/5 transition cursor-pointer" onClick={() => setSelectedPSU(psuItem)}>
-                    <div className="p-4">
-                      <img src={psuItem.image} alt={psuItem.name} className="w-full h-48 object-cover rounded-lg mb-4" />
-                      <div className="text-sm font-medium mb-2 line-clamp-2">{psuItem.name}</div>
-                      <div className="text-lg font-bold mb-3">${psuItem.price}</div>
-                      <div className="space-y-1 text-xs text-black/60 mb-4">
-                        <div className="flex justify-between"><span>Wattage:</span><span className="text-black">{psuItem.specs.wattage}</span></div>
-                        <div className="flex justify-between"><span>Efficiency:</span><span className="text-black">{psuItem.specs.efficiency}</span></div>
-                        <div className="flex justify-between"><span>Modular:</span><span className="text-black">{psuItem.specs.modular}</span></div>
-                        <div className="flex justify-between"><span>Form Factor:</span><span className="text-black">{psuItem.specs.formFactor}</span></div>
-                        <div className="flex justify-between"><span>Fan Size:</span><span className="text-black">{psuItem.specs.fanSize}</span></div>
-                      </div>
-                      <button className="w-full btn-primary">+ Add to build</button>
-                    </div>
+              {loading && (
+                <div className="flex justify-center items-center py-12">
+                  <div className="text-lg text-gray-600">Đang tải dữ liệu PSU...</div>
+                </div>
+              )}
+
+              {filteredPSUs.length === 0 ? (
+                <div className="text-center py-12">
+                  <div className="text-lg text-gray-600 mb-4">
+                    {psus.length === 0 ? 'Không có PSU nào trong database' : 'Không tìm thấy PSU nào phù hợp'}
                   </div>
-                ))}
-              </div>
+                  <div className="text-sm text-gray-500 mb-4">
+                    {psus.length === 0 ? 'Vui lòng thêm PSU vào database' : 'Thử điều chỉnh bộ lọc hoặc tìm kiếm khác'}
+                  </div>
+                  {psus.length > 0 && (
+                    <button 
+                      onClick={() => {
+                        setSearchTerm('')
+                        setSelectedWattages([])
+                        setSelectedEfficiencies([])
+                        setSelectedModulars([])
+                        setSelectedFormFactors([])
+                        setSelectedCertifications([])
+                        setSelectedBrands([])
+                        setSelectedFanSizes([])
+                        setSelectedFanTypes([])
+                        setSelectedRGB(null)
+                        setPriceRange([50, 500])
+                      }}
+                      className="px-4 py-2 bg-blue-500 text-white rounded hover:bg-blue-600"
+                    >
+                      Xóa tất cả bộ lọc
+                    </button>
+                  )}
+                </div>
+              ) : (
+                <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4 md:gap-6">
+                  {filteredPSUs.map((psuItem) => (
+                    <div key={psuItem.id} className="rounded-lg border border-black/10 bg-white hover:bg-black/5 transition cursor-pointer" onClick={() => setSelectedPSU(psuItem)}>
+                      <div className="p-4">
+                        <img src={psuItem.image} alt={psuItem.name} className="w-full h-48 object-cover rounded-lg mb-4" />
+                        <div className="text-sm font-medium mb-2 line-clamp-2">{psuItem.name}</div>
+                        <div className="text-lg font-bold mb-3">
+                          {psuItem.price > 0 ? `${psuItem.price.toLocaleString('vi-VN')} VND` : 'Liên hệ'}
+                        </div>
+                        <div className="space-y-1 text-xs text-black/60 mb-4">
+                          <div className="flex justify-between"><span>Wattage:</span><span className="text-black">{psuItem.specs.wattage}</span></div>
+                          <div className="flex justify-between"><span>Efficiency:</span><span className="text-black">{psuItem.specs.efficiency}</span></div>
+                          <div className="flex justify-between"><span>Modular:</span><span className="text-black">{psuItem.specs.modular}</span></div>
+                          <div className="flex justify-between"><span>Form Factor:</span><span className="text-black">{psuItem.specs.formFactor}</span></div>
+                          <div className="flex justify-between"><span>Fan Size:</span><span className="text-black">{psuItem.specs.fanSize}</span></div>
+                        </div>
+                        <button className="w-full btn-primary">+ Add to build</button>
+                      </div>
+                    </div>
+                  ))}
+                </div>
+              )}
             </div>
           </div>
         </main>

@@ -2,6 +2,7 @@ import { StrictMode } from 'react'
 import { createRoot } from 'react-dom/client'
 import { BrowserRouter as Router, Routes, Route } from 'react-router-dom'
 import './index.css'
+import ProtectedRoute from './components/ProtectedRoute'
 import HomePage from './HomePage.tsx'
 import SalesPage from './pages/sales.tsx'
 import CasePage from './pages/products/case.tsx'
@@ -11,18 +12,16 @@ import GPUPage from './pages/products/gpu.tsx'
 import RAMPage from './pages/products/ram.tsx'
 import StoragePage from './pages/products/storage.tsx'
 import PSUPage from './pages/products/psu.tsx'
-import CPUCoolerPage from './pages/products/cpu-cooler.tsx'
-import CaseFanPage from './pages/products/case-fan.tsx'
+import CoolingPage from './pages/products/cooling.tsx'
+import HeadsetSpeakerPage from './pages/products/headset-speaker.tsx'
 import MonitorPage from './pages/products/monitor.tsx'
 import MousePage from './pages/products/mouse.tsx'
 import KeyboardPage from './pages/products/keyboard.tsx'
-import HeadphonesPage from './pages/products/headphones.tsx'
-import WebcamPage from './pages/products/webcam.tsx'
-import MicrophonePage from './pages/products/microphone.tsx'
-import SpeakersPage from './pages/products/speakers.tsx'
 import LoginPage from './pages/login&register/login.tsx'
 import RegisterPage from './pages/login&register/register.tsx'
 import ComparePage from './pages/compare/compare.tsx'
+import StaffPage from './pages/staff/index.tsx'
+import AdminPage from './pages/admin/index.tsx'
 
 createRoot(document.getElementById('root')!).render(
   <StrictMode>
@@ -40,15 +39,23 @@ createRoot(document.getElementById('root')!).render(
         <Route path="/products/ram" element={<RAMPage />} />
         <Route path="/products/storage" element={<StoragePage />} />
         <Route path="/products/psu" element={<PSUPage />} />
-        <Route path="/products/cpu-cooler" element={<CPUCoolerPage />} />
-        <Route path="/products/case-fan" element={<CaseFanPage />} />
+        <Route path="/products/cooling" element={<CoolingPage />} />
+        <Route path="/products/headset-speaker" element={<HeadsetSpeakerPage />} />
         <Route path="/products/monitor" element={<MonitorPage />} />
         <Route path="/products/mouse" element={<MousePage />} />
         <Route path="/products/keyboard" element={<KeyboardPage />} />
-        <Route path="/products/headphones" element={<HeadphonesPage />} />
-        <Route path="/products/webcam" element={<WebcamPage />} />
-        <Route path="/products/microphone" element={<MicrophonePage />} />
-        <Route path="/products/speakers" element={<SpeakersPage />} />
+        
+        {/* Protected Routes */}
+        <Route path="/staff" element={
+          <ProtectedRoute requiredRole="Staff">
+            <StaffPage />
+          </ProtectedRoute>
+        } />
+        <Route path="/admin" element={
+          <ProtectedRoute requiredRole="Admin">
+            <AdminPage />
+          </ProtectedRoute>
+        } />
       </Routes>
     </Router>
   </StrictMode>,

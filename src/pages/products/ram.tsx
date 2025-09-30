@@ -1,6 +1,7 @@
-import React, { useState } from 'react'
+import { useEffect, useState } from 'react'
 import { Link } from 'react-router-dom'
 import '../../Homepage.css'
+import { ApiService } from '../../services/api'
 
 interface RAMItem {
   id: number
@@ -59,158 +60,91 @@ function RAMPage() {
   const [latencySearch, setLatencySearch] = useState('')
   const [voltageSearch, setVoltageSearch] = useState('')
   const [modulesSearch, setModulesSearch] = useState('')
+  // API states
+  const [rams, setRams] = useState<RAMItem[]>([])
+  const [loading, setLoading] = useState(false)
 
-  const allRAMs = [
-    {
-      id: 1,
-      name: 'Corsair Vengeance RGB Pro 32GB (2x16GB) DDR4-3200',
-      brand: 'Corsair',
-      price: 149.99,
-      image: 'https://images.unsplash.com/photo-1591799264318-7e6ef8ddb7ea?w=300&h=200&fit=crop',
-      specs: {
-        capacity: '32GB',
-        speed: '3200MHz',
-        type: 'DDR4',
-        latency: 'CL16',
-        voltage: '1.35V',
-        modules: '2x16GB',
-        rgb: true,
-        heatSpreader: true,
-        ecc: false,
-        registered: false,
-        formFactor: 'DIMM'
-      },
-      features: ['RGB Lighting', 'Heat Spreader', 'XMP 2.0', 'Low Profile', 'Compatible'],
-      rating: 4.6,
-      reviews: 234,
-      inStock: true
-    },
-    {
-      id: 2,
-      name: 'G.Skill Trident Z5 RGB 32GB (2x16GB) DDR5-5600',
-      brand: 'G.Skill',
-      price: 199.99,
-      image: 'https://images.unsplash.com/photo-1591799264318-7e6ef8ddb7ea?w=300&h=200&fit=crop',
-      specs: {
-        capacity: '32GB',
-        speed: '5600MHz',
-        type: 'DDR5',
-        latency: 'CL36',
-        voltage: '1.25V',
-        modules: '2x16GB',
-        rgb: true,
-        heatSpreader: true,
-        ecc: false,
-        registered: false,
-        formFactor: 'DIMM'
-      },
-      features: ['RGB Lighting', 'Heat Spreader', 'XMP 3.0', 'Intel Optimized', 'AMD Compatible'],
-      rating: 4.7,
-      reviews: 189,
-      inStock: true
-    },
-    {
-      id: 3,
-      name: 'Kingston Fury Beast 16GB (2x8GB) DDR4-3200',
-      brand: 'Kingston',
-      price: 79.99,
-      image: 'https://images.unsplash.com/photo-1591799264318-7e6ef8ddb7ea?w=300&h=200&fit=crop',
-      specs: {
-        capacity: '16GB',
-        speed: '3200MHz',
-        type: 'DDR4',
-        latency: 'CL16',
-        voltage: '1.35V',
-        modules: '2x8GB',
-        rgb: false,
-        heatSpreader: true,
-        ecc: false,
-        registered: false,
-        formFactor: 'DIMM'
-      },
-      features: ['Heat Spreader', 'XMP 2.0', 'Low Profile', 'Compatible', 'Reliable'],
-      rating: 4.4,
-      reviews: 156,
-      inStock: true
-    },
-    {
-      id: 4,
-      name: 'Crucial Ballistix 32GB (2x16GB) DDR4-3600',
-      brand: 'Crucial',
-      price: 129.99,
-      image: 'https://images.unsplash.com/photo-1591799264318-7e6ef8ddb7ea?w=300&h=200&fit=crop',
-      specs: {
-        capacity: '32GB',
-        speed: '3600MHz',
-        type: 'DDR4',
-        latency: 'CL16',
-        voltage: '1.35V',
-        modules: '2x16GB',
-        rgb: false,
-        heatSpreader: true,
-        ecc: false,
-        registered: false,
-        formFactor: 'DIMM'
-      },
-      features: ['Heat Spreader', 'XMP 2.0', 'Low Profile', 'Compatible', 'Performance'],
-      rating: 4.5,
-      reviews: 203,
-      inStock: false
-    },
-    {
-      id: 5,
-      name: 'Corsair Dominator Platinum RGB 64GB (2x32GB) DDR5-6000',
-      brand: 'Corsair',
-      price: 399.99,
-      image: 'https://images.unsplash.com/photo-1591799264318-7e6ef8ddb7ea?w=300&h=200&fit=crop',
-      specs: {
-        capacity: '64GB',
-        speed: '6000MHz',
-        type: 'DDR5',
-        latency: 'CL30',
-        voltage: '1.25V',
-        modules: '2x32GB',
-        rgb: true,
-        heatSpreader: true,
-        ecc: false,
-        registered: false,
-        formFactor: 'DIMM'
-      },
-      features: ['RGB Lighting', 'Heat Spreader', 'XMP 3.0', 'Premium', 'High Performance'],
-      rating: 4.8,
-      reviews: 67,
-      inStock: true
-    },
-    {
-      id: 6,
-      name: 'G.Skill Ripjaws V 16GB (2x8GB) DDR4-2400',
-      brand: 'G.Skill',
-      price: 59.99,
-      image: 'https://images.unsplash.com/photo-1591799264318-7e6ef8ddb7ea?w=300&h=200&fit=crop',
-      specs: {
-        capacity: '16GB',
-        speed: '2400MHz',
-        type: 'DDR4',
-        latency: 'CL15',
-        voltage: '1.2V',
-        modules: '2x8GB',
-        rgb: false,
-        heatSpreader: true,
-        ecc: false,
-        registered: false,
-        formFactor: 'DIMM'
-      },
-      features: ['Heat Spreader', 'XMP 2.0', 'Low Profile', 'Compatible', 'Budget'],
-      rating: 4.2,
-      reviews: 178,
-      inStock: true
+  // Fetch RAMs from API (category_id = 4)
+  useEffect(() => {
+    const fetchRAMs = async () => {
+      setLoading(true)
+      try {
+        const products = await ApiService.getProductsByCategory(4)
+
+        interface RAMApiProduct {
+          id?: number
+          name?: string
+          brand?: string
+          specs?: string
+          image_url1?: string
+          imageUrl1?: string
+          capacity?: number | string
+          type?: string
+          speed_mhz?: number
+          speedMHz?: number
+          speed?: number | string
+          modules?: string
+          rgb?: boolean
+          productPrices?: Array<{ price: number }>
+        }
+
+        const formatted: RAMItem[] = (products as RAMApiProduct[]).map((item) => {
+          const specsString = String(item.specs || '')
+          const capacityField = item.capacity
+          const speedField = item.speed_mhz ?? item.speedMHz ?? item.speed
+          const typeField = item.type
+          const modulesField = item.modules
+          const latencyMatch = specsString.match(/CL\s*\d+/i)
+          const voltageMatch = specsString.match(/(\d+\.\d+)V/i)
+
+          const prices = item.productPrices || []
+          const minPrice = prices.length ? Math.min(...prices.map(p => p.price)) : 0
+
+          return {
+            id: Number(item.id) || 0,
+            name: String(item.name) || 'Unknown RAM',
+            brand: String(item.brand) || 'Unknown',
+            price: minPrice,
+            image: String(item.image_url1 || item.imageUrl1 || 'https://images.unsplash.com/photo-1591799264318-7e6ef8ddb7ea?w=300&h=200&fit=crop'),
+            specs: {
+              capacity: capacityField ? `${String(capacityField).replace(/\s*GB/i,'')}GB`.toUpperCase() : 'Unknown',
+              speed: speedField ? `${String(speedField).replace(/\D/g,'')}MHz` : 'Unknown',
+              type: typeField ? String(typeField).toUpperCase() : 'Unknown',
+              latency: latencyMatch ? latencyMatch[0].toUpperCase() : 'Unknown',
+              voltage: voltageMatch ? `${voltageMatch[1]}V` : 'Unknown',
+              modules: modulesField ? String(modulesField).toUpperCase() : 'Unknown',
+              rgb: Boolean(item.rgb ?? true),
+              heatSpreader: true,
+              ecc: false,
+              registered: false,
+              formFactor: 'DIMM'
+            },
+            features: ['Unknown'],
+            rating: 4.0,
+            reviews: 0,
+            inStock: true
+          }
+        })
+
+        setRams(formatted)
+      } catch (err) {
+        console.error('Error fetching RAMs:', err)
+        setRams([])
+      } finally {
+        setLoading(false)
+      }
     }
-  ]
+
+    fetchRAMs()
+  }, [])
+
+  // Dữ liệu từ API
+  const allRAMs = rams
 
   // Filter logic
   const filteredRAMs = allRAMs.filter((ramItem) => {
-    // Price filter
-    if (ramItem.price < priceRange[0] || ramItem.price > priceRange[1]) {
+    // Price filter - chỉ lọc nếu có giá > 0 (giống GPU/Mainboard)
+    if (ramItem.price > 0 && (ramItem.price < priceRange[0] || ramItem.price > priceRange[1])) {
       return false
     }
 
@@ -686,25 +620,65 @@ function RAMPage() {
 
             {/* Grid */}
             <div className="flex-1">
-              <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4 md:gap-6">
-                {filteredRAMs.map((ramItem) => (
-                  <div key={ramItem.id} className="rounded-lg border border-black/10 bg-white hover:bg-black/5 transition cursor-pointer" onClick={() => setSelectedRAM(ramItem)}>
-                    <div className="p-4">
-                      <img src={ramItem.image} alt={ramItem.name} className="w-full h-48 object-cover rounded-lg mb-4" />
-                      <div className="text-sm font-medium mb-2 line-clamp-2">{ramItem.name}</div>
-                      <div className="text-lg font-bold mb-3">${ramItem.price}</div>
-                      <div className="space-y-1 text-xs text-black/60 mb-4">
-                        <div className="flex justify-between"><span>Capacity:</span><span className="text-black">{ramItem.specs.capacity}</span></div>
-                        <div className="flex justify-between"><span>Speed:</span><span className="text-black">{ramItem.specs.speed}</span></div>
-                        <div className="flex justify-between"><span>Type:</span><span className="text-black">{ramItem.specs.type}</span></div>
-                        <div className="flex justify-between"><span>Latency:</span><span className="text-black">{ramItem.specs.latency}</span></div>
-                        <div className="flex justify-between"><span>Modules:</span><span className="text-black">{ramItem.specs.modules}</span></div>
-                      </div>
-                      <button className="w-full btn-primary">+ Add to build</button>
-                    </div>
+              {loading && (
+                <div className="flex justify-center items-center py-12">
+                  <div className="text-lg text-gray-600">Đang tải dữ liệu RAM...</div>
+                </div>
+              )}
+
+              {filteredRAMs.length === 0 ? (
+                <div className="text-center py-12">
+                  <div className="text-lg text-gray-600 mb-4">
+                    {rams.length === 0 ? 'Không có RAM nào trong database' : 'Không tìm thấy RAM nào phù hợp'}
                   </div>
-                ))}
-              </div>
+                  <div className="text-sm text-gray-500 mb-4">
+                    {rams.length === 0 ? 'Vui lòng thêm RAM vào database' : 'Thử điều chỉnh bộ lọc hoặc tìm kiếm khác'}
+                  </div>
+                  {rams.length > 0 && (
+                    <button 
+                      onClick={() => {
+                        setSearchTerm('')
+                        setSelectedCapacities([])
+                        setSelectedSpeeds([])
+                        setSelectedTypes([])
+                        setSelectedBrands([])
+                        setSelectedLatencies([])
+                        setSelectedVoltages([])
+                        setSelectedModules([])
+                        setSelectedRGB(null)
+                        setSelectedHeatSpreader(null)
+                        setSelectedECC(null)
+                        setPriceRange([30, 500])
+                      }}
+                      className="px-4 py-2 bg-blue-500 text-white rounded hover:bg-blue-600"
+                    >
+                      Xóa tất cả bộ lọc
+                    </button>
+                  )}
+                </div>
+              ) : (
+                <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4 md:gap-6">
+                  {filteredRAMs.map((ramItem) => (
+                    <div key={ramItem.id} className="rounded-lg border border-black/10 bg-white hover:bg-black/5 transition cursor-pointer" onClick={() => setSelectedRAM(ramItem)}>
+                      <div className="p-4">
+                        <img src={ramItem.image} alt={ramItem.name} className="w-full h-48 object-cover rounded-lg mb-4" />
+                        <div className="text-sm font-medium mb-2 line-clamp-2">{ramItem.name}</div>
+                        <div className="text-lg font-bold mb-3">
+                          {ramItem.price > 0 ? `${ramItem.price.toLocaleString('vi-VN')} VND` : 'Liên hệ'}
+                        </div>
+                        <div className="space-y-1 text-xs text-black/60 mb-4">
+                          <div className="flex justify-between"><span>Capacity:</span><span className="text-black">{ramItem.specs.capacity}</span></div>
+                          <div className="flex justify-between"><span>Speed:</span><span className="text-black">{ramItem.specs.speed}</span></div>
+                          <div className="flex justify-between"><span>Type:</span><span className="text-black">{ramItem.specs.type}</span></div>
+                          <div className="flex justify-between"><span>Latency:</span><span className="text-black">{ramItem.specs.latency}</span></div>
+                          <div className="flex justify-between"><span>Modules:</span><span className="text-black">{ramItem.specs.modules}</span></div>
+                        </div>
+                        <button className="w-full btn-primary">+ Add to build</button>
+                      </div>
+                    </div>
+                  ))}
+                </div>
+              )}
             </div>
           </div>
         </main>

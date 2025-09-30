@@ -1,6 +1,7 @@
-import React, { useState } from 'react'
+import { useEffect, useState } from 'react'
 import { Link } from 'react-router-dom'
 import '../../Homepage.css'
+import { ApiService } from '../../services/api'
 
 interface GPUItem {
   id: number
@@ -45,6 +46,10 @@ function GPUPage() {
   const [selectedCooling, setSelectedCooling] = useState<string[]>([])
   const [selectedRGB, setSelectedRGB] = useState<boolean | null>(null)
   
+  // API states
+  const [gpus, setGpus] = useState<GPUItem[]>([])
+  const [loading, setLoading] = useState(false)
+  
   // Popup states
   const [showBrandPopup, setShowBrandPopup] = useState(false)
   const [showSeriesPopup, setShowSeriesPopup] = useState(false)
@@ -67,175 +72,95 @@ function GPUPage() {
   const [interfaceSearch, setInterfaceSearch] = useState('')
   const [coolingSearch, setCoolingSearch] = useState('')
 
-  const allGPUs = [
-    {
-      id: 1,
-      name: 'NVIDIA GeForce RTX 4090',
-      brand: 'NVIDIA',
-      price: 1599.99,
-      image: 'https://images.unsplash.com/photo-1591799264318-7e6ef8ddb7ea?w=300&h=200&fit=crop',
-      specs: {
-        series: 'RTX 40 Series',
-        memory: '24GB',
-        memoryType: 'GDDR6X',
-        baseClock: '2230 MHz',
-        boostClock: '2520 MHz',
-        powerConsumption: '450W',
-        interface: 'PCIe 4.0 x16',
-        displayPorts: '3x DisplayPort 1.4a',
-        hdmiPorts: '1x HDMI 2.1a',
-        length: '304mm',
-        width: '137mm',
-        height: '61mm',
-        cooling: 'Triple Fan',
-        rgb: true
-      },
-      features: ['DLSS 3', 'Ray Tracing', 'AV1 Encoding', '4K Gaming', 'RGB Lighting'],
-      rating: 4.8,
-      reviews: 342,
-      inStock: true
-    },
-    {
-      id: 2,
-      name: 'AMD Radeon RX 7900 XTX',
-      brand: 'AMD',
-      price: 999.99,
-      image: 'https://images.unsplash.com/photo-1591799264318-7e6ef8ddb7ea?w=300&h=200&fit=crop',
-      specs: {
-        series: 'RX 7000 Series',
-        memory: '24GB',
-        memoryType: 'GDDR6',
-        baseClock: '1900 MHz',
-        boostClock: '2500 MHz',
-        powerConsumption: '355W',
-        interface: 'PCIe 4.0 x16',
-        displayPorts: '2x DisplayPort 2.1',
-        hdmiPorts: '1x HDMI 2.1a',
-        length: '287mm',
-        width: '135mm',
-        height: '50mm',
-        cooling: 'Triple Fan',
-        rgb: true
-      },
-      features: ['FSR 3', 'Ray Tracing', 'AV1 Encoding', '4K Gaming', 'RGB Lighting'],
-      rating: 4.6,
-      reviews: 189,
-      inStock: true
-    },
-    {
-      id: 3,
-      name: 'NVIDIA GeForce RTX 4080',
-      brand: 'NVIDIA',
-      price: 1199.99,
-      image: 'https://images.unsplash.com/photo-1591799264318-7e6ef8ddb7ea?w=300&h=200&fit=crop',
-      specs: {
-        series: 'RTX 40 Series',
-        memory: '16GB',
-        memoryType: 'GDDR6X',
-        baseClock: '2210 MHz',
-        boostClock: '2505 MHz',
-        powerConsumption: '320W',
-        interface: 'PCIe 4.0 x16',
-        displayPorts: '3x DisplayPort 1.4a',
-        hdmiPorts: '1x HDMI 2.1a',
-        length: '304mm',
-        width: '137mm',
-        height: '61mm',
-        cooling: 'Triple Fan',
-        rgb: true
-      },
-      features: ['DLSS 3', 'Ray Tracing', 'AV1 Encoding', '4K Gaming', 'RGB Lighting'],
-      rating: 4.7,
-      reviews: 256,
-      inStock: true
-    },
-    {
-      id: 4,
-      name: 'AMD Radeon RX 7800 XT',
-      brand: 'AMD',
-      price: 499.99,
-      image: 'https://images.unsplash.com/photo-1591799264318-7e6ef8ddb7ea?w=300&h=200&fit=crop',
-      specs: {
-        series: 'RX 7000 Series',
-        memory: '16GB',
-        memoryType: 'GDDR6',
-        baseClock: '1800 MHz',
-        boostClock: '2430 MHz',
-        powerConsumption: '263W',
-        interface: 'PCIe 4.0 x16',
-        displayPorts: '2x DisplayPort 2.1',
-        hdmiPorts: '1x HDMI 2.1a',
-        length: '267mm',
-        width: '120mm',
-        height: '50mm',
-        cooling: 'Dual Fan',
-        rgb: false
-      },
-      features: ['FSR 3', 'Ray Tracing', 'AV1 Encoding', '1440p Gaming'],
-      rating: 4.4,
-      reviews: 178,
-      inStock: false
-    },
-    {
-      id: 5,
-      name: 'NVIDIA GeForce RTX 4070',
-      brand: 'NVIDIA',
-      price: 599.99,
-      image: 'https://images.unsplash.com/photo-1591799264318-7e6ef8ddb7ea?w=300&h=200&fit=crop',
-      specs: {
-        series: 'RTX 40 Series',
-        memory: '12GB',
-        memoryType: 'GDDR6X',
-        baseClock: '1920 MHz',
-        boostClock: '2475 MHz',
-        powerConsumption: '200W',
-        interface: 'PCIe 4.0 x16',
-        displayPorts: '3x DisplayPort 1.4a',
-        hdmiPorts: '1x HDMI 2.1a',
-        length: '244mm',
-        width: '112mm',
-        height: '40mm',
-        cooling: 'Dual Fan',
-        rgb: true
-      },
-      features: ['DLSS 3', 'Ray Tracing', 'AV1 Encoding', '1440p Gaming', 'RGB Lighting'],
-      rating: 4.5,
-      reviews: 203,
-      inStock: true
-    },
-    {
-      id: 6,
-      name: 'AMD Radeon RX 7600 XT',
-      brand: 'AMD',
-      price: 329.99,
-      image: 'https://images.unsplash.com/photo-1591799264318-7e6ef8ddb7ea?w=300&h=200&fit=crop',
-      specs: {
-        series: 'RX 7000 Series',
-        memory: '16GB',
-        memoryType: 'GDDR6',
-        baseClock: '2470 MHz',
-        boostClock: '2755 MHz',
-        powerConsumption: '190W',
-        interface: 'PCIe 4.0 x16',
-        displayPorts: '2x DisplayPort 2.1',
-        hdmiPorts: '1x HDMI 2.1a',
-        length: '204mm',
-        width: '120mm',
-        height: '40mm',
-        cooling: 'Dual Fan',
-        rgb: false
-      },
-      features: ['FSR 3', 'Ray Tracing', 'AV1 Encoding', '1080p Gaming'],
-      rating: 4.2,
-      reviews: 145,
-      inStock: true
+  // Kiểu dữ liệu trả về từ backend cho GPU
+  interface GPUApiProduct {
+    id?: number
+    name?: string
+    brand?: string
+    model?: string
+    specs?: string
+    tdp_watt?: number
+    image_url1?: string
+    display_ports?: string
+    hdmi_ports?: string
+    size?: string | number
+    width?: string | number
+    height?: string | number
+    cooling?: string
+    rgb?: boolean
+    category_id?: number
+    productPrices?: Array<{ price: number }>
+  }
+
+  // Fetch GPUs from API (category_id = 2)
+  useEffect(() => {
+    const fetchGPUs = async () => {
+      setLoading(true)
+      try {
+        const products = await ApiService.getProductsByCategory(2)
+
+        const formatted: GPUItem[] = (products || []).map((item: GPUApiProduct) => {
+          const specsString = String(item.specs || '')
+          const baseClockMatch = specsString.match(/base\s*(\d+\.?\d*)\s*(MHz|GHz)/i) || specsString.match(/(\d+\.?\d*)\s*(MHz|GHz)\s*base/i)
+          const boostClockMatch = specsString.match(/boost\s*(\d+\.?\d*)\s*(MHz|GHz)/i)
+          const memoryMatch = specsString.match(/(\d+)\s*GB/i)
+          const memoryTypeMatch = specsString.match(/GDDR\dX?|HBM2e?|HBM/i)
+          const interfaceMatch = specsString.match(/PCIe\s*[\d.]*\s*x\s*\d+/i) || specsString.match(/PCIe\s*x\s*\d+/i)
+
+          const productPrices = item.productPrices as Array<{ price: number }>
+          const minPrice = Array.isArray(productPrices) && productPrices.length > 0
+            ? Math.min(...productPrices.map(p => p.price))
+            : 0
+
+          return {
+            id: Number(item.id) || 0,
+            name: String(item.name) || 'Unknown GPU',
+            brand: String(item.brand) || 'Unknown',
+            price: minPrice,
+            image: String(item.image_url1 || 'https://images.unsplash.com/photo-1591799264318-7e6ef8ddb7ea?w=300&h=200&fit=crop'),
+            specs: {
+              // Dùng cột model làm series nếu có
+              series: String(item.model || 'Unknown'),
+              memory: memoryMatch ? `${memoryMatch[1]}GB`.toUpperCase() : 'Unknown',
+              memoryType: memoryTypeMatch ? memoryTypeMatch[0].toUpperCase() : 'Unknown',
+              baseClock: baseClockMatch ? `${baseClockMatch[1]} ${baseClockMatch[2].toUpperCase()}` : 'Unknown',
+              boostClock: boostClockMatch ? `${boostClockMatch[1]} ${boostClockMatch[2].toUpperCase()}` : 'Unknown',
+              powerConsumption: `${Number(item.tdp_watt) || 0}W`,
+              interface: interfaceMatch ? interfaceMatch[0].replace(/\s+/g, ' ').toUpperCase() : 'PCIe X16',
+              displayPorts: String(item.display_ports || 'Unknown'),
+              hdmiPorts: String(item.hdmi_ports || 'Unknown'),
+              length: String(item.size || 'Unknown'),
+              width: String(item.width || 'Unknown'),
+              height: String(item.height || 'Unknown'),
+              cooling: String(item.cooling || 'Unknown'),
+              rgb: Boolean(item.rgb ?? true)
+            },
+            features: ['Unknown'],
+            rating: 4.0,
+            reviews: 0,
+            inStock: true
+          }
+        })
+
+        setGpus(formatted)
+      } catch (err) {
+        console.error('Error fetching GPUs:', err)
+        setGpus([])
+      } finally {
+        setLoading(false)
+      }
     }
-  ]
+
+    fetchGPUs()
+  }, [])
+
+  // Dữ liệu sử dụng từ API
+  const allGPUs = gpus
 
   // Filter logic
   const filteredGPUs = allGPUs.filter((gpuItem) => {
-    // Price filter
-    if (gpuItem.price < priceRange[0] || gpuItem.price > priceRange[1]) {
+    // Price filter - chỉ filter nếu có giá > 0
+    if (gpuItem.price > 0 && (gpuItem.price < priceRange[0] || gpuItem.price > priceRange[1])) {
       return false
     }
 
@@ -707,25 +632,65 @@ function GPUPage() {
 
             {/* Grid */}
             <div className="flex-1">
-              <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4 md:gap-6">
-                {filteredGPUs.map((gpuItem) => (
-                  <div key={gpuItem.id} className="rounded-lg border border-black/10 bg-white hover:bg-black/5 transition cursor-pointer" onClick={() => setSelectedGPU(gpuItem)}>
-                    <div className="p-4">
-                      <img src={gpuItem.image} alt={gpuItem.name} className="w-full h-48 object-cover rounded-lg mb-4" />
-                      <div className="text-sm font-medium mb-2 line-clamp-2">{gpuItem.name}</div>
-                      <div className="text-lg font-bold mb-3">${gpuItem.price}</div>
-                      <div className="space-y-1 text-xs text-black/60 mb-4">
-                        <div className="flex justify-between"><span>Series:</span><span className="text-black">{gpuItem.specs.series}</span></div>
-                        <div className="flex justify-between"><span>Memory:</span><span className="text-black">{gpuItem.specs.memory}</span></div>
-                        <div className="flex justify-between"><span>Base Clock:</span><span className="text-black">{gpuItem.specs.baseClock}</span></div>
-                        <div className="flex justify-between"><span>Boost Clock:</span><span className="text-black">{gpuItem.specs.boostClock}</span></div>
-                        <div className="flex justify-between"><span>Power:</span><span className="text-black">{gpuItem.specs.powerConsumption}</span></div>
-                      </div>
-                      <button className="w-full btn-primary">+ Add to build</button>
-                    </div>
+              {loading && (
+                <div className="flex justify-center items-center py-12">
+                  <div className="text-lg text-gray-600">Đang tải dữ liệu GPU...</div>
+                </div>
+              )}
+
+              {filteredGPUs.length === 0 ? (
+                <div className="text-center py-12">
+                  <div className="text-lg text-gray-600 mb-4">
+                    {gpus.length === 0 ? 'Không có GPU nào trong database' : 'Không tìm thấy GPU nào phù hợp'}
                   </div>
-                ))}
-              </div>
+                  <div className="text-sm text-gray-500 mb-4">
+                    {gpus.length === 0 ? 'Vui lòng thêm GPU vào database' : 'Thử điều chỉnh bộ lọc hoặc tìm kiếm khác'}
+                  </div>
+                  {gpus.length > 0 && (
+                    <button 
+                      onClick={() => {
+                        setSearchTerm('')
+                        setSelectedBrands([])
+                        setSelectedSeries([])
+                        setSelectedMemory([])
+                        setSelectedMemoryTypes([])
+                        setSelectedBaseClocks([])
+                        setSelectedBoostClocks([])
+                        setSelectedPowerConsumption([])
+                        setSelectedInterface([])
+                        setSelectedCooling([])
+                        setSelectedRGB(null)
+                        setPriceRange([100, 2000])
+                      }}
+                      className="px-4 py-2 bg-blue-500 text-white rounded hover:bg-blue-600"
+                    >
+                      Xóa tất cả bộ lọc
+                    </button>
+                  )}
+                </div>
+              ) : (
+                <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4 md:gap-6">
+                  {filteredGPUs.map((gpuItem) => (
+                    <div key={gpuItem.id} className="rounded-lg border border-black/10 bg-white hover:bg-black/5 transition cursor-pointer" onClick={() => setSelectedGPU(gpuItem)}>
+                      <div className="p-4">
+                        <img src={gpuItem.image} alt={gpuItem.name} className="w-full h-48 object-cover rounded-lg mb-4" />
+                        <div className="text-sm font-medium mb-2 line-clamp-2">{gpuItem.name}</div>
+                        <div className="text-lg font-bold mb-3">
+                          {gpuItem.price > 0 ? `${gpuItem.price.toLocaleString('vi-VN')} VND` : 'Liên hệ'}
+                        </div>
+                        <div className="space-y-1 text-xs text-black/60 mb-4">
+                          <div className="flex justify-between"><span>Series:</span><span className="text-black">{gpuItem.specs.series}</span></div>
+                          <div className="flex justify-between"><span>Memory:</span><span className="text-black">{gpuItem.specs.memory}</span></div>
+                          <div className="flex justify-between"><span>Base Clock:</span><span className="text-black">{gpuItem.specs.baseClock}</span></div>
+                          <div className="flex justify-between"><span>Boost Clock:</span><span className="text-black">{gpuItem.specs.boostClock}</span></div>
+                          <div className="flex justify-between"><span>Power:</span><span className="text-black">{gpuItem.specs.powerConsumption}</span></div>
+                        </div>
+                        <button className="w-full btn-primary">+ Add to build</button>
+                      </div>
+                    </div>
+                  ))}
+                </div>
+              )}
             </div>
           </div>
         </main>
