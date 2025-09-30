@@ -5,7 +5,6 @@ import './index.css'
 
 function RegisterPage() {
   const [formData, setFormData] = useState({
-    username: '',
     fullname: '',
     email: '',
     password: '',
@@ -47,7 +46,6 @@ function RegisterPage() {
 
     try {
       const data = await ApiService.register({
-        username: formData.username,
         fullname: formData.fullname,
         email: formData.email,
         password: formData.password,
@@ -100,35 +98,19 @@ function RegisterPage() {
           <div className="auth-divider"><span>OR CONTINUE WITH EMAIL</span></div>
 
           <form onSubmit={handleSubmit} className="auth-form">
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-              <label className="auth-label">
-                <span className="mb-1 block">Username *</span>
-                <div className="auth-input-wrap">
-                  <input
-                    type="text"
-                    required
-                    value={formData.username}
-                    onChange={handleInputChange('username')}
-                    placeholder="username"
-                    className="auth-input"
-                  />
-                </div>
-              </label>
-              
-              <label className="auth-label">
-                <span className="mb-1 block">Full Name *</span>
-                <div className="auth-input-wrap">
-                  <input
-                    type="text"
-                    required
-                    value={formData.fullname}
-                    onChange={handleInputChange('fullname')}
-                    placeholder="fullname"
-                    className="auth-input"
-                  />
-                </div>
-              </label>
-            </div>
+            <label className="auth-label">
+              <span className="mb-1 block">Full Name *</span>
+              <div className="auth-input-wrap">
+                <input
+                  type="text"
+                  required
+                  value={formData.fullname}
+                  onChange={handleInputChange('fullname')}
+                  placeholder="fullname"
+                  className="auth-input"
+                />
+              </div>
+            </label>
 
             <label className="auth-label">
               <span className="mb-1 block">Email *</span>

@@ -38,7 +38,28 @@ function LoginPage() {
         localStorage.setItem('authUser', JSON.stringify(data.user))
       }
 
-      const redirectTo = location.state?.from || '/'
+      // Redirect dựa trên role sau khi đăng nhập
+      const userRole = ApiService.getUserRole()
+      let redirectTo = location.state?.from || '/'
+
+      // Nếu đang cố truy cập trang admin/staff nhưng role không phù hợp
+      if (location.state?.from?.includes('/admin') && !ApiService.isAdmin()) {
+        redirectTo = '/'
+      } else if (location.state?.from?.includes('/staff') && !ApiService.isStaff()) {
+        redirectTo = '/'
+      }
+
+      // Nếu không có trang cụ thể, redirect theo role
+      if (!location.state?.from) {
+        if (userRole === 'Admin') {
+          redirectTo = '/admin'
+        } else if (userRole === 'Staff') {
+          redirectTo = '/staff'
+        } else {
+          redirectTo = '/'
+        }
+      }
+
       navigate(redirectTo)
     } catch (error: unknown) {
       console.error('Login error:', error)

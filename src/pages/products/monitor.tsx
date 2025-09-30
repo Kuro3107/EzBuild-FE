@@ -1,6 +1,7 @@
-import React, { useState } from 'react'
+import { useEffect, useState } from 'react'
 import { Link } from 'react-router-dom'
 import '../../Homepage.css'
+import { ApiService } from '../../services/api'
 
 interface MonitorItem {
   id: number
@@ -63,182 +64,85 @@ function MonitorPage() {
   const [responseTimeSearch, setResponseTimeSearch] = useState('')
   const [brandSearch, setBrandSearch] = useState('')
   const [connectivitySearch, setConnectivitySearch] = useState('')
+  // API states
+  const [monitors, setMonitors] = useState<MonitorItem[]>([])
+  const [loading, setLoading] = useState(false)
 
-  const allMonitors = [
-    {
-      id: 1,
-      name: 'ASUS ROG Swift PG27UQ 27" 4K UHD',
-      brand: 'ASUS',
-      price: 1999.99,
-      image: 'https://images.unsplash.com/photo-1591799264318-7e6ef8ddb7ea?w=300&h=200&fit=crop',
-      specs: {
-        size: '27"',
-        resolution: '3840 x 2160',
-        refreshRate: '144Hz',
-        panelType: 'IPS',
-        responseTime: '4ms',
-        brightness: '1000 cd/m²',
-        contrast: '1000:1',
-        colorGamut: 'DCI-P3 97%',
-        connectivity: 'DisplayPort 1.4, HDMI 2.0, USB 3.0',
-        aspectRatio: '16:9',
-        curvature: 'Flat',
-        warranty: '3 Years',
-        hdr: true,
-        gsync: true,
-        freesync: false
-      },
-      features: ['4K UHD', '144Hz', 'G-Sync', 'HDR1000', 'IPS Panel', 'Quantum Dot'],
-      rating: 4.8,
-      reviews: 342,
-      inStock: true
-    },
-    {
-      id: 2,
-      name: 'LG UltraGear 27GN950-B 27" 4K Nano IPS',
-      brand: 'LG',
-      price: 899.99,
-      image: 'https://images.unsplash.com/photo-1591799264318-7e6ef8ddb7ea?w=300&h=200&fit=crop',
-      specs: {
-        size: '27"',
-        resolution: '3840 x 2160',
-        refreshRate: '144Hz',
-        panelType: 'Nano IPS',
-        responseTime: '1ms',
-        brightness: '400 cd/m²',
-        contrast: '1000:1',
-        colorGamut: 'DCI-P3 98%',
-        connectivity: 'DisplayPort 1.4, HDMI 2.1, USB-C',
-        aspectRatio: '16:9',
-        curvature: 'Flat',
-        warranty: '3 Years',
-        hdr: true,
-        gsync: true,
-        freesync: true
-      },
-      features: ['4K UHD', '144Hz', 'G-Sync Compatible', 'FreeSync Premium Pro', 'Nano IPS', 'HDR600'],
-      rating: 4.7,
-      reviews: 289,
-      inStock: true
-    },
-    {
-      id: 3,
-      name: 'Samsung Odyssey G7 32" QHD Curved',
-      brand: 'Samsung',
-      price: 699.99,
-      image: 'https://images.unsplash.com/photo-1591799264318-7e6ef8ddb7ea?w=300&h=200&fit=crop',
-      specs: {
-        size: '32"',
-        resolution: '2560 x 1440',
-        refreshRate: '240Hz',
-        panelType: 'VA',
-        responseTime: '1ms',
-        brightness: '350 cd/m²',
-        contrast: '2500:1',
-        colorGamut: 'sRGB 125%',
-        connectivity: 'DisplayPort 1.4, HDMI 2.1',
-        aspectRatio: '16:9',
-        curvature: '1000R',
-        warranty: '3 Years',
-        hdr: true,
-        gsync: true,
-        freesync: true
-      },
-      features: ['QHD', '240Hz', 'G-Sync Compatible', 'FreeSync Premium Pro', 'VA Panel', '1000R Curvature'],
-      rating: 4.6,
-      reviews: 156,
-      inStock: true
-    },
-    {
-      id: 4,
-      name: 'Dell S2721DGF 27" QHD IPS',
-      brand: 'Dell',
-      price: 399.99,
-      image: 'https://images.unsplash.com/photo-1591799264318-7e6ef8ddb7ea?w=300&h=200&fit=crop',
-      specs: {
-        size: '27"',
-        resolution: '2560 x 1440',
-        refreshRate: '165Hz',
-        panelType: 'IPS',
-        responseTime: '1ms',
-        brightness: '350 cd/m²',
-        contrast: '1000:1',
-        colorGamut: 'sRGB 98%',
-        connectivity: 'DisplayPort 1.4, HDMI 2.0, USB 3.0',
-        aspectRatio: '16:9',
-        curvature: 'Flat',
-        warranty: '3 Years',
-        hdr: false,
-        gsync: true,
-        freesync: true
-      },
-      features: ['QHD', '165Hz', 'G-Sync Compatible', 'FreeSync Premium Pro', 'IPS Panel', 'Budget Friendly'],
-      rating: 4.5,
-      reviews: 203,
-      inStock: false
-    },
-    {
-      id: 5,
-      name: 'MSI Optix MAG274QRF-QD 27" QHD',
-      brand: 'MSI',
-      price: 449.99,
-      image: 'https://images.unsplash.com/photo-1591799264318-7e6ef8ddb7ea?w=300&h=200&fit=crop',
-      specs: {
-        size: '27"',
-        resolution: '2560 x 1440',
-        refreshRate: '165Hz',
-        panelType: 'IPS',
-        responseTime: '1ms',
-        brightness: '300 cd/m²',
-        contrast: '1000:1',
-        colorGamut: 'DCI-P3 95%',
-        connectivity: 'DisplayPort 1.4, HDMI 2.0, USB-C',
-        aspectRatio: '16:9',
-        curvature: 'Flat',
-        warranty: '3 Years',
-        hdr: false,
-        gsync: true,
-        freesync: true
-      },
-      features: ['QHD', '165Hz', 'G-Sync Compatible', 'FreeSync Premium Pro', 'IPS Panel', 'Quantum Dot'],
-      rating: 4.4,
-      reviews: 178,
-      inStock: true
-    },
-    {
-      id: 6,
-      name: 'AOC CQ27G2 27" QHD Curved',
-      brand: 'AOC',
-      price: 249.99,
-      image: 'https://images.unsplash.com/photo-1591799264318-7e6ef8ddb7ea?w=300&h=200&fit=crop',
-      specs: {
-        size: '27"',
-        resolution: '2560 x 1440',
-        refreshRate: '144Hz',
-        panelType: 'VA',
-        responseTime: '1ms',
-        brightness: '250 cd/m²',
-        contrast: '3000:1',
-        colorGamut: 'sRGB 120%',
-        connectivity: 'DisplayPort 1.2, HDMI 2.0',
-        aspectRatio: '16:9',
-        curvature: '1500R',
-        warranty: '3 Years',
-        hdr: false,
-        gsync: false,
-        freesync: true
-      },
-      features: ['QHD', '144Hz', 'FreeSync', 'VA Panel', '1500R Curvature', 'Budget Friendly'],
-      rating: 4.3,
-      reviews: 145,
-      inStock: true
+  // Fetch Monitors from API (category_id = 9)
+  useEffect(() => {
+    const fetchMonitors = async () => {
+      setLoading(true)
+      try {
+        const products = await ApiService.getProductsByCategory(9)
+
+        interface MonitorApiProduct {
+          id?: number
+          name?: string
+          brand?: string
+          specs?: string
+          image_url1?: string
+          productPrices?: Array<{ price: number }>
+        }
+
+        const formatted: MonitorItem[] = (products as MonitorApiProduct[]).map((item) => {
+          const specsString = String(item.specs || '')
+          const sizeMatch = specsString.match(/(\d{2}(?:\.\d)?)\s*"/i)
+          const resMatch = specsString.match(/(\d{3,4})\s*x\s*(\d{3,4})/i)
+          const rrMatch = specsString.match(/(\d{2,3})\s*Hz/i)
+          const panelMatch = specsString.match(/(IPS|VA|TN|OLED|Mini LED|Nano IPS|Fast IPS)/i)
+          const rtMatch = specsString.match(/(\d+(?:\.\d)?)\s*ms/i)
+
+          const prices = item.productPrices || []
+          const minPrice = prices.length ? Math.min(...prices.map(p => p.price)) : 0
+
+          return {
+            id: Number(item.id) || 0,
+            name: String(item.name) || 'Unknown Monitor',
+            brand: String(item.brand) || 'Unknown',
+            price: minPrice,
+            image: String(item.image_url1 || 'https://images.unsplash.com/photo-1591799264318-7e6ef8ddb7ea?w=300&h=200&fit=crop'),
+            specs: {
+              size: sizeMatch ? `${sizeMatch[1]}"` : '27"',
+              resolution: resMatch ? `${resMatch[1]} x ${resMatch[2]}` : '1920 x 1080',
+              refreshRate: rrMatch ? `${rrMatch[1]}Hz` : '60Hz',
+              panelType: panelMatch ? panelMatch[1] : 'IPS',
+              responseTime: rtMatch ? `${rtMatch[1]}ms` : '5ms',
+              brightness: 'Unknown',
+              contrast: 'Unknown',
+              colorGamut: 'Unknown',
+              connectivity: 'Unknown',
+              aspectRatio: '16:9',
+              curvature: 'Flat',
+              warranty: 'Unknown',
+              hdr: true,
+              gsync: true,
+              freesync: true
+            },
+            features: ['Unknown'],
+            rating: 4.0,
+            reviews: 0,
+            inStock: true
+          }
+        })
+
+        setMonitors(formatted)
+      } catch (err) {
+        console.error('Error fetching Monitors:', err)
+        setMonitors([])
+      } finally {
+        setLoading(false)
+      }
     }
-  ]
+
+    fetchMonitors()
+  }, [])
+
+  const allMonitors = monitors
 
   // Filter logic
   const filteredMonitors = allMonitors.filter((monitorItem) => {
-    // Price filter
-    if (monitorItem.price < priceRange[0] || monitorItem.price > priceRange[1]) {
+    // Price filter - chỉ lọc nếu có giá > 0
+    if (monitorItem.price > 0 && (monitorItem.price < priceRange[0] || monitorItem.price > priceRange[1])) {
       return false
     }
 
@@ -714,25 +618,44 @@ function MonitorPage() {
 
             {/* Grid */}
             <div className="flex-1">
-              <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4 md:gap-6">
-                {filteredMonitors.map((monitorItem) => (
-                  <div key={monitorItem.id} className="rounded-lg border border-black/10 bg-white hover:bg-black/5 transition cursor-pointer" onClick={() => setSelectedMonitor(monitorItem)}>
-                    <div className="p-4">
-                      <img src={monitorItem.image} alt={monitorItem.name} className="w-full h-48 object-cover rounded-lg mb-4" />
-                      <div className="text-sm font-medium mb-2 line-clamp-2">{monitorItem.name}</div>
-                      <div className="text-lg font-bold mb-3">${monitorItem.price}</div>
-                      <div className="space-y-1 text-xs text-black/60 mb-4">
-                        <div className="flex justify-between"><span>Size:</span><span className="text-black">{monitorItem.specs.size}</span></div>
-                        <div className="flex justify-between"><span>Resolution:</span><span className="text-black">{monitorItem.specs.resolution}</span></div>
-                        <div className="flex justify-between"><span>Refresh Rate:</span><span className="text-black">{monitorItem.specs.refreshRate}</span></div>
-                        <div className="flex justify-between"><span>Panel Type:</span><span className="text-black">{monitorItem.specs.panelType}</span></div>
-                        <div className="flex justify-between"><span>Response Time:</span><span className="text-black">{monitorItem.specs.responseTime}</span></div>
-                      </div>
-                      <button className="w-full btn-primary">+ Add to build</button>
-                    </div>
+              {loading && (
+                <div className="flex justify-center items-center py-12">
+                  <div className="text-lg text-gray-600">Đang tải dữ liệu Monitor...</div>
+                </div>
+              )}
+
+              {filteredMonitors.length === 0 ? (
+                <div className="text-center py-12">
+                  <div className="text-lg text-gray-600 mb-4">
+                    {monitors.length === 0 ? 'Không có Monitor nào trong database' : 'Không tìm thấy Monitor nào phù hợp'}
                   </div>
-                ))}
-              </div>
+                  <div className="text-sm text-gray-500 mb-4">
+                    {monitors.length === 0 ? 'Vui lòng thêm Monitor vào database' : 'Thử điều chỉnh bộ lọc hoặc tìm kiếm khác'}
+                  </div>
+                </div>
+              ) : (
+                <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4 md:gap-6">
+                  {filteredMonitors.map((monitorItem) => (
+                    <div key={monitorItem.id} className="rounded-lg border border-black/10 bg-white hover:bg-black/5 transition cursor-pointer" onClick={() => setSelectedMonitor(monitorItem)}>
+                      <div className="p-4">
+                        <img src={monitorItem.image} alt={monitorItem.name} className="w-full h-48 object-cover rounded-lg mb-4" />
+                        <div className="text-sm font-medium mb-2 line-clamp-2">{monitorItem.name}</div>
+                        <div className="text-lg font-bold mb-3">
+                          {monitorItem.price > 0 ? `${monitorItem.price.toLocaleString('vi-VN')} VND` : 'Liên hệ'}
+                        </div>
+                        <div className="space-y-1 text-xs text-black/60 mb-4">
+                          <div className="flex justify-between"><span>Size:</span><span className="text-black">{monitorItem.specs.size}</span></div>
+                          <div className="flex justify-between"><span>Resolution:</span><span className="text-black">{monitorItem.specs.resolution}</span></div>
+                          <div className="flex justify-between"><span>Refresh Rate:</span><span className="text-black">{monitorItem.specs.refreshRate}</span></div>
+                          <div className="flex justify-between"><span>Panel Type:</span><span className="text-black">{monitorItem.specs.panelType}</span></div>
+                          <div className="flex justify-between"><span>Response Time:</span><span className="text-black">{monitorItem.specs.responseTime}</span></div>
+                        </div>
+                        <button className="w-full btn-primary">+ Add to build</button>
+                      </div>
+                    </div>
+                  ))}
+                </div>
+              )}
             </div>
           </div>
         </main>

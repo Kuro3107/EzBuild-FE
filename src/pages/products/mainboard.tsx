@@ -1,6 +1,7 @@
-import React, { useState } from 'react'
+import { useEffect, useState } from 'react'
 import { Link } from 'react-router-dom'
 import '../../Homepage.css'
+import { ApiService } from '../../services/api'
 
 interface MainboardItem {
   id: number
@@ -45,6 +46,10 @@ function MainboardPage() {
   const [selectedM2Slots, setSelectedM2Slots] = useState<string[]>([])
   const [selectedSataPorts, setSelectedSataPorts] = useState<string[]>([])
   
+  // API states
+  const [mainboards, setMainboards] = useState<MainboardItem[]>([])
+  const [loading, setLoading] = useState(false)
+  
   // Popup states
   const [showSocketTypePopup, setShowSocketTypePopup] = useState(false)
   const [showFormFactorPopup, setShowFormFactorPopup] = useState(false)
@@ -65,175 +70,85 @@ function MainboardPage() {
   const [m2SlotsSearch, setM2SlotsSearch] = useState('')
   const [sataPortsSearch, setSataPortsSearch] = useState('')
 
-  const allMainboards = [
-    {
-      id: 1,
-      name: 'ASUS ROG Strix Z790-E Gaming WiFi',
-      brand: 'ASUS',
-      price: 449.99,
-      image: 'https://images.unsplash.com/photo-1591799264318-7e6ef8ddb7ea?w=300&h=200&fit=crop',
-      specs: {
-        socketType: 'LGA 1700',
-        formFactor: 'ATX',
-        chipset: 'Intel Z790',
-        memoryType: 'DDR5-5600',
-        maxMemory: '128GB',
-        memorySlots: 4,
-        pcieSlots: 3,
-        sataPorts: 6,
-        m2Slots: 4,
-        wifi: true,
-        bluetooth: true,
-        usbPorts: 'USB 3.2 Gen 2x2, USB 3.2 Gen 1, USB 2.0',
-        audio: 'Realtek ALC4080',
-        lan: 'Intel I225-V 2.5Gb'
-      },
-      features: ['WiFi 6E', 'Bluetooth 5.3', 'PCIe 5.0', 'DDR5 Support', 'RGB Lighting'],
-      rating: 4.7,
-      reviews: 156,
-      inStock: true
-    },
-    {
-      id: 2,
-      name: 'MSI MPG X670E Carbon WiFi',
-      brand: 'MSI',
-      price: 399.99,
-      image: 'https://images.unsplash.com/photo-1591799264318-7e6ef8ddb7ea?w=300&h=200&fit=crop',
-      specs: {
-        socketType: 'AM5',
-        formFactor: 'ATX',
-        chipset: 'AMD X670E',
-        memoryType: 'DDR5-5200',
-        maxMemory: '128GB',
-        memorySlots: 4,
-        pcieSlots: 3,
-        sataPorts: 6,
-        m2Slots: 3,
-        wifi: true,
-        bluetooth: true,
-        usbPorts: 'USB 3.2 Gen 2x2, USB 3.2 Gen 1, USB 2.0',
-        audio: 'Realtek ALC4080',
-        lan: 'Realtek RTL8125BG 2.5Gb'
-      },
-      features: ['WiFi 6E', 'Bluetooth 5.2', 'PCIe 5.0', 'DDR5 Support', 'Mystic Light'],
-      rating: 4.6,
-      reviews: 89,
-      inStock: true
-    },
-    {
-      id: 3,
-      name: 'Gigabyte B650 AORUS Elite AX',
-      brand: 'Gigabyte',
-      price: 199.99,
-      image: 'https://images.unsplash.com/photo-1591799264318-7e6ef8ddb7ea?w=300&h=200&fit=crop',
-      specs: {
-        socketType: 'AM5',
-        formFactor: 'ATX',
-        chipset: 'AMD B650',
-        memoryType: 'DDR5-5200',
-        maxMemory: '128GB',
-        memorySlots: 4,
-        pcieSlots: 2,
-        sataPorts: 4,
-        m2Slots: 2,
-        wifi: true,
-        bluetooth: true,
-        usbPorts: 'USB 3.2 Gen 2, USB 3.2 Gen 1, USB 2.0',
-        audio: 'Realtek ALC897',
-        lan: 'Realtek RTL8125BG 2.5Gb'
-      },
-      features: ['WiFi 6E', 'Bluetooth 5.2', 'PCIe 4.0', 'DDR5 Support', 'RGB Fusion'],
-      rating: 4.4,
-      reviews: 203,
-      inStock: true
-    },
-    {
-      id: 4,
-      name: 'ASRock B760M Pro RS',
-      brand: 'ASRock',
-      price: 129.99,
-      image: 'https://images.unsplash.com/photo-1591799264318-7e6ef8ddb7ea?w=300&h=200&fit=crop',
-      specs: {
-        socketType: 'LGA 1700',
-        formFactor: 'Micro ATX',
-        chipset: 'Intel B760',
-        memoryType: 'DDR4-3200, DDR5-5600',
-        maxMemory: '128GB',
-        memorySlots: 4,
-        pcieSlots: 2,
-        sataPorts: 4,
-        m2Slots: 2,
-        wifi: false,
-        bluetooth: false,
-        usbPorts: 'USB 3.2 Gen 1, USB 2.0',
-        audio: 'Realtek ALC897',
-        lan: 'Realtek RTL8111H 1Gb'
-      },
-      features: ['PCIe 4.0', 'DDR4/DDR5 Support', 'M.2 Support', 'Polychrome RGB'],
-      rating: 4.2,
-      reviews: 67,
-      inStock: false
-    },
-    {
-      id: 5,
-      name: 'ASUS ROG Strix B550-F Gaming WiFi',
-      brand: 'ASUS',
-      price: 179.99,
-      image: 'https://images.unsplash.com/photo-1591799264318-7e6ef8ddb7ea?w=300&h=200&fit=crop',
-      specs: {
-        socketType: 'AM4',
-        formFactor: 'ATX',
-        chipset: 'AMD B550',
-        memoryType: 'DDR4-3200',
-        maxMemory: '128GB',
-        memorySlots: 4,
-        pcieSlots: 2,
-        sataPorts: 6,
-        m2Slots: 2,
-        wifi: true,
-        bluetooth: true,
-        usbPorts: 'USB 3.2 Gen 2, USB 3.2 Gen 1, USB 2.0',
-        audio: 'Realtek ALC1220',
-        lan: 'Intel I225-V 2.5Gb'
-      },
-      features: ['WiFi 6', 'Bluetooth 5.1', 'PCIe 4.0', 'DDR4 Support', 'Aura Sync'],
-      rating: 4.5,
-      reviews: 234,
-      inStock: true
-    },
-    {
-      id: 6,
-      name: 'MSI MAG B550M Mortar WiFi',
-      brand: 'MSI',
-      price: 149.99,
-      image: 'https://images.unsplash.com/photo-1591799264318-7e6ef8ddb7ea?w=300&h=200&fit=crop',
-      specs: {
-        socketType: 'AM4',
-        formFactor: 'Micro ATX',
-        chipset: 'AMD B550',
-        memoryType: 'DDR4-3200',
-        maxMemory: '128GB',
-        memorySlots: 4,
-        pcieSlots: 2,
-        sataPorts: 4,
-        m2Slots: 2,
-        wifi: true,
-        bluetooth: true,
-        usbPorts: 'USB 3.2 Gen 2, USB 3.2 Gen 1, USB 2.0',
-        audio: 'Realtek ALC1200',
-        lan: 'Realtek RTL8111H 1Gb'
-      },
-      features: ['WiFi 6', 'Bluetooth 5.1', 'PCIe 4.0', 'DDR4 Support', 'Mystic Light'],
-      rating: 4.3,
-      reviews: 178,
-      inStock: true
+  // Fetch mainboards from API (category_id = 3)
+  useEffect(() => {
+    const fetchMainboards = async () => {
+      setLoading(true)
+      try {
+        const products = await ApiService.getProductsByCategory(3)
+
+        interface MainboardApiProduct {
+          id?: number
+          name?: string
+          brand?: string
+          model?: string
+          specs?: string
+          image_url1?: string
+          productPrices?: Array<{ price: number }>
+        }
+
+        const formatted: MainboardItem[] = (products as MainboardApiProduct[]).map((item) => {
+          const specsString = String(item.specs || '')
+          const socketMatch = specsString.match(/(LGA\s*\d{3,4}|AM[45])/i)
+          const formFactorMatch = specsString.match(/(E?ATX|XL ATX|Micro ATX|Mini ITX|ITX)/i)
+          const chipsetMatch = specsString.match(/(Z\d{3}|B\d{3}|H\d{3}|X\d{3}|B\d{3}|A\d{3})/i)
+          const memTypeMatch = specsString.match(/DDR\d(?:-\d+)?/i)
+          const maxMemMatch = specsString.match(/(\d+\s*GB)\s*max/i)
+          const slotsMatch = specsString.match(/(\d+)\s*slots?/i)
+          const m2Match = specsString.match(/M\.2\s*(\d+)/i)
+          const sataMatch = specsString.match(/SATA\s*(\d+)/i)
+
+          const prices = item.productPrices || []
+          const minPrice = prices.length ? Math.min(...prices.map(p => p.price)) : 0
+
+          return {
+            id: Number(item.id) || 0,
+            name: String(item.name || item.model) || 'Unknown Mainboard',
+            brand: String(item.brand) || 'Unknown',
+            price: minPrice,
+            image: String(item.image_url1 || 'https://images.unsplash.com/photo-1591799264318-7e6ef8ddb7ea?w=300&h=200&fit=crop'),
+            specs: {
+              socketType: socketMatch ? socketMatch[1].toUpperCase() : 'Unknown',
+              formFactor: formFactorMatch ? formFactorMatch[1] : 'ATX',
+              chipset: chipsetMatch ? chipsetMatch[1] : 'Unknown',
+              memoryType: memTypeMatch ? memTypeMatch[0].toUpperCase() : 'Unknown',
+              maxMemory: maxMemMatch ? maxMemMatch[1].toUpperCase() : 'Unknown',
+              memorySlots: slotsMatch ? parseInt(slotsMatch[1]) : 4,
+              pcieSlots: 2,
+              sataPorts: sataMatch ? parseInt(sataMatch[1]) : 4,
+              m2Slots: m2Match ? parseInt(m2Match[1]) : 2,
+              wifi: true,
+              bluetooth: true,
+              usbPorts: 'Unknown',
+              audio: 'Unknown',
+              lan: 'Unknown'
+            },
+            features: ['Unknown'],
+            rating: 4.0,
+            reviews: 0,
+            inStock: true
+          }
+        })
+
+        setMainboards(formatted)
+      } catch (err) {
+        console.error('Error fetching Mainboards:', err)
+        setMainboards([])
+      } finally {
+        setLoading(false)
+      }
     }
-  ]
+
+    fetchMainboards()
+  }, [])
+
+  // Dữ liệu dùng từ API
+  const allMainboards = mainboards
 
   // Filter logic
   const filteredMainboards = allMainboards.filter((mainboardItem) => {
-    // Price filter
-    if (mainboardItem.price < priceRange[0] || mainboardItem.price > priceRange[1]) {
+    // Price filter - chỉ filter nếu có giá > 0
+    if (mainboardItem.price > 0 && (mainboardItem.price < priceRange[0] || mainboardItem.price > priceRange[1])) {
       return false
     }
 
@@ -707,25 +622,65 @@ function MainboardPage() {
 
             {/* Grid */}
             <div className="flex-1">
-              <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4 md:gap-6">
-                {filteredMainboards.map((mainboardItem) => (
-                  <div key={mainboardItem.id} className="rounded-lg border border-black/10 bg-white hover:bg-black/5 transition cursor-pointer" onClick={() => setSelectedMainboard(mainboardItem)}>
-                    <div className="p-4">
-                      <img src={mainboardItem.image} alt={mainboardItem.name} className="w-full h-48 object-cover rounded-lg mb-4" />
-                      <div className="text-sm font-medium mb-2 line-clamp-2">{mainboardItem.name}</div>
-                      <div className="text-lg font-bold mb-3">${mainboardItem.price}</div>
-                      <div className="space-y-1 text-xs text-black/60 mb-4">
-                        <div className="flex justify-between"><span>Socket:</span><span className="text-black">{mainboardItem.specs.socketType}</span></div>
-                        <div className="flex justify-between"><span>Form Factor:</span><span className="text-black">{mainboardItem.specs.formFactor}</span></div>
-                        <div className="flex justify-between"><span>Chipset:</span><span className="text-black">{mainboardItem.specs.chipset}</span></div>
-                        <div className="flex justify-between"><span>Memory:</span><span className="text-black">{mainboardItem.specs.memoryType}</span></div>
-                        <div className="flex justify-between"><span>WiFi:</span><span className="text-black">{mainboardItem.specs.wifi ? 'Yes' : 'No'}</span></div>
-                      </div>
-                      <button className="w-full btn-primary">+ Add to build</button>
-                    </div>
+              {loading && (
+                <div className="flex justify-center items-center py-12">
+                  <div className="text-lg text-gray-600">Đang tải dữ liệu Mainboard...</div>
+                </div>
+              )}
+
+              {filteredMainboards.length === 0 ? (
+                <div className="text-center py-12">
+                  <div className="text-lg text-gray-600 mb-4">
+                    {mainboards.length === 0 ? 'Không có Mainboard nào trong database' : 'Không tìm thấy Mainboard nào phù hợp'}
                   </div>
-                ))}
-              </div>
+                  <div className="text-sm text-gray-500 mb-4">
+                    {mainboards.length === 0 ? 'Vui lòng thêm Mainboard vào database' : 'Thử điều chỉnh bộ lọc hoặc tìm kiếm khác'}
+                  </div>
+                  {mainboards.length > 0 && (
+                    <button 
+                      onClick={() => {
+                        setSearchTerm('')
+                        setSelectedSocketTypes([])
+                        setSelectedFormFactors([])
+                        setSelectedChipsets([])
+                        setSelectedMemoryTypes([])
+                        setSelectedMemorySlots([])
+                        setSelectedPCIESlots([])
+                        setSelectedWifi(null)
+                        setSelectedBluetooth(null)
+                        setSelectedM2Slots([])
+                        setSelectedSataPorts([])
+                        setPriceRange([50, 800])
+                      }}
+                      className="px-4 py-2 bg-blue-500 text-white rounded hover:bg-blue-600"
+                    >
+                      Xóa tất cả bộ lọc
+                    </button>
+                  )}
+                </div>
+              ) : (
+                <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4 md:gap-6">
+                  {filteredMainboards.map((mainboardItem) => (
+                    <div key={mainboardItem.id} className="rounded-lg border border-black/10 bg-white hover:bg-black/5 transition cursor-pointer" onClick={() => setSelectedMainboard(mainboardItem)}>
+                      <div className="p-4">
+                        <img src={mainboardItem.image} alt={mainboardItem.name} className="w-full h-48 object-cover rounded-lg mb-4" />
+                        <div className="text-sm font-medium mb-2 line-clamp-2">{mainboardItem.name}</div>
+                        <div className="text-lg font-bold mb-3">
+                          {mainboardItem.price > 0 ? `${mainboardItem.price.toLocaleString('vi-VN')} VND` : 'Liên hệ'}
+                        </div>
+                        <div className="space-y-1 text-xs text-black/60 mb-4">
+                          <div className="flex justify-between"><span>Socket:</span><span className="text-black">{mainboardItem.specs.socketType}</span></div>
+                          <div className="flex justify-between"><span>Form Factor:</span><span className="text-black">{mainboardItem.specs.formFactor}</span></div>
+                          <div className="flex justify-between"><span>Chipset:</span><span className="text-black">{mainboardItem.specs.chipset}</span></div>
+                          <div className="flex justify-between"><span>Memory:</span><span className="text-black">{mainboardItem.specs.memoryType}</span></div>
+                          <div className="flex justify-between"><span>WiFi:</span><span className="text-black">{mainboardItem.specs.wifi ? 'Yes' : 'No'}</span></div>
+                        </div>
+                        <button className="w-full btn-primary">+ Add to build</button>
+                      </div>
+                    </div>
+                  ))}
+                </div>
+              )}
             </div>
           </div>
         </main>
