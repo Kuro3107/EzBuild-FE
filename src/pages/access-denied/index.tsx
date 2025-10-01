@@ -1,6 +1,6 @@
 import { Link } from 'react-router-dom'
-import { ApiService } from '../services/api'
-import '../Homepage.css'
+import { ApiService } from '../../services/api'
+import '../../Homepage.css'
 
 function AccessDeniedPage() {
   const currentUser = ApiService.getCurrentUser()

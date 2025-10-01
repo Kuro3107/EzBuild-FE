@@ -467,6 +467,14 @@ export class ApiService {
     const token = localStorage.getItem('authToken')
     if (!token) return null
 
+    // Kiểm tra token có hợp lệ không
+    if (!this.isTokenValid(token)) {
+      // Token không hợp lệ, xóa khỏi localStorage
+      localStorage.removeItem('authToken')
+      localStorage.removeItem('authUser')
+      return null
+    }
+
     const decoded = this.decodeToken(token)
     return decoded || null
   }
@@ -504,6 +512,22 @@ export class ApiService {
         return userRole === 'Customer' || userRole === 'User'
       default:
         return false
+    }
+  }
+
+  // Function để clear tất cả dữ liệu authentication
+  static clearAuthData(): void {
+    localStorage.removeItem('authToken')
+    localStorage.removeItem('authUser')
+    console.log('Đã xóa tất cả dữ liệu authentication')
+  }
+
+  // Function để kiểm tra và clear dữ liệu cũ
+  static checkAndClearOldData(): void {
+    const token = localStorage.getItem('authToken')
+    if (token && !this.isTokenValid(token)) {
+      console.log('Phát hiện token cũ hoặc không hợp lệ, đang xóa...')
+      this.clearAuthData()
     }
   }
 }

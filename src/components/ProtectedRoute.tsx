@@ -1,6 +1,6 @@
 import { Navigate, useLocation } from 'react-router-dom'
 import { ApiService } from '../services/api'
-import AccessDeniedPage from '../pages/AccessDenied'
+import AccessDeniedPage from '../pages/access-denied/index'
 
 interface ProtectedRouteProps {
   children: React.ReactNode

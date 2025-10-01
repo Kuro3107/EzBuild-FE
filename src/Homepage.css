@@ -1,5 +1,7 @@
 @import "tailwindcss";
 
+/* stylelint-disable at-rule-no-unknown */
+
 body {
   @apply bg-white text-black;
 }
@@ -27,6 +29,11 @@ body {
 /* Main content */
 .main {
   @apply flex-1 px-4 md:px-10 pb-20;
+}
+
+/* Header styles */
+header {
+  @apply fixed top-0 right-0 z-50 p-4;
 }
 
 /* Background: dotted grid + radial gradient */
