@@ -1,7 +1,26 @@
 import './Homepage.css'
 import { useEffect, useRef, useState } from 'react'
-import { Link } from 'react-router-dom'
+import { Link, useLocation, useNavigate } from 'react-router-dom'
 import { ApiService } from './services/api'
+import { Carousel, Layout, Menu } from 'antd'
+import { 
+  HomeOutlined,
+  ShoppingCartOutlined,
+  TagsOutlined,
+  SwapOutlined,
+  PictureOutlined,
+  BuildOutlined,
+  UserOutlined,
+  SettingOutlined,
+  DashboardOutlined,
+  TeamOutlined
+} from '@ant-design/icons'
+import LandingHero from './components/LandingHero'
+import LandingFeatures from './components/LandingFeatures'
+import LandingStats from './components/LandingStats'
+import LandingFooter from './components/LandingFooter'
+
+const { Header, Content, Sider } = Layout
 
 function HomePage() {
   const [isProductsOpen, setIsProductsOpen] = useState(false)
@@ -10,6 +29,91 @@ function HomePage() {
   const productsBtnRef = useRef<HTMLAnchorElement | null>(null)
   const popoverRef = useRef<HTMLDivElement | null>(null)
   const userMenuRef = useRef<HTMLDivElement | null>(null)
+  const location = useLocation()
+  const navigate = useNavigate()
+
+  // Menu items cho sidebar
+  const menuItems = [
+    {
+      key: 'apps',
+      type: 'group' as const,
+      label: 'APPS',
+    },
+    {
+      key: 'home',
+      icon: <HomeOutlined />,
+      label: <Link to="/">PC Builder</Link>,
+    },
+    {
+      key: 'products',
+      icon: <ShoppingCartOutlined />,
+      label: 'Products',
+      children: [
+        { key: 'case', label: <Link to="/products/case">Case</Link> },
+        { key: 'cpu', label: <Link to="/products/cpu">CPU</Link> },
+        { key: 'mainboard', label: <Link to="/products/mainboard">Mainboard</Link> },
+        { key: 'gpu', label: <Link to="/products/gpu">GPU</Link> },
+        { key: 'ram', label: <Link to="/products/ram">RAM</Link> },
+        { key: 'storage', label: <Link to="/products/storage">Storage</Link> },
+        { key: 'psu', label: <Link to="/products/psu">Power Supply</Link> },
+        { key: 'cooling', label: <Link to="/products/cooling">Cooling</Link> },
+        { key: 'headset', label: <Link to="/products/headset-speaker">Headset/Speaker</Link> },
+        { key: 'monitor', label: <Link to="/products/monitor">Monitor</Link> },
+        { key: 'mouse', label: <Link to="/products/mouse">Mouse</Link> },
+        { key: 'keyboard', label: <Link to="/products/keyboard">Keyboard</Link> },
+      ],
+    },
+    {
+      key: 'sales',
+      icon: <TagsOutlined />,
+      label: <Link to="/sales">Sales</Link>,
+    },
+    {
+      key: 'compare',
+      icon: <SwapOutlined />,
+      label: <Link to="/compare">Compare</Link>,
+    },
+    {
+      key: 'gallery',
+      icon: <PictureOutlined />,
+      label: 'PC Part Gallery',
+    },
+    {
+      key: 'community',
+      type: 'group' as const,
+      label: 'COMMUNITY',
+    },
+    {
+      key: 'builds',
+      icon: <BuildOutlined />,
+      label: 'Completed Builds',
+    },
+    {
+      key: 'updates',
+      icon: <UserOutlined />,
+      label: 'Updates',
+    },
+    {
+      key: 'setup',
+      icon: <SettingOutlined />,
+      label: 'Setup Builder',
+    },
+    {
+      key: 'management',
+      type: 'group' as const,
+      label: 'MANAGEMENT',
+    },
+    ...(ApiService.isStaff() && !ApiService.isAdmin() ? [{
+      key: 'staff',
+      icon: <TeamOutlined />,
+      label: <Link to="/staff">Staff Panel</Link>,
+    }] : []),
+    ...(ApiService.isAdmin() ? [{
+      key: 'admin',
+      icon: <DashboardOutlined />,
+      label: <Link to="/admin">Admin Panel</Link>,
+    }] : []),
+  ]
 
   // Kiểm tra trạng thái đăng nhập khi component mount
   useEffect(() => {
@@ -82,31 +186,51 @@ function HomePage() {
 
   // Xử lý logout
   const handleLogout = () => {
-    ApiService.clearAuthData()
-    setCurrentUser(null)
-    setIsUserMenuOpen(false)
-    // Có thể thêm redirect về trang login nếu cần
+    // Hiển thị confirm dialog
+    const confirmLogout = window.confirm('Bạn có chắc chắn muốn đăng xuất?')
+    
+    if (confirmLogout) {
+      ApiService.clearAuthData()
+      setCurrentUser(null)
+      setIsUserMenuOpen(false)
+      
+      // Redirect về trang login
+      navigate('/login')
+      
+      // Hiển thị thông báo thành công
+      alert('Đăng xuất thành công!')
+    }
   }
 
 
   return (
-    <div className="page bg-grid bg-radial">
-      {/* Header với avatar user */}
-      {currentUser && (
-        <header className="fixed top-0 right-0 z-50 p-2 md:p-4">
+    <>
+    <Layout style={{ minHeight: '100vh' }} className="bg-grid-dark">
+      {/* Header với avatar user hoặc login button */}
+      {currentUser ? (
+        <Header style={{ 
+          position: 'fixed', 
+          top: 0, 
+          right: 0, 
+          zIndex: 1000, 
+          background: 'transparent',
+          padding: '8px 16px',
+          border: 'none',
+          width: 'auto'
+        }}>
           <div className="relative">
             <button
               onClick={() => setIsUserMenuOpen(!isUserMenuOpen)}
-              className="flex items-center gap-2 md:gap-3 bg-white/95 backdrop-blur-sm border border-black/20 rounded-full px-2 md:px-4 py-2 shadow-lg hover:shadow-xl transition-all duration-200"
+              className="flex items-center gap-3 bg-white/95 backdrop-blur-sm border border-black/10 rounded-2xl px-4 py-2 shadow-lg hover:shadow-xl transition-all duration-200"
             >
-              <div className="w-7 h-7 md:w-8 md:h-8 bg-gradient-to-br from-blue-500 to-purple-600 rounded-full flex items-center justify-center text-white text-xs md:text-sm font-semibold">
+              <div className="w-8 h-8 bg-gradient-to-br from-purple-500 to-pink-500 rounded-full flex items-center justify-center text-white text-sm font-semibold shadow-md">
                 {(currentUser.email as string || 'U').charAt(0).toUpperCase()}
               </div>
-              <span className="text-xs md:text-sm font-medium text-gray-800 max-w-20 md:max-w-32 truncate hidden sm:block">
-                {currentUser.email as string || 'User'}
+              <span className="text-sm font-medium text-gray-800 max-w-32 truncate hidden sm:block">
+                {currentUser.fullname as string || currentUser.email as string || 'User'}
               </span>
               <svg 
-                className={`w-3 h-3 md:w-4 md:h-4 text-gray-600 transition-transform duration-200 ${isUserMenuOpen ? 'rotate-180' : ''}`} 
+                className={`w-4 h-4 text-gray-600 transition-transform duration-200 ${isUserMenuOpen ? 'rotate-180' : ''}`} 
                 fill="none" 
                 stroke="currentColor" 
                 viewBox="0 0 24 24"
@@ -118,285 +242,272 @@ function HomePage() {
             {isUserMenuOpen && (
               <div
                 ref={userMenuRef}
-                className="absolute top-full right-0 mt-2 w-48 md:w-56 bg-white/95 backdrop-blur-sm rounded-xl border border-black/20 shadow-2xl py-2 z-50"
+                className="absolute top-full right-0 mt-3 w-72 bg-gray-900 rounded-2xl shadow-2xl py-4 z-50 border border-gray-700"
               >
-                <div className="px-4 py-3 border-b border-gray-200">
-                  <div>
-                    <div className="font-medium text-gray-900 text-sm">
-                      {currentUser.email as string || 'User'}
+                {/* User Info Section */}
+                <div className="px-6 py-4 border-b border-gray-700">
+                  <div className="flex items-center gap-4">
+                    <div className="w-12 h-12 rounded-full bg-gradient-to-br from-purple-500 to-pink-500 flex items-center justify-center text-white text-lg font-bold shadow-lg">
+                      {(currentUser.email as string || 'U').charAt(0).toUpperCase()}
                     </div>
-                    <div className="text-xs text-gray-500">
-                      {ApiService.getUserRole() || ''}
+                    <div className="flex-1 min-w-0">
+                      <div className="font-semibold text-white text-base truncate">
+                        {currentUser.fullname as string || currentUser.email as string || 'User'}
+                      </div>
+                      <div className="text-sm text-gray-300 truncate">
+                        {currentUser.email as string || 'user@example.com'}
+                      </div>
                     </div>
                   </div>
                 </div>
-                <Link 
-                  to="/customer"
-                  className="w-full px-4 py-3 text-left text-gray-700 hover:bg-gray-50 transition-colors text-sm flex items-center gap-3"
-                  onClick={() => setIsUserMenuOpen(false)}
-                >
-                  <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M16 7a4 4 0 11-8 0 4 4 0 018 0zM12 14a7 7 0 00-7 7h14a7 7 0 00-7-7z" />
-                  </svg>
-                  Profile
-                </Link>
-                <button className="w-full px-4 py-3 text-left text-gray-700 hover:bg-gray-50 transition-colors text-sm flex items-center gap-3">
-                  <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4.318 6.318a4.5 4.5 0 000 6.364L12 20.364l7.682-7.682a4.5 4.5 0 00-6.364-6.364L12 7.636l-1.318-1.318a4.5 4.5 0 00-6.364 0z" />
-                  </svg>
-                  Favorites
-                </button>
-                <hr className="my-2 border-gray-200" />
-                <button 
-                  onClick={handleLogout}
-                  className="w-full px-4 py-3 text-left text-red-600 hover:bg-red-50 transition-colors text-sm flex items-center gap-3"
-                >
-                  <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M17 16l4-4m0 0l-4-4m4 4H7m6 4v1a3 3 0 01-3 3H6a3 3 0 01-3-3V7a3 3 0 013-3h4a3 3 0 013 3v1" />
-                  </svg>
-                  Log out
-                </button>
+
+                {/* Menu Items */}
+                <div className="py-2">
+                  <Link 
+                    to="/customer"
+                    className="w-full px-6 py-3 text-left text-blue-400 hover:bg-gray-800 transition-colors text-sm flex items-center gap-4 group"
+                    onClick={() => setIsUserMenuOpen(false)}
+                  >
+                    <svg className="w-5 h-5 text-blue-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M16 7a4 4 0 11-8 0 4 4 0 018 0zM12 14a7 7 0 00-7 7h14a7 7 0 00-7-7z" />
+                    </svg>
+                    <span className="font-medium">Profile</span>
+                  </Link>
+                  
+                  <button className="w-full px-6 py-3 text-left text-gray-300 hover:bg-gray-800 transition-colors text-sm flex items-center gap-4 group">
+                    <svg className="w-5 h-5 text-gray-300" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4.318 6.318a4.5 4.5 0 000 6.364L12 20.364l7.682-7.682a4.5 4.5 0 00-6.364-6.364L12 7.636l-1.318-1.318a4.5 4.5 0 00-6.364 0z" />
+                    </svg>
+                    <span className="font-medium">Favorites</span>
+                  </button>
+                  
+                  <button 
+                    onClick={handleLogout}
+                    className="w-full px-6 py-3 text-left text-red-400 hover:bg-gray-800 transition-colors text-sm flex items-center gap-4 group"
+                  >
+                    <svg className="w-5 h-5 text-red-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M17 16l4-4m0 0l-4-4m4 4H7m6 4v1a3 3 0 01-3 3H6a3 3 0 01-3-3V7a3 3 0 013-3h4a3 3 0 013 3v1" />
+                    </svg>
+                    <span className="font-medium">Log out</span>
+                  </button>
+                </div>
               </div>
             )}
           </div>
-        </header>
+        </Header>
+      ) : (
+        <Header style={{ 
+          position: 'fixed', 
+          top: 0, 
+          right: 0, 
+          zIndex: 1000, 
+          background: 'transparent',
+          padding: '8px 16px',
+          border: 'none',
+          width: 'auto'
+        }}>
+          <Link 
+            to="/login"
+            className="flex items-center gap-2 bg-white/95 backdrop-blur-sm border border-black/10 rounded-2xl px-4 py-2 shadow-lg hover:shadow-xl transition-all duration-200"
+          >
+            <svg className="w-5 h-5 text-gray-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M11 16l-4-4m0 0l4-4m-4 4h14m-5 4v1a3 3 0 01-3 3H6a3 3 0 01-3-3V7a3 3 0 013-3h7a3 3 0 013 3v1" />
+            </svg>
+            <span className="text-sm font-medium text-gray-800">Sign In</span>
+          </Link>
+        </Header>
       )}
 
-      <div className="layout">
-        <aside className="sidebar">
-          <div className="flex items-center justify-between px-2 mb-6">
-            <div className="flex items-center gap-2">
-              <div className="size-6 rounded-lg bg-blue-600" />
-              <span className="font-semibold">EzBuild</span>
-            </div>
-          </div>
-
-          <div>
-            <div className="sidebar-group">Apps</div>
-            <Link className="nav-item" to="/">PC Builder</Link>
-            <a
-              className="nav-item cursor-pointer"
-              href="#"
-              ref={productsBtnRef}
-              onClick={(e) => {
-                e.preventDefault()
-                setIsProductsOpen((v) => !v)
+      <Layout>
+            <Sider 
+              width={256} 
+              style={{ 
+                background: '#000000',
+                borderRight: '1px solid #333333',
+                position: 'fixed',
+                height: '100vh',
+                left: 0,
+                top: 0,
+                zIndex: 100
               }}
+              className="hidden md:block"
             >
-              Products
-            </a>
-            <Link className="nav-item" to="/sales">Sales</Link>
-            <Link className="nav-item" to="/compare">Compare</Link>
-            <a className="nav-item" href="#">PC Part Gallery</a>
+          {/* Logo */}
+          <div style={{ 
+            padding: '16px', 
+            borderBottom: '1px solid #333333',
+            display: 'flex',
+            alignItems: 'center',
+            gap: '8px'
+          }}>
+            <div style={{ 
+              width: '24px', 
+              height: '24px', 
+              borderRadius: '6px', 
+              background: '#050544' 
+            }} />
+            <span style={{ fontWeight: '600', fontSize: '16px', color: 'white' }}>EzBuild</span>
           </div>
 
-          <div>
-            <div className="sidebar-group">Community</div>
-            <a className="nav-item" href="#">Completed Builds</a>
-            <a className="nav-item" href="#">Updates</a>
-            <a className="nav-item" href="#">Setup Builder</a>
-          </div>
+          {/* Menu */}
+          <Menu
+            mode="inline"
+            theme="dark"
+            defaultSelectedKeys={[location.pathname === '/' ? 'home' : '']}
+            defaultOpenKeys={['products']}
+            style={{ 
+              height: '100%', 
+              borderRight: 0,
+              paddingTop: '8px',
+              background: '#000000'
+            }}
+            items={menuItems}
+            className="custom-sidebar-menu-dark"
+          />
 
-          <div>
-            <div className="sidebar-group">Management</div>
-            {ApiService.isStaff() && !ApiService.isAdmin() && (
-              <Link className="nav-item" to="/staff">Staff Panel</Link>
-            )}
-            {ApiService.isAdmin() && (
-              <Link className="nav-item" to="/admin">Admin Panel</Link>
-            )}
-          </div>
-
-          <div className="mt-8 px-2 text-xs text-white/50">
-            <div className="flex gap-3">
-              <a href="#">Contact</a>
-              <a href="#">FAQ</a>
+          {/* Footer links */}
+          <div style={{ 
+            position: 'absolute', 
+            bottom: '16px', 
+            left: '16px', 
+            right: '16px',
+            fontSize: '12px',
+            color: '#8c8c8c'
+          }}>
+            <div style={{ display: 'flex', gap: '12px' }}>
+              <a href="#" style={{ color: '#050544' }}>Contact</a>
+              <a href="#" style={{ color: '#050544' }}>FAQ</a>
             </div>
           </div>
-        </aside>
+        </Sider>
 
-        <main className="main">
-          <section className="hero">
-            <h1 className="hero-title">Interactive PC Building</h1>
-            <p className="hero-subtitle">
-              Featuring compatibility, price comparison, <span className="text-blue-600 font-semibold">models</span>, and more.
-            </p>
-            <div className="hero-actions">
-              <a href="#" className="btn-secondary">Download Mobile App</a>
-              <a href="#" className="btn-primary">Start Building</a>
-              {!currentUser && (
-                <>
-                  <Link to="/login" className="btn-secondary">Log In</Link>
-                  <Link to="/register" className="btn-primary">Sign Up</Link>
-                </>
-              )}
-            </div>
+        <Layout style={{ marginLeft: '256px', background: '#000000' }}>
+          <Content style={{ 
+            margin: 0, 
+            minHeight: '100vh',
+            background: '#000000',
+            padding: 0
+          }}>
+          {/* Landing Hero Section */}
+          <LandingHero currentUser={currentUser} />
 
-          </section>
+          {/* Landing Features Section */}
+          <LandingFeatures />
 
-          <div className="section-title">Quick Start</div>
-          <div className="card-grid">
+          {/* Landing Stats Section */}
+          <LandingStats />
+
+           <div style={{ padding: '80px 40px', maxWidth: '1200px', margin: '0 auto', background: '#000000' }}>
+             <div className="section-title" style={{ color: 'white', fontSize: '36px', fontWeight: 700, textAlign: 'center', marginBottom: '16px' }}>Quick Start</div>
+          
+          {/* Desktop: Grid Layout */}
+          <div className="hidden md:grid md:grid-cols-3 gap-6">
             {[
-              { title: 'All-AMD Red Build' },
-              { title: 'Baller White 4K RGB' },
-              { title: 'Modern 1440p Gaming' },
+              { 
+                title: 'All-AMD Red Build', 
+                description: 'High-performance AMD build with red theme',
+                price: '$1,299',
+                image: 'https://images.unsplash.com/photo-1591799264318-7e6ef8ddb7ea?w=400&h=300&fit=crop'
+              },
+              { 
+                title: 'Baller White 4K RGB', 
+                description: 'Premium white build with RGB lighting',
+                price: '$2,199',
+                image: 'https://images.unsplash.com/photo-1587202372634-32705e3bf49c?w=400&h=300&fit=crop'
+              },
+              { 
+                title: 'Modern 1440p Gaming', 
+                description: 'Perfect for 1440p gaming experience',
+                price: '$1,599',
+                image: 'https://images.unsplash.com/photo-1556438064-2d7646166914?w=400&h=300&fit=crop'
+              },
             ].map((item) => (
-              <article key={item.title} className="qs-card">
-                <div className="qs-media" />
-                <div className="qs-body">
-                  <div className="qs-title">{item.title}</div>
-                  <div className="qs-cta">Open</div>
+               <article key={item.title} className="qs-card group" style={{ background: '#111111', borderRadius: '16px', border: '1px solid #333333', overflow: 'hidden' }}>
+                 <div className="qs-media relative overflow-hidden">
+                   <img 
+                     src={item.image} 
+                     alt={item.title}
+                     className="w-full h-full object-cover transition-transform duration-300 group-hover:scale-105"
+                   />
+                   <div className="absolute inset-0 bg-gradient-to-t from-black/50 to-transparent" />
+                   <div className="absolute bottom-3 left-3 text-white font-semibold text-lg">
+                     {item.price}
+                   </div>
+                 </div>
+                 <div className="qs-body" style={{ padding: '24px' }}>
+                   <div className="qs-title" style={{ color: 'white', fontSize: '20px', fontWeight: 700, marginBottom: '12px' }}>{item.title}</div>
+                   <p className="text-sm mb-3" style={{ color: 'rgba(255,255,255,0.7)' }}>{item.description}</p>
+                   <div className="qs-cta" style={{ background: '#050544', color: 'white', padding: '12px 24px', borderRadius: '8px', textAlign: 'center', fontWeight: 600, cursor: 'pointer' }}>Open Build</div>
                 </div>
               </article>
             ))}
           </div>
-        </main>
 
-        {isProductsOpen && (
-          <div
-            ref={popoverRef}
-            className="fixed left-64 top-24 z-50 w-[600px] rounded-xl border border-black bg-white/95 backdrop-blur shadow-2xl p-4"
-          >
-            <div className="grid grid-cols-3 gap-3">
+          {/* Mobile: Carousel */}
+          <div className="md:hidden">
+            <Carousel
+              autoplay
+              autoplaySpeed={4000}
+              dots={{ className: 'custom-dots' }}
+              infinite
+              speed={500}
+              swipeToSlide
+              className="custom-carousel"
+            >
               {[
-                'Case',
-                'CPU',
-                'Mainboard',
-                'GPU',
-                'RAM',
-                'Storage',
-                'Power Supply',
-                'Cooling',
-                'Headset/Speaker',
-                'Monitor',
-                'Mouse',
-                'Keyboard',
-              ].map((label) => (
-                label === 'Case' ? (
-                  <Link
-                    key={label}
-                    to="/products/case"
-                    className="text-left rounded-lg border border-black bg-white hover:bg-black/5 px-3 py-2 text-sm text-black transition-colors block"
-                    onClick={() => setIsProductsOpen(false)}
-                  >
-                    {label}
-                  </Link>
-                ) : label === 'CPU' ? (
-                  <Link
-                    key={label}
-                    to="/products/cpu"
-                    className="text-left rounded-lg border border-black bg-white hover:bg-black/5 px-3 py-2 text-sm text-black transition-colors block"
-                    onClick={() => setIsProductsOpen(false)}
-                  >
-                    {label}
-                  </Link>
-                ) : label === 'Mainboard' ? (
-                  <Link
-                    key={label}
-                    to="/products/mainboard"
-                    className="text-left rounded-lg border border-black bg-white hover:bg-black/5 px-3 py-2 text-sm text-black transition-colors block"
-                    onClick={() => setIsProductsOpen(false)}
-                  >
-                    {label}
-                  </Link>
-                ) : label === 'GPU' ? (
-                  <Link
-                    key={label}
-                    to="/products/gpu"
-                    className="text-left rounded-lg border border-black bg-white hover:bg-black/5 px-3 py-2 text-sm text-black transition-colors block"
-                    onClick={() => setIsProductsOpen(false)}
-                  >
-                    {label}
-                  </Link>
-                ) : label === 'RAM' ? (
-                  <Link
-                    key={label}
-                    to="/products/ram"
-                    className="text-left rounded-lg border border-black bg-white hover:bg-black/5 px-3 py-2 text-sm text-black transition-colors block"
-                    onClick={() => setIsProductsOpen(false)}
-                  >
-                    {label}
-                  </Link>
-                ) : label === 'Storage' ? (
-                  <Link
-                    key={label}
-                    to="/products/storage"
-                    className="text-left rounded-lg border border-black bg-white hover:bg-black/5 px-3 py-2 text-sm text-black transition-colors block"
-                    onClick={() => setIsProductsOpen(false)}
-                  >
-                    {label}
-                  </Link>
-                ) : label === 'Power Supply' ? (
-                  <Link
-                    key={label}
-                    to="/products/psu"
-                    className="text-left rounded-lg border border-black bg-white hover:bg-black/5 px-3 py-2 text-sm text-black transition-colors block"
-                    onClick={() => setIsProductsOpen(false)}
-                  >
-                    {label}
-                  </Link>
-                ) : label === 'Cooling' ? (
-                  <Link
-                    key={label}
-                    to="/products/cooling"
-                    className="text-left rounded-lg border border-black bg-white hover:bg-black/5 px-3 py-2 text-sm text-black transition-colors block"
-                    onClick={() => setIsProductsOpen(false)}
-                  >
-                    {label}
-                  </Link>
-                ) : label === 'Headset/Speaker' ? (
-                  <Link
-                    key={label}
-                    to="/products/headset-speaker"
-                    className="text-left rounded-lg border border-black bg-white hover:bg-black/5 px-3 py-2 text-sm text-black transition-colors block"
-                    onClick={() => setIsProductsOpen(false)}
-                  >
-                    {label}
-                  </Link>
-                ) : label === 'Monitor' ? (
-                  <Link
-                    key={label}
-                    to="/products/monitor"
-                    className="text-left rounded-lg border border-black bg-white hover:bg-black/5 px-3 py-2 text-sm text-black transition-colors block"
-                    onClick={() => setIsProductsOpen(false)}
-                  >
-                    {label}
-                  </Link>
-                ) : label === 'Mouse' ? (
-                  <Link
-                    key={label}
-                    to="/products/mouse"
-                    className="text-left rounded-lg border border-black bg-white hover:bg-black/5 px-3 py-2 text-sm text-black transition-colors block"
-                    onClick={() => setIsProductsOpen(false)}
-                  >
-                    {label}
-                  </Link>
-                ) : label === 'Keyboard' ? (
-                  <Link
-                    key={label}
-                    to="/products/keyboard"
-                    className="text-left rounded-lg border border-black bg-white hover:bg-black/5 px-3 py-2 text-sm text-black transition-colors block"
-                    onClick={() => setIsProductsOpen(false)}
-                  >
-                    {label}
-                  </Link>
-                ) : (
-                  <button
-                    key={label}
-                    className="text-left rounded-lg border border-black bg-white hover:bg-black/5 px-3 py-2 text-sm text-black transition-colors block"
-                    onClick={() => setIsProductsOpen(false)}
-                  >
-                    {label}
-                  </button>
-                )
-              ))}
+                { 
+                  title: 'All-AMD Red Build', 
+                  description: 'High-performance AMD build with red theme',
+                  price: '$1,299',
+                  image: 'https://images.unsplash.com/photo-1591799264318-7e6ef8ddb7ea?w=400&h=300&fit=crop'
+                },
+                { 
+                  title: 'Baller White 4K RGB', 
+                  description: 'Premium white build with RGB lighting',
+                  price: '$2,199',
+                  image: 'https://images.unsplash.com/photo-1587202372634-32705e3bf49c?w=400&h=300&fit=crop'
+                },
+                { 
+                  title: 'Modern 1440p Gaming', 
+                  description: 'Perfect for 1440p gaming experience',
+                  price: '$1,599',
+                  image: 'https://images.unsplash.com/photo-1556438064-2d7646166914?w=400&h=300&fit=crop'
+                },
+               ].map((item, index) => (
+                 <div key={index} className="px-2">
+                   <article className="qs-card group" style={{ background: '#111111', borderRadius: '16px', border: '1px solid #333333', overflow: 'hidden' }}>
+                     <div className="qs-media relative overflow-hidden h-48">
+                       <img 
+                         src={item.image} 
+                         alt={item.title}
+                         className="w-full h-full object-cover transition-transform duration-300 group-hover:scale-105"
+                       />
+                       <div className="absolute inset-0 bg-gradient-to-t from-black/50 to-transparent" />
+                       <div className="absolute bottom-3 left-3 text-white font-bold text-xl">
+                         {item.price}
+                       </div>
+                     </div>
+                     <div className="qs-body p-4">
+                       <div className="qs-title text-lg font-bold mb-2" style={{ color: 'white' }}>{item.title}</div>
+                       <p className="text-sm mb-4" style={{ color: 'rgba(255,255,255,0.7)' }}>{item.description}</p>
+                       <div className="qs-cta px-4 py-2 rounded-lg text-center font-medium transition-colors" style={{ background: '#050544', color: 'white' }}>
+                         Open Build
+                       </div>
+                     </div>
+                   </article>
+                 </div>
+               ))}
+            </Carousel>
             </div>
-            <div className="mt-3 text-xs text-black/60">Other Products: OS, Sound Card, Network, VR, Capture...</div>
           </div>
-        )}
-      </div>
-      
-    </div>
+          </Content>
+        </Layout>
+      </Layout>
+    </Layout>
+    
+    {/* Landing Footer - Outside Layout for Full Width */}
+    <LandingFooter />
+    </>
   )
 }
 

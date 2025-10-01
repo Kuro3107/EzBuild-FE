@@ -36,9 +36,20 @@ export interface ApiError {
 export class ApiService {
   private static async handleResponse<T>(response: Response): Promise<T> {
     if (!response.ok) {
-      const errorData = await response.json().catch(() => ({}))
+      let errorData = {}
+      try {
+        errorData = await response.json()
+      } catch (parseError) {
+        console.error('Error parsing response JSON:', parseError)
+      }
+      
+      console.log('=== API ERROR DEBUG ===')
+      console.log('Status:', response.status)
+      console.log('Status Text:', response.statusText)
+      console.log('Error Data:', errorData)
+      
       const error: ApiError = {
-        message: errorData?.message || 'Có lỗi xảy ra',
+        message: (errorData as any)?.message || (errorData as any)?.error || `HTTP ${response.status}: ${response.statusText}`,
         status: response.status
       }
       throw error
@@ -123,6 +134,24 @@ export class ApiService {
 
 
   static async login(credentials: LoginRequest): Promise<{ token: string; user?: Record<string, unknown> }> {
+    console.log('=== API LOGIN DEBUG ===')
+    console.log('API URL:', `${API_BASE_URL}/api/user/login`)
+    console.log('Login credentials:', credentials)
+    
+    // Kiểm tra xem identifier có phải email, phone hay username không
+    const isEmail = /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(credentials.identifier)
+    const isPhone = /^(\+84|84|0)[1-9][0-9]{8,9}$/.test(credentials.identifier.replace(/\s/g, ''))
+    const isUsername = !isEmail && !isPhone && /^[a-zA-Z][a-zA-Z0-9_]{2,}$/.test(credentials.identifier)
+    
+    console.log('Is email format:', isEmail)
+    console.log('Is phone format:', isPhone)
+    console.log('Is username format:', isUsername)
+    
+    // Backend hỗ trợ email, phone và username
+    if (!isEmail && !isPhone && !isUsername) {
+      throw new Error('Vui lòng nhập email, số điện thoại hoặc username hợp lệ')
+    }
+    
     const response = await fetch(`${API_BASE_URL}/api/user/login`, {
       method: 'POST',
       headers: {
@@ -131,7 +160,12 @@ export class ApiService {
       body: JSON.stringify(credentials),
     })
 
+    console.log('Response status:', response.status)
+    console.log('Response headers:', Object.fromEntries(response.headers.entries()))
+
     const data = await this.handleResponse<AuthResponse>(response)
+    console.log('Response data:', data)
+    
     return this.extractTokenFromResponse(data)
   }
 

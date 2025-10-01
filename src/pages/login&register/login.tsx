@@ -21,19 +21,51 @@ function LoginPage() {
     navigate(location.state?.from || '/')
   }
 
+  // Function để kiểm tra xem input có phải email hay phone
+  const isEmail = (input: string): boolean => {
+    const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/
+    return emailRegex.test(input)
+  }
+
+  const isPhone = (input: string): boolean => {
+    // Regex cho số điện thoại Việt Nam (có thể có +84, 0, hoặc không có)
+    const phoneRegex = /^(\+84|84|0)[1-9][0-9]{8,9}$/
+    return phoneRegex.test(input.replace(/\s/g, ''))
+  }
+
+  const isUsername = (input: string): boolean => {
+    // Username: không chứa @, không chứa số, ít nhất 3 ký tự
+    const usernameRegex = /^[a-zA-Z][a-zA-Z0-9_]{2,}$/
+    return !isEmail(input) && !isPhone(input) && usernameRegex.test(input)
+  }
+
   async function handleSubmit(event: React.FormEvent<HTMLFormElement>) {
     event.preventDefault()
-    if (isSubmitting) return
+    if (isSubmitting) return    
     setErrorMessage(null)
     setIsSubmitting(true)
 
     try {
-      const data = await ApiService.login({
-        identifier, // email or username
+      // Debug: Log thông tin đăng nhập
+      console.log('=== LOGIN DEBUG ===')
+      console.log('Identifier:', identifier)
+      console.log('Is Email:', isEmail(identifier))
+      console.log('Is Phone:', isPhone(identifier))
+      console.log('Is Username:', isUsername(identifier))
+      console.log('Password length:', password.length)
+      
+      const loginData = {
+        identifier: identifier.trim(), // email, phone, or username
         password,
-      })
+      }
+      
+      console.log('Sending login data:', loginData)
 
-      localStorage.setItem('authToken', data.token)
+      const data = await ApiService.login(loginData)
+      
+      console.log('Login response:', data)
+
+      localStorage.setItem('authToken', data.token) 
       if (data.user) {
         localStorage.setItem('authUser', JSON.stringify(data.user))
       }
@@ -60,11 +92,40 @@ function LoginPage() {
         }
       }
 
+      console.log('Redirecting to:', redirectTo)
       navigate(redirectTo)
     } catch (error: unknown) {
       console.error('Login error:', error)
-      const message = error instanceof Error ? error.message : 'Có lỗi xảy ra'
+      let message = error instanceof Error ? error.message : 'Có lỗi xảy ra'
+      
+      // Cải thiện thông báo lỗi cho user
+      if (message.includes('User not found')) {
+        if (isEmail(identifier)) {
+          message = 'Email không tồn tại trong hệ thống. Vui lòng kiểm tra lại hoặc đăng ký tài khoản mới.'
+        } else if (isPhone(identifier)) {
+          message = 'Số điện thoại không tồn tại trong hệ thống. Vui lòng kiểm tra lại hoặc đăng ký tài khoản mới.'
+        } else if (isUsername(identifier)) {
+          message = 'Username không tồn tại trong hệ thống. Vui lòng kiểm tra lại hoặc đăng ký tài khoản mới.'
+        } else {
+          message = 'Email, số điện thoại hoặc username không tồn tại trong hệ thống. Vui lòng kiểm tra lại.'
+        }
+      } else if (message.includes('Invalid password')) {
+        message = 'Mật khẩu không đúng. Vui lòng kiểm tra lại.'
+      } else if (message.includes('Internal Server Error')) {
+        message = 'Lỗi hệ thống. Vui lòng thử lại sau hoặc liên hệ quản trị viên.'
+      }
+      
       setErrorMessage(message)
+      
+      // Thêm thông tin debug cho lỗi
+      console.log('Error details:', {
+        identifier,
+        isEmail: isEmail(identifier),
+        isPhone: isPhone(identifier),
+        isUsername: isUsername(identifier),
+        errorMessage: message,
+        originalError: error
+      })
     } finally {
       setIsSubmitting(false)
     }
@@ -99,14 +160,25 @@ function LoginPage() {
 
           <form onSubmit={handleSubmit} className="auth-form">
             <label className="auth-label">
-              <span className="mb-1 block">Email hoặc Username</span>
+              <span className="mb-1 block">
+                Email, Số điện thoại hoặc Username
+                {identifier && (
+                  <span className="ml-2 text-xs text-gray-500">
+                    ({isEmail(identifier) ? 'Email' : 
+                      isPhone(identifier) ? 'Số điện thoại' : 
+                      isUsername(identifier) ? 'Username' : 
+                      'Không hợp lệ'})
+                  </span>
+                )}
+              </span>
+              
               <div className="auth-input-wrap">
                 <input
                   type="text"
                   required
                   value={identifier}
                   onChange={(e) => setIdentifier(e.target.value)}
-                  placeholder="email hoặc username"
+                  placeholder="email, số điện thoại hoặc username"
                   className="auth-input"
                 />
               </div>
@@ -153,6 +225,8 @@ function LoginPage() {
             Don't have an account?{' '}
             <Link to="/register" className="auth-link">Sign Up</Link>
           </div>
+          
+   
         </div>
       </div>
     </div>

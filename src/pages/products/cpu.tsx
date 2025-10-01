@@ -2,6 +2,7 @@ import { useState, useEffect } from 'react'
 import { Link } from 'react-router-dom'
 import '../../Homepage.css'
 import { ApiService } from '../../services/api'
+import PriceRangeSlider from '../../components/PriceRangeSlider'
 
 interface CPUItem {
   id: number
@@ -391,21 +392,15 @@ function CPUPage() {
             <div className="w-80 hidden md:block pr-6">
               <div className="rounded-lg border border-black/10 bg-white p-4 space-y-6">
                 <div>
-                  <h3 className="text-base font-semibold mb-3">Price</h3>
-                  <div className="space-y-2">
-                    <div className="flex justify-between text-xs text-black/60">
-                      <span>$50</span>
-                      <span>$2000</span>
-                    </div>
-                    <input 
-                      type="range" 
-                      min="50" 
-                      max="2000" 
-                      value={priceRange[1]}
-                      onChange={(e) => setPriceRange([priceRange[0], Number(e.target.value)])}
-                      className="w-full" 
-                    />
-                  </div>
+                  <h3 className="text-base font-semibold mb-3">Price Range</h3>
+                  <PriceRangeSlider
+                    value={priceRange}
+                    onChange={setPriceRange}
+                    min={50}
+                    max={2000}
+                    step={10}
+                    currency="$"
+                  />
                 </div>
 
                 <div>

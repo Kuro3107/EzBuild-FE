@@ -38,7 +38,7 @@ header {
 
 /* Background: dotted grid + radial gradient */
 .bg-grid {
-  background-image: radial-gradient(circle at 1px 1px, rgb(0 0 0 / 6%) 1px, transparent 0);
+  background-image: radial-gradient(circle at 1px 1px, rgba(28, 23, 23, 0.567) 1px, transparent 0);
   background-size: 24px 24px;
 }
 .bg-radial {
@@ -88,6 +88,231 @@ header {
 }
 .qs-cta {
   @apply text-xs text-black/60;
+}
+
+/* Ant Design Carousel Custom Styles */
+.custom-carousel {
+  @apply rounded-xl overflow-hidden;
+}
+
+.custom-carousel .ant-carousel-content {
+  @apply h-auto;
+}
+
+.custom-carousel .slick-dots {
+  @apply bottom-4;
+}
+
+.custom-carousel .slick-dots li {
+  @apply w-3 h-3 mx-1;
+}
+
+.custom-carousel .slick-dots li button {
+  @apply w-3 h-3 rounded-full bg-white/50 border-2 border-white;
+}
+
+.custom-carousel .slick-dots li.slick-active button {
+  @apply bg-white border-white;
+}
+
+.custom-carousel .slick-prev,
+.custom-carousel .slick-next {
+  @apply z-10 w-10 h-10 bg-white/90 rounded-full shadow-lg border border-gray-200;
+}
+
+.custom-carousel .slick-prev:hover,
+.custom-carousel .slick-next:hover {
+  @apply bg-white shadow-xl;
+}
+
+.custom-carousel .slick-prev {
+  @apply left-2;
+}
+
+.custom-carousel .slick-next {
+  @apply right-2;
+}
+
+.custom-carousel .slick-prev:before,
+.custom-carousel .slick-next:before {
+  @apply text-gray-600 text-lg;
+}
+
+/* Ant Design Sidebar Custom Styles */
+.custom-sidebar-menu .ant-menu-item {
+  @apply mx-2 my-1 rounded-lg;
+}
+
+.custom-sidebar-menu .ant-menu-submenu-title {
+  @apply mx-2 my-1 rounded-lg;
+}
+
+.custom-sidebar-menu .ant-menu-submenu .ant-menu-item {
+  @apply ml-6 my-1 rounded-lg;
+}
+
+.custom-sidebar-menu .ant-menu-item-selected {
+  @apply bg-blue-50 text-blue-600;
+}
+
+.custom-sidebar-menu .ant-menu-item:hover {
+  @apply bg-gray-50;
+}
+
+.custom-sidebar-menu .ant-menu-submenu-title:hover {
+  @apply bg-gray-50;
+}
+
+.custom-sidebar-menu .ant-menu-item-group-title {
+  @apply text-xs uppercase tracking-wider text-gray-500 font-semibold px-2 py-2;
+}
+
+/* Dark Theme Styles */
+.bg-grid-dark {
+  position: relative;
+  background-color: #000000;
+  background-image: 
+    radial-gradient(circle at 2px 2px, rgba(255, 255, 255, 0.2) 1px, transparent 0),
+    radial-gradient(circle at 22px 22px, rgba(255, 255, 255, 0.1) 1px, transparent 0);
+  background-size: 40px 40px;
+  background-position: 0 0, 20px 20px;
+}
+
+/* Enhanced dots pattern for better visibility */
+.bg-grid-dark::before {
+  content: '';
+  position: absolute;
+  top: 0;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  background-image: radial-gradient(circle at 1px 1px, rgba(255, 255, 255, 0.05) 0.5px, transparent 0);
+  background-size: 80px 80px;
+  background-position: 40px 40px;
+  pointer-events: none;
+  z-index: 0;
+}
+
+/* Ensure content is above the background pattern */
+.bg-grid-dark > * {
+  position: relative;
+  z-index: 1;
+}
+
+.custom-sidebar-menu-dark .ant-menu-item {
+  @apply mx-2 my-1 rounded-lg;
+  color: rgba(255, 255, 255, 0.8);
+}
+
+.custom-sidebar-menu-dark .ant-menu-submenu-title {
+  @apply mx-2 my-1 rounded-lg;
+  color: rgba(255, 255, 255, 0.8);
+}
+
+.custom-sidebar-menu-dark .ant-menu-submenu .ant-menu-item {
+  @apply ml-6 my-1 rounded-lg;
+  color: rgba(255, 255, 255, 0.6);
+}
+
+.custom-sidebar-menu-dark .ant-menu-item-selected {
+  background-color: #050544 !important;
+  color: white !important;
+}
+
+.custom-sidebar-menu-dark .ant-menu-item:hover {
+  background-color: rgba(5, 5, 68, 0.3) !important;
+  color: white !important;
+}
+
+.custom-sidebar-menu-dark .ant-menu-submenu-title:hover {
+  background-color: rgba(5, 5, 68, 0.3) !important;
+  color: white !important;
+}
+
+.custom-sidebar-menu-dark .ant-menu-item-group-title {
+  @apply text-xs uppercase tracking-wider font-semibold px-2 py-2;
+  color: rgba(255, 255, 255, 0.5) !important;
+}
+
+.custom-sidebar-menu-dark .ant-menu-submenu-arrow {
+  color: rgba(255, 255, 255, 0.6) !important;
+}
+
+.custom-sidebar-menu-dark .ant-menu-submenu-open > .ant-menu-submenu-title .ant-menu-submenu-arrow {
+  color: #050544 !important;
+}
+
+/* Hero Banner Responsive */
+@media (max-width: 768px) {
+  .hero-text-section {
+    padding-right: 0 !important;
+    text-align: center;
+  }
+  
+  .hero-text-section h1 {
+    font-size: 36px !important;
+  }
+  
+  .hero-text-section .ant-typography {
+    font-size: 16px !important;
+  }
+}
+
+/* Customer Profile Page Dark Theme */
+.page.bg-grid-dark .sidebar {
+  background: #000000;
+  border-right: 1px solid #333333;
+  display: flex;
+  flex-direction: column;
+  height: 100vh;
+}
+
+.page.bg-grid-dark .sidebar-group {
+  color: rgba(255, 255, 255, 0.5) !important;
+}
+
+.page.bg-grid-dark .nav-item {
+  color: rgba(255, 255, 255, 0.8) !important;
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  padding: 12px 16px;
+  margin: 4px 16px;
+  border-radius: 8px;
+  transition: all 0.2s ease;
+  text-decoration: none;
+  font-weight: 500;
+}
+
+.page.bg-grid-dark .nav-item:hover {
+  background-color: rgba(255, 255, 255, 0.1) !important;
+  color: white !important;
+}
+
+.page.bg-grid-dark .nav-item-active {
+  background-color: #8b5cf6 !important;
+  color: white !important;
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  padding: 12px 16px;
+  margin: 4px 16px;
+  border-radius: 8px;
+  transition: all 0.2s ease;
+  text-decoration: none;
+  font-weight: 500;
+}
+
+/* Mobile responsive adjustments */
+@media (max-width: 768px) {
+  .ant-layout-sider {
+    display: none !important;
+  }
+  
+  .ant-layout-content {
+    margin-left: 0 !important;
+    padding: 16px !important;
+  }
 }
 
 
