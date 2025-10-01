@@ -4,7 +4,7 @@ import { BrowserRouter as Router, Routes, Route } from 'react-router-dom'
 import './index.css'
 import ProtectedRoute from './components/ProtectedRoute'
 import HomePage from './HomePage.tsx'
-import SalesPage from './pages/sales.tsx'
+import SalesPage from './pages/sales/index.tsx'
 import CasePage from './pages/products/case.tsx'
 import CPUPage from './pages/products/cpu.tsx'
 import MainboardPage from './pages/products/mainboard.tsx'
@@ -22,6 +22,7 @@ import RegisterPage from './pages/login&register/register.tsx'
 import ComparePage from './pages/compare/compare.tsx'
 import StaffPage from './pages/staff/index.tsx'
 import AdminPage from './pages/admin/index.tsx'
+import CustomerProfilePage from './pages/customer/index.tsx'
 
 createRoot(document.getElementById('root')!).render(
   <StrictMode>
@@ -44,6 +45,7 @@ createRoot(document.getElementById('root')!).render(
         <Route path="/products/monitor" element={<MonitorPage />} />
         <Route path="/products/mouse" element={<MousePage />} />
         <Route path="/products/keyboard" element={<KeyboardPage />} />
+        <Route path="/customer" element={<CustomerProfilePage />} />
         
         {/* Protected Routes */}
         <Route path="/staff" element={
