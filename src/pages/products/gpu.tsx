@@ -401,13 +401,13 @@ function GPUPage() {
         <main className="main">
           {/* Breadcrumb + controls */}
           <div className="mb-4 flex flex-col gap-3 md:flex-row md:items-center md:justify-between">
-            <div className="flex items-center gap-2 text-sm text-black/70">
+            <div className="flex items-center gap-2 text-sm text-white/70">
               <span>Products</span>
               <svg className="w-3 h-3" viewBox="0 0 20 20" fill="currentColor"><path fillRule="evenodd" d="M7.293 14.707a1 1 0 010-1.414L10.586 10 7.293 6.707a1 1 0 011.414-1.414l4 4a1 1 0 010 1.414l-4 4a1 1 0 01-1.414 0z" clipRule="evenodd"/></svg>
-              <span className="font-medium text-black">GPU</span>
+              <span className="font-medium text-white">GPU</span>
             </div>
             <div className="flex items-center gap-3">
-              <select className="bg-black/5 hover:bg-black/10 text-black px-3 py-2 rounded-md text-sm">
+              <select className="bg-white/10 hover:bg-white/20 text-white px-3 py-2 rounded-md text-sm border border-white/20">
                 <option>Default</option>
               </select>
               <input 
@@ -415,7 +415,7 @@ function GPUPage() {
                 placeholder="Search" 
                 value={searchTerm}
                 onChange={(e) => setSearchTerm(e.target.value)}
-                className="bg-black/5 hover:bg-black/10 text-black px-3 py-2 rounded-md text-sm w-48" 
+                className="bg-white/10 hover:bg-white/20 text-white px-3 py-2 rounded-md text-sm w-48 border border-white/20 placeholder-white/60" 
               />
             </div>
           </div>
@@ -423,11 +423,11 @@ function GPUPage() {
           <div className="flex">
             {/* Filters */}
             <div className="w-80 hidden md:block pr-6">
-              <div className="rounded-lg border border-black/10 bg-white p-4 space-y-6">
+              <div className="rounded-lg border border-white/20 bg-white/10 p-4 space-y-6">
                 <div>
-                  <h3 className="text-base font-semibold mb-3">Price</h3>
+                  <h3 className="text-base font-semibold mb-3 text-white">Price</h3>
                   <div className="space-y-2">
-                    <div className="flex justify-between text-xs text-black/60">
+                    <div className="flex justify-between text-xs text-white/60">
                       <span>$100</span>
                       <span>$2000</span>
                     </div>
@@ -443,10 +443,10 @@ function GPUPage() {
                 </div>
 
                 <div>
-                  <h3 className="text-base font-semibold mb-3">Brand</h3>
+                  <h3 className="text-base font-semibold mb-3 text-white">Brand</h3>
                   <div className="space-y-2 text-sm">
                     {['NVIDIA','AMD'].map((brand) => (
-                      <label key={brand} className="flex items-center gap-2">
+                      <label key={brand} className="flex items-center gap-2 text-white">
                         <input 
                           type="checkbox" 
                           checked={selectedBrands.includes(brand)}
@@ -456,7 +456,7 @@ function GPUPage() {
                         <span>{brand}</span>
                       </label>
                     ))}
-                    <button onClick={() => setShowBrandPopup(true)} className="text-blue-600 text-xs">Show More</button>
+                    <button onClick={() => setShowBrandPopup(true)} className="text-blue-400 text-xs">Show More</button>
                   </div>
                 </div>
 
@@ -634,16 +634,16 @@ function GPUPage() {
             <div className="flex-1">
               {loading && (
                 <div className="flex justify-center items-center py-12">
-                  <div className="text-lg text-gray-600">Đang tải dữ liệu GPU...</div>
+                  <div className="text-lg text-white/70">Đang tải dữ liệu GPU...</div>
                 </div>
               )}
 
               {filteredGPUs.length === 0 ? (
                 <div className="text-center py-12">
-                  <div className="text-lg text-gray-600 mb-4">
+                  <div className="text-lg text-white/70 mb-4">
                     {gpus.length === 0 ? 'Không có GPU nào trong database' : 'Không tìm thấy GPU nào phù hợp'}
                   </div>
-                  <div className="text-sm text-gray-500 mb-4">
+                  <div className="text-sm text-white/50 mb-4">
                     {gpus.length === 0 ? 'Vui lòng thêm GPU vào database' : 'Thử điều chỉnh bộ lọc hoặc tìm kiếm khác'}
                   </div>
                   {gpus.length > 0 && (
@@ -671,19 +671,19 @@ function GPUPage() {
               ) : (
                 <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4 md:gap-6">
                   {filteredGPUs.map((gpuItem) => (
-                    <div key={gpuItem.id} className="rounded-lg border border-black/10 bg-white hover:bg-black/5 transition cursor-pointer" onClick={() => setSelectedGPU(gpuItem)}>
+                    <div key={gpuItem.id} className="rounded-lg border border-white/20 bg-white/10 hover:bg-white/20 transition cursor-pointer" onClick={() => setSelectedGPU(gpuItem)}>
                       <div className="p-4">
                         <img src={gpuItem.image} alt={gpuItem.name} className="w-full h-48 object-cover rounded-lg mb-4" />
-                        <div className="text-sm font-medium mb-2 line-clamp-2">{gpuItem.name}</div>
-                        <div className="text-lg font-bold mb-3">
+                        <div className="text-sm font-medium mb-2 line-clamp-2 text-white">{gpuItem.name}</div>
+                        <div className="text-lg font-bold mb-3 text-white">
                           {gpuItem.price > 0 ? `${gpuItem.price.toLocaleString('vi-VN')} VND` : 'Liên hệ'}
                         </div>
-                        <div className="space-y-1 text-xs text-black/60 mb-4">
-                          <div className="flex justify-between"><span>Series:</span><span className="text-black">{gpuItem.specs.series}</span></div>
-                          <div className="flex justify-between"><span>Memory:</span><span className="text-black">{gpuItem.specs.memory}</span></div>
-                          <div className="flex justify-between"><span>Base Clock:</span><span className="text-black">{gpuItem.specs.baseClock}</span></div>
-                          <div className="flex justify-between"><span>Boost Clock:</span><span className="text-black">{gpuItem.specs.boostClock}</span></div>
-                          <div className="flex justify-between"><span>Power:</span><span className="text-black">{gpuItem.specs.powerConsumption}</span></div>
+                        <div className="space-y-1 text-xs text-white/60 mb-4">
+                          <div className="flex justify-between"><span>Series:</span><span className="text-white">{gpuItem.specs.series}</span></div>
+                          <div className="flex justify-between"><span>Memory:</span><span className="text-white">{gpuItem.specs.memory}</span></div>
+                          <div className="flex justify-between"><span>Base Clock:</span><span className="text-white">{gpuItem.specs.baseClock}</span></div>
+                          <div className="flex justify-between"><span>Boost Clock:</span><span className="text-white">{gpuItem.specs.boostClock}</span></div>
+                          <div className="flex justify-between"><span>Power:</span><span className="text-white">{gpuItem.specs.powerConsumption}</span></div>
                         </div>
                         <button className="w-full btn-primary">+ Add to build</button>
                       </div>

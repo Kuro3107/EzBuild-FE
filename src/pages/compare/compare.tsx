@@ -138,7 +138,7 @@ function ComparePage() {
                   </button>
                 ))}
                 {filtered.length === 0 && (
-                  <div className="px-3 py-2 text-sm text-black/60">No results</div>
+                  <div className="px-3 py-2 text-sm text-white/60">No results</div>
                 )}
               </div>
             </div>
@@ -161,7 +161,7 @@ function ComparePage() {
                     ))}
                     {!selected && (
                       <tr>
-                        <td className="px-3 py-6 text-black/60" colSpan={2}>Select a product to view details</td>
+                        <td className="px-3 py-6 text-white/60" colSpan={2}>Select a product to view details</td>
                       </tr>
                     )}
                   </tbody>
@@ -174,7 +174,7 @@ function ComparePage() {
         {isProductsOpen && (
           <div
             ref={popoverRef}
-            className="fixed left-64 top-24 z-50 w-[900px] rounded-xl border border-black bg-white/95 backdrop-blur shadow-2xl p-4"
+            className="fixed left-64 top-24 z-50 w-[900px] rounded-xl border border-white/20 bg-gray-900/95 backdrop-blur shadow-2xl p-4"
           >
             <div className="flex gap-6">
               <div className="flex-1">
@@ -185,7 +185,7 @@ function ComparePage() {
                     <Link
                       key={label}
                       to={`/products/${label.toLowerCase().replace(' ', label === 'Power Supply' ? 'psu' : label === 'CPU Cooler' ? 'cpu-cooler' : '')}`.replace('/products/psu', '/products/psu').replace('/products/case fan', '/products/case-fan').replace('/products/power supply', '/products/psu')}
-                      className="text-left rounded-lg border border-black bg-white hover:bg-black/5 px-3 py-2 text-sm text-black transition-colors block"
+                      className="text-left rounded-lg border border-white/20 bg-white/10 hover:bg-white/20 px-3 py-2 text-sm text-white transition-colors block"
                       onClick={() => setIsProductsOpen(false)}
                     >
                       {label}
@@ -199,7 +199,7 @@ function ComparePage() {
                     <Link
                       key={label}
                       to={`/products/${label.toLowerCase()}`}
-                      className="text-left rounded-lg border border-black bg-white hover:bg-black/5 px-3 py-2 text-sm text-black transition-colors block"
+                      className="text-left rounded-lg border border-white/20 bg-white/10 hover:bg-white/20 px-3 py-2 text-sm text-white transition-colors block"
                       onClick={() => setIsProductsOpen(false)}
                     >
                       {label}
@@ -208,7 +208,7 @@ function ComparePage() {
                 </div>
               </div>
             </div>
-            <div className="mt-3 text-xs text-black/60">Other Products: OS, Sound Card, Network, VR, Capture...</div>
+            <div className="mt-3 text-xs text-white/60">Other Products: OS, Sound Card, Network, VR, Capture...</div>
           </div>
         )}
       </div>

@@ -1,8 +1,5 @@
 import React, { useEffect, useState } from 'react'
-import { Row, Col, Statistic, Typography } from 'antd'
-import CountUp from 'react-countup'
-
-const { Title } = Typography
+// Removed Ant Design imports - using native HTML/CSS instead
 
 const LandingStats: React.FC = () => {
   const [isVisible, setIsVisible] = useState(false)
@@ -44,22 +41,26 @@ const LandingStats: React.FC = () => {
   return (
     <div style={{ 
       padding: '80px 0',
-      background: 'linear-gradient(135deg, #050544 0%, #0a0a6e 100%)',
+      background: 'linear-gradient(135deg, #1e3a8a 0%, #000000 100%)',
       color: 'white'
     }}>
       <div style={{ maxWidth: '1200px', margin: '0 auto', padding: '0 24px' }}>
         <div style={{ textAlign: 'center', marginBottom: '64px' }}>
-          <Title level={2} style={{ color: 'white', fontSize: '36px', fontWeight: 700, marginBottom: '16px' }}>
+          <h2 style={{ color: 'white', fontSize: '36px', fontWeight: 700, marginBottom: '16px', margin: '0 0 16px 0' }}>
             Trusted by Builders Worldwide
-          </Title>
+          </h2>
           <p style={{ color: 'rgba(255,255,255,0.8)', fontSize: '18px', margin: 0 }}>
             Join thousands of successful PC builders who trust EzBuild
           </p>
         </div>
         
-        <Row gutter={[48, 48]}>
+        <div style={{ 
+          display: 'grid', 
+          gridTemplateColumns: 'repeat(auto-fit, minmax(250px, 1fr))', 
+          gap: '48px' 
+        }}>
           {stats.map((stat, index) => (
-            <Col xs={12} sm={6} key={index} style={{ textAlign: 'center' }}>
+            <div key={index} style={{ textAlign: 'center' }}>
               <div style={{
                 background: 'rgba(255,255,255,0.1)',
                 borderRadius: '16px',
@@ -71,33 +72,25 @@ const LandingStats: React.FC = () => {
                 flexDirection: 'column',
                 justifyContent: 'center'
               }}>
-                <Statistic
-                  value={isVisible ? stat.value : 0}
-                  suffix={stat.suffix}
-                  valueStyle={{
-                    color: 'white',
-                    fontSize: '48px',
-                    fontWeight: 700,
-                    lineHeight: 1
-                  }}
-                  formatter={(value) => (
-                    <CountUp
-                      end={Number(value)}
-                      duration={2}
-                      separator=","
-                      decimals={stat.value < 100 ? 1 : 0}
-                    />
-                  )}
-                />
-                <Title level={4} style={{ 
+                <div style={{
+                  color: 'white',
+                  fontSize: '48px',
+                  fontWeight: 700,
+                  lineHeight: 1,
+                  marginBottom: '16px'
+                }}>
+                  {isVisible ? (stat.value < 100 ? stat.value.toFixed(1) : stat.value.toLocaleString()) : 0}{stat.suffix}
+                </div>
+                <h4 style={{ 
                   color: 'white', 
                   marginTop: '16px', 
                   marginBottom: '8px',
                   fontSize: '18px',
-                  fontWeight: 600
+                  fontWeight: 600,
+                  margin: '0 0 8px 0'
                 }}>
                   {stat.title}
-                </Title>
+                </h4>
                 <p style={{ 
                   color: 'rgba(255,255,255,0.8)', 
                   margin: 0, 
@@ -106,9 +99,9 @@ const LandingStats: React.FC = () => {
                   {stat.description}
                 </p>
               </div>
-            </Col>
+            </div>
           ))}
-        </Row>
+        </div>
       </div>
     </div>
   )

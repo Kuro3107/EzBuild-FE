@@ -1,5 +1,5 @@
 import React from 'react'
-import { Slider } from 'antd'
+// Removed Ant Design imports - using native HTML/CSS instead
 
 interface PriceRangeSliderProps {
   value: [number, number]
@@ -21,51 +21,66 @@ const PriceRangeSlider: React.FC<PriceRangeSliderProps> = ({
   className = ''
 }) => {
   return (
-    <div className={`space-y-3 ${className}`}>
-      <div className="flex justify-between text-sm font-medium text-gray-700">
+    <div className={`space-y-3 ${className}`} style={{ color: 'white' }}>
+      <div className="flex justify-between text-sm font-medium" style={{ color: 'white' }}>
         <span>{currency}{value[0]}</span>
         <span>{currency}{value[1]}</span>
       </div>
-      <Slider
-        range
-        min={min}
-        max={max}
-        step={step}
-        value={value}
-        onChange={(value) => onChange(value as [number, number])}
-        trackStyle={[{ backgroundColor: '#3b82f6' }]}
-        handleStyle={[
-          { 
-            borderColor: '#3b82f6',
-            backgroundColor: '#3b82f6',
-            boxShadow: '0 0 0 2px rgba(59, 130, 246, 0.1)',
-            width: '16px',
-            height: '16px',
-            marginTop: '-6px'
-          },
-          { 
-            borderColor: '#3b82f6',
-            backgroundColor: '#3b82f6',
-            boxShadow: '0 0 0 2px rgba(59, 130, 246, 0.1)',
-            width: '16px',
-            height: '16px',
-            marginTop: '-6px'
-          }
-        ]}
-        railStyle={{ 
-          backgroundColor: '#e5e7eb',
-          height: '4px'
-        }}
-        dotStyle={{
-          borderColor: '#d1d5db',
-          backgroundColor: '#d1d5db'
-        }}
-        activeDotStyle={{
-          borderColor: '#3b82f6',
-          backgroundColor: '#3b82f6'
-        }}
-      />
-      <div className="flex justify-between text-xs text-gray-500">
+      <div style={{ position: 'relative', height: '20px' }}>
+        <input
+          type="range"
+          min={min}
+          max={max}
+          step={step}
+          value={value[0]}
+          onChange={(e) => onChange([Number(e.target.value), value[1]])}
+          style={{
+            position: 'absolute',
+            width: '100%',
+            height: '4px',
+            background: 'transparent',
+            outline: 'none',
+            appearance: 'none',
+            zIndex: 2
+          }}
+        />
+        <input
+          type="range"
+          min={min}
+          max={max}
+          step={step}
+          value={value[1]}
+          onChange={(e) => onChange([value[0], Number(e.target.value)])}
+          style={{
+            position: 'absolute',
+            width: '100%',
+            height: '4px',
+            background: 'transparent',
+            outline: 'none',
+            appearance: 'none',
+            zIndex: 2
+          }}
+        />
+        <div style={{
+          position: 'absolute',
+          top: '8px',
+          left: '0',
+          right: '0',
+          height: '4px',
+          background: '#e5e7eb',
+          borderRadius: '2px'
+        }} />
+        <div style={{
+          position: 'absolute',
+          top: '8px',
+          left: `${((value[0] - min) / (max - min)) * 100}%`,
+          right: `${100 - ((value[1] - min) / (max - min)) * 100}%`,
+          height: '4px',
+          background: '#1e3a8a',
+          borderRadius: '2px'
+        }} />
+      </div>
+      <div className="flex justify-between text-xs" style={{ color: 'rgba(255,255,255,0.6)' }}>
         <span>{currency}{min}</span>
         <span>{currency}{max}</span>
       </div>
