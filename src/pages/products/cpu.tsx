@@ -294,13 +294,13 @@ function CPUPage() {
 
     return (
       <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 p-4">
-        <div className="bg-white rounded-lg max-w-md w-full max-h-[80vh] overflow-hidden">
-          <div className="p-4 border-b">
+        <div className="bg-gray-900 border border-white/20 rounded-lg max-w-md w-full max-h-[80vh] overflow-hidden">
+          <div className="p-4 border-b border-white/20">
             <div className="flex justify-between items-center mb-4">
-              <h3 className="text-lg font-semibold">{title}</h3>
+              <h3 className="text-lg font-semibold text-white">{title}</h3>
               <button
                 onClick={onClose}
-                className="text-gray-400 hover:text-gray-600"
+                className="text-white/60 hover:text-white"
               >
                 <svg className="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                   <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
@@ -312,13 +312,13 @@ function CPUPage() {
               placeholder="Search..."
               value={searchTerm}
               onChange={(e) => onSearchChange(e.target.value)}
-              className="w-full px-3 py-2 border border-gray-300 rounded-md text-sm"
+              className="w-full px-3 py-2 border border-white/20 bg-white/10 text-white rounded-md text-sm placeholder-white/60"
             />
           </div>
           <div className="p-4 overflow-y-auto max-h-96">
             <div className="space-y-2">
               {filteredOptions.map((option) => (
-                <label key={option} className="flex items-center gap-2">
+                <label key={option} className="flex items-center gap-2 text-white">
                   <input
                     type="checkbox"
                     checked={selectedItems.includes(option)}
@@ -642,16 +642,16 @@ function CPUPage() {
       {/* Product Detail Modal */}
       {selectedCPU && (
         <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 p-4">
-          <div className="bg-white rounded-lg max-w-4xl w-full max-h-[90vh] overflow-y-auto">
+          <div className="bg-gray-900 border border-white/20 rounded-lg max-w-4xl w-full max-h-[90vh] overflow-y-auto">
             <div className="p-6">
               <div className="flex justify-between items-start mb-6">
                 <div>
-                  <h2 className="text-3xl font-bold text-gray-900">{selectedCPU.name}</h2>
-                  <p className="text-lg text-gray-600">{selectedCPU.brand}</p>
+                  <h2 className="text-3xl font-bold text-white">{selectedCPU.name}</h2>
+                  <p className="text-lg text-white/70">{selectedCPU.brand}</p>
                 </div>
                 <button
                   onClick={() => setSelectedCPU(null)}
-                  className="text-gray-400 hover:text-gray-600"
+                  className="text-white/60 hover:text-white"
                 >
                   <svg className="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                     <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
@@ -669,29 +669,29 @@ function CPUPage() {
                 </div>
                 
                 <div>
-                  <div className="text-3xl font-bold text-blue-600 mb-4">
+                  <div className="text-3xl font-bold text-blue-400 mb-4">
                     {selectedCPU.price > 0 ? `${selectedCPU.price.toLocaleString('vi-VN')} VND` : 'Liên hệ'}
                   </div>
                   
                   <div className="mb-6">
-                    <h3 className="text-lg font-semibold mb-3">Specifications</h3>
+                    <h3 className="text-lg font-semibold mb-3 text-white">Specifications</h3>
                     <div className="space-y-2">
                       {Object.entries(selectedCPU.specs).map(([key, value]) => (
                         <div key={key} className="flex justify-between">
-                          <span className="text-gray-600 capitalize">{key.replace(/([A-Z])/g, ' $1').trim()}:</span>
-                          <span className="font-medium">{value.toString()}</span>
+                          <span className="text-white/70 capitalize">{key.replace(/([A-Z])/g, ' $1').trim()}:</span>
+                          <span className="font-medium text-white">{value.toString()}</span>
                         </div>
                       ))}
                     </div>
                   </div>
                   
                   <div className="mb-6">
-                    <h3 className="text-lg font-semibold mb-3">Features</h3>
+                    <h3 className="text-lg font-semibold mb-3 text-white">Features</h3>
                     <div className="flex flex-wrap gap-2">
                       {selectedCPU.features.map((feature, index) => (
                         <span
                           key={index}
-                          className="px-3 py-1 bg-blue-100 text-blue-800 text-sm rounded-full"
+                          className="px-3 py-1 bg-blue-500/20 text-blue-300 text-sm rounded-full"
                         >
                           {feature}
                         </span>
@@ -704,13 +704,13 @@ function CPUPage() {
                       className={`flex-1 px-6 py-3 rounded-lg font-semibold transition-colors ${
                         selectedCPU.inStock 
                           ? 'bg-blue-600 text-white hover:bg-blue-700' 
-                          : 'bg-gray-300 text-gray-500 cursor-not-allowed'
+                          : 'bg-gray-600 text-gray-400 cursor-not-allowed'
                       }`}
                       disabled={!selectedCPU.inStock}
                     >
                       {selectedCPU.inStock ? 'Add to Build' : 'Out of Stock'}
                     </button>
-                    <button className="flex-1 border border-blue-600 text-blue-600 px-6 py-3 rounded-lg font-semibold hover:bg-blue-50 transition-colors">
+                    <button className="flex-1 border border-blue-400 text-blue-400 px-6 py-3 rounded-lg font-semibold hover:bg-blue-400/10 transition-colors">
                       Compare
                     </button>
                   </div>

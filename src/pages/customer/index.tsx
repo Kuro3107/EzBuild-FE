@@ -362,7 +362,7 @@ function CustomerProfilePage() {
             </div>
 
             {/* Profile Picture Section */}
-            <div className="bg-white rounded-2xl p-8 mb-8 shadow-lg">
+            <div className="bg-white/10 border border-white/20 rounded-2xl p-8 mb-8 shadow-lg">
               <div className="flex items-center justify-center">
                 <div className="relative">
                   <div className="w-32 h-32 rounded-full overflow-hidden bg-gradient-to-br from-amber-400 to-orange-500 flex items-center justify-center text-white text-4xl font-bold shadow-lg">
@@ -399,9 +399,9 @@ function CustomerProfilePage() {
             </div>
 
             {/* Contact Details Section */}
-            <div className="bg-white rounded-2xl p-8 mb-8 shadow-lg">
+            <div className="bg-white/10 border border-white/20 rounded-2xl p-8 mb-8 shadow-lg">
               <div className="flex items-center justify-between mb-6">
-                <h2 className="text-2xl font-bold text-gray-900">Contact Details</h2>
+                <h2 className="text-2xl font-bold text-white">Contact Details</h2>
                 {!isEditing && (
                   <button
                     onClick={() => setIsEditing(true)}
@@ -517,7 +517,7 @@ function CustomerProfilePage() {
             {/* Account Overview Section */}
             <div className="bg-white rounded-2xl p-8 shadow-lg">
               <div className="flex items-center justify-between mb-6">
-                <h2 className="text-2xl font-bold text-gray-900">Account Overview</h2>
+                <h2 className="text-2xl font-bold text-white">Account Overview</h2>
                 <button className="px-4 py-2 text-purple-600 border border-purple-600 rounded-lg hover:bg-purple-50 transition-colors font-medium">
                   + Add New Email
                 </button>
