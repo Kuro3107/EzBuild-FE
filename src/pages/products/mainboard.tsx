@@ -355,43 +355,18 @@ function MainboardPage() {
   return (
     <div className="page bg-grid bg-radial">
       <div className="layout">
-        {/* Sidebar giống HomePage */}
-        <aside className="sidebar">
-          <div className="flex items-center justify-between px-2 mb-6">
-            <div className="flex items-center gap-2">
-              <div className="size-6 rounded-lg bg-blue-600" />
-              <span className="font-semibold">EzBuild</span>
-            </div>
-          </div>
-
-          <div>
-            <div className="sidebar-group">Apps</div>
-            <Link className="nav-item" to="/">PC Builder</Link>
-            <span className="nav-item">Products</span>
-            <a className="nav-item" href="#">Sales</a>
-            <a className="nav-item" href="#">Compare</a>
-            <a className="nav-item" href="#">PC Part Gallery</a>
-          </div>
-
-          <div>
-            <div className="sidebar-group">Community</div>
-            <a className="nav-item" href="#">Completed Builds</a>
-            <a className="nav-item" href="#">Updates</a>
-            <a className="nav-item" href="#">Setup Builder</a>
-          </div>
-        </aside>
 
         {/* Main */}
         <main className="main">
           {/* Breadcrumb + controls */}
           <div className="mb-4 flex flex-col gap-3 md:flex-row md:items-center md:justify-between">
-            <div className="flex items-center gap-2 text-sm text-black/70">
+            <div className="flex items-center gap-2 text-sm text-white/70">
               <span>Products</span>
               <svg className="w-3 h-3" viewBox="0 0 20 20" fill="currentColor"><path fillRule="evenodd" d="M7.293 14.707a1 1 0 010-1.414L10.586 10 7.293 6.707a1 1 0 011.414-1.414l4 4a1 1 0 010 1.414l-4 4a1 1 0 01-1.414 0z" clipRule="evenodd"/></svg>
-              <span className="font-medium text-black">Mainboard</span>
+              <span className="font-medium text-white">Mainboard</span>
             </div>
             <div className="flex items-center gap-3">
-              <select className="bg-black/5 hover:bg-black/10 text-black px-3 py-2 rounded-md text-sm">
+              <select className="bg-white/10 hover:bg-white/20 text-white px-3 py-2 rounded-md text-sm border border-white/20">
                 <option>Default</option>
               </select>
               <input 
@@ -399,7 +374,7 @@ function MainboardPage() {
                 placeholder="Search" 
                 value={searchTerm}
                 onChange={(e) => setSearchTerm(e.target.value)}
-                className="bg-black/5 hover:bg-black/10 text-black px-3 py-2 rounded-md text-sm w-48" 
+                className="bg-white/10 hover:bg-white/20 text-white px-3 py-2 rounded-md text-sm w-48 border border-white/20 placeholder-white/60" 
               />
             </div>
           </div>
@@ -407,11 +382,11 @@ function MainboardPage() {
           <div className="flex">
             {/* Filters */}
             <div className="w-80 hidden md:block pr-6">
-              <div className="rounded-lg border border-black/10 bg-white p-4 space-y-6">
+              <div className="rounded-lg border border-white/20 bg-white/10 p-4 space-y-6">
                 <div>
-                  <h3 className="text-base font-semibold mb-3">Price</h3>
+                  <h3 className="text-base font-semibold mb-3 text-white">Price</h3>
                   <div className="space-y-2">
-                    <div className="flex justify-between text-xs text-black/60">
+                    <div className="flex justify-between text-xs text-white/60">
                       <span>$50</span>
                       <span>$800</span>
                     </div>
@@ -427,10 +402,10 @@ function MainboardPage() {
                 </div>
 
                 <div>
-                  <h3 className="text-base font-semibold mb-3">Socket Type</h3>
+                  <h3 className="text-base font-semibold mb-3 text-white">Socket Type</h3>
                   <div className="space-y-2 text-sm">
                     {['LGA 1700','AM5','AM4','LGA 1200'].map((socket) => (
-                      <label key={socket} className="flex items-center gap-2">
+                      <label key={socket} className="flex items-center gap-2 text-white">
                         <input 
                           type="checkbox" 
                           checked={selectedSocketTypes.includes(socket)}
@@ -440,15 +415,15 @@ function MainboardPage() {
                         <span>{socket}</span>
                       </label>
                     ))}
-                    <button onClick={() => setShowSocketTypePopup(true)} className="text-blue-600 text-xs">Show More</button>
+                    <button onClick={() => setShowSocketTypePopup(true)} className="text-blue-400 text-xs">Show More</button>
                   </div>
                 </div>
 
                 <div>
-                  <h3 className="text-base font-semibold mb-3">Form Factor</h3>
+                  <h3 className="text-base font-semibold mb-3 text-white">Form Factor</h3>
                   <div className="space-y-2 text-sm">
                     {['ATX','Micro ATX','Mini ITX'].map((formFactor) => (
-                      <label key={formFactor} className="flex items-center gap-2">
+                      <label key={formFactor} className="flex items-center gap-2 text-white">
                         <input 
                           type="checkbox" 
                           checked={selectedFormFactors.includes(formFactor)}
@@ -458,15 +433,15 @@ function MainboardPage() {
                         <span>{formFactor}</span>
                       </label>
                     ))}
-                    <button onClick={() => setShowFormFactorPopup(true)} className="text-blue-600 text-xs">Show More</button>
+                    <button onClick={() => setShowFormFactorPopup(true)} className="text-blue-400 text-xs">Show More</button>
                   </div>
                 </div>
 
                 <div>
-                  <h3 className="text-base font-semibold mb-3">Chipset</h3>
+                  <h3 className="text-base font-semibold mb-3 text-white">Chipset</h3>
                   <div className="space-y-2 text-sm">
                     {['Intel Z790','AMD X670E','AMD B650','Intel B760','AMD B550'].map((chipset) => (
-                      <label key={chipset} className="flex items-center gap-2">
+                      <label key={chipset} className="flex items-center gap-2 text-white">
                         <input 
                           type="checkbox" 
                           checked={selectedChipsets.includes(chipset)}
@@ -476,15 +451,15 @@ function MainboardPage() {
                         <span>{chipset}</span>
                       </label>
                     ))}
-                    <button onClick={() => setShowChipsetPopup(true)} className="text-blue-600 text-xs">Show More</button>
+                    <button onClick={() => setShowChipsetPopup(true)} className="text-blue-400 text-xs">Show More</button>
                   </div>
                 </div>
 
                 <div>
-                  <h3 className="text-base font-semibold mb-3">Memory Type</h3>
+                  <h3 className="text-base font-semibold mb-3 text-white">Memory Type</h3>
                   <div className="space-y-2 text-sm">
                     {['DDR4-3200','DDR5-5200','DDR5-5600','DDR4-3200, DDR5-5600'].map((memoryType) => (
-                      <label key={memoryType} className="flex items-center gap-2">
+                      <label key={memoryType} className="flex items-center gap-2 text-white">
                         <input 
                           type="checkbox" 
                           checked={selectedMemoryTypes.includes(memoryType)}
@@ -494,15 +469,15 @@ function MainboardPage() {
                         <span>{memoryType}</span>
                       </label>
                     ))}
-                    <button onClick={() => setShowMemoryTypePopup(true)} className="text-blue-600 text-xs">Show More</button>
+                    <button onClick={() => setShowMemoryTypePopup(true)} className="text-blue-400 text-xs">Show More</button>
                   </div>
                 </div>
 
                 <div>
-                  <h3 className="text-base font-semibold mb-3">Memory Slots</h3>
+                  <h3 className="text-base font-semibold mb-3 text-white">Memory Slots</h3>
                   <div className="space-y-2 text-sm">
                     {['4'].map((slots) => (
-                      <label key={slots} className="flex items-center gap-2">
+                      <label key={slots} className="flex items-center gap-2 text-white">
                         <input 
                           type="checkbox" 
                           checked={selectedMemorySlots.includes(slots)}
@@ -512,15 +487,15 @@ function MainboardPage() {
                         <span>{slots}</span>
                       </label>
                     ))}
-                    <button onClick={() => setShowMemorySlotsPopup(true)} className="text-blue-600 text-xs">Show More</button>
+                    <button onClick={() => setShowMemorySlotsPopup(true)} className="text-blue-400 text-xs">Show More</button>
                   </div>
                 </div>
 
                 <div>
-                  <h3 className="text-base font-semibold mb-3">PCIe Slots</h3>
+                  <h3 className="text-base font-semibold mb-3 text-white">PCIe Slots</h3>
                   <div className="space-y-2 text-sm">
                     {['2','3'].map((slots) => (
-                      <label key={slots} className="flex items-center gap-2">
+                      <label key={slots} className="flex items-center gap-2 text-white">
                         <input 
                           type="checkbox" 
                           checked={selectedPCIESlots.includes(slots)}
@@ -530,14 +505,14 @@ function MainboardPage() {
                         <span>{slots}</span>
                       </label>
                     ))}
-                    <button onClick={() => setShowPCIESlotsPopup(true)} className="text-blue-600 text-xs">Show More</button>
+                    <button onClick={() => setShowPCIESlotsPopup(true)} className="text-blue-400 text-xs">Show More</button>
                   </div>
                 </div>
 
                 <div>
-                  <h3 className="text-base font-semibold mb-3">WiFi</h3>
+                  <h3 className="text-base font-semibold mb-3 text-white">WiFi</h3>
                   <div className="space-y-2 text-sm">
-                    <label className="flex items-center gap-2">
+                    <label className="flex items-center gap-2 text-white">
                       <input 
                         type="checkbox" 
                         checked={selectedWifi === true}
@@ -546,7 +521,7 @@ function MainboardPage() {
                       />
                       <span>Yes</span>
                     </label>
-                    <label className="flex items-center gap-2">
+                    <label className="flex items-center gap-2 text-white">
                       <input 
                         type="checkbox" 
                         checked={selectedWifi === false}
@@ -559,9 +534,9 @@ function MainboardPage() {
                 </div>
 
                 <div>
-                  <h3 className="text-base font-semibold mb-3">Bluetooth</h3>
+                  <h3 className="text-base font-semibold mb-3 text-white">Bluetooth</h3>
                   <div className="space-y-2 text-sm">
-                    <label className="flex items-center gap-2">
+                    <label className="flex items-center gap-2 text-white">
                       <input 
                         type="checkbox" 
                         checked={selectedBluetooth === true}
@@ -570,7 +545,7 @@ function MainboardPage() {
                       />
                       <span>Yes</span>
                     </label>
-                    <label className="flex items-center gap-2">
+                    <label className="flex items-center gap-2 text-white">
                       <input 
                         type="checkbox" 
                         checked={selectedBluetooth === false}
@@ -621,19 +596,19 @@ function MainboardPage() {
             </div>
 
             {/* Grid */}
-            <div className="flex-1">
+            <div className="flex-1" style={{ maxWidth: '100%', overflow: 'hidden' }}>
               {loading && (
                 <div className="flex justify-center items-center py-12">
-                  <div className="text-lg text-gray-600">Đang tải dữ liệu Mainboard...</div>
+                  <div className="text-lg text-white/70">Đang tải dữ liệu Mainboard...</div>
                 </div>
               )}
 
               {filteredMainboards.length === 0 ? (
                 <div className="text-center py-12">
-                  <div className="text-lg text-gray-600 mb-4">
+                  <div className="text-lg text-white/70 mb-4">
                     {mainboards.length === 0 ? 'Không có Mainboard nào trong database' : 'Không tìm thấy Mainboard nào phù hợp'}
                   </div>
-                  <div className="text-sm text-gray-500 mb-4">
+                  <div className="text-sm text-white/50 mb-4">
                     {mainboards.length === 0 ? 'Vui lòng thêm Mainboard vào database' : 'Thử điều chỉnh bộ lọc hoặc tìm kiếm khác'}
                   </div>
                   {mainboards.length > 0 && (
@@ -659,21 +634,21 @@ function MainboardPage() {
                   )}
                 </div>
               ) : (
-                <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4 md:gap-6">
+                <div className="product-grid">
                   {filteredMainboards.map((mainboardItem) => (
-                    <div key={mainboardItem.id} className="rounded-lg border border-black/10 bg-white hover:bg-black/5 transition cursor-pointer" onClick={() => setSelectedMainboard(mainboardItem)}>
+                    <div key={mainboardItem.id} className="rounded-lg border border-white/20 bg-white/10 hover:bg-white/20 transition cursor-pointer" onClick={() => setSelectedMainboard(mainboardItem)}>
                       <div className="p-4">
                         <img src={mainboardItem.image} alt={mainboardItem.name} className="w-full h-48 object-cover rounded-lg mb-4" />
-                        <div className="text-sm font-medium mb-2 line-clamp-2">{mainboardItem.name}</div>
-                        <div className="text-lg font-bold mb-3">
+                        <div className="text-sm font-medium mb-2 line-clamp-2 text-white">{mainboardItem.name}</div>
+                        <div className="text-lg font-bold mb-3 text-white">
                           {mainboardItem.price > 0 ? `${mainboardItem.price.toLocaleString('vi-VN')} VND` : 'Liên hệ'}
                         </div>
-                        <div className="space-y-1 text-xs text-black/60 mb-4">
-                          <div className="flex justify-between"><span>Socket:</span><span className="text-black">{mainboardItem.specs.socketType}</span></div>
-                          <div className="flex justify-between"><span>Form Factor:</span><span className="text-black">{mainboardItem.specs.formFactor}</span></div>
-                          <div className="flex justify-between"><span>Chipset:</span><span className="text-black">{mainboardItem.specs.chipset}</span></div>
-                          <div className="flex justify-between"><span>Memory:</span><span className="text-black">{mainboardItem.specs.memoryType}</span></div>
-                          <div className="flex justify-between"><span>WiFi:</span><span className="text-black">{mainboardItem.specs.wifi ? 'Yes' : 'No'}</span></div>
+                        <div className="space-y-1 text-xs text-white/60 mb-4">
+                          <div className="flex justify-between"><span>Socket:</span><span className="text-white">{mainboardItem.specs.socketType}</span></div>
+                          <div className="flex justify-between"><span>Form Factor:</span><span className="text-white">{mainboardItem.specs.formFactor}</span></div>
+                          <div className="flex justify-between"><span>Chipset:</span><span className="text-white">{mainboardItem.specs.chipset}</span></div>
+                          <div className="flex justify_between"><span>Memory:</span><span className="text-white">{mainboardItem.specs.memoryType}</span></div>
+                          <div className="flex justify_between"><span>WiFi:</span><span className="text-white">{mainboardItem.specs.wifi ? 'Yes' : 'No'}</span></div>
                         </div>
                         <button className="w-full btn-primary">+ Add to build</button>
                       </div>

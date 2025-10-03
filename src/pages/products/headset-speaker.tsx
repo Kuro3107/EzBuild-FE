@@ -305,43 +305,18 @@ function HeadsetSpeakerPage() {
   return (
     <div className="page bg-grid bg-radial">
       <div className="layout">
-        {/* Sidebar giống HomePage */}
-        <aside className="sidebar">
-          <div className="flex items-center justify-between px-2 mb-6">
-            <div className="flex items-center gap-2">
-              <div className="size-6 rounded-lg bg-blue-600" />
-              <span className="font-semibold">EzBuild</span>
-            </div>
-          </div>
-
-          <div>
-            <div className="sidebar-group">Apps</div>
-            <Link className="nav-item" to="/">PC Builder</Link>
-            <span className="nav-item">Products</span>
-            <a className="nav-item" href="#">Sales</a>
-            <a className="nav-item" href="#">Compare</a>
-            <a className="nav-item" href="#">PC Part Gallery</a>
-          </div>
-
-          <div>
-            <div className="sidebar-group">Community</div>
-            <a className="nav-item" href="#">Completed Builds</a>
-            <a className="nav-item" href="#">Updates</a>
-            <a className="nav-item" href="#">Setup Builder</a>
-          </div>
-        </aside>
 
         {/* Main */}
         <main className="main">
           {/* Breadcrumb + controls */}
           <div className="mb-4 flex flex-col gap-3 md:flex-row md:items-center md:justify-between">
-            <div className="flex items-center gap-2 text-sm text-black/70">
+            <div className="flex items-center gap-2 text-sm text-white/70">
               <span>Products</span>
               <svg className="w-3 h-3" viewBox="0 0 20 20" fill="currentColor"><path fillRule="evenodd" d="M7.293 14.707a1 1 0 010-1.414L10.586 10 7.293 6.707a1 1 0 011.414-1.414l4 4a1 1 0 010 1.414l-4 4a1 1 0 01-1.414 0z" clipRule="evenodd"/></svg>
-              <span className="font-medium text-black">Headset/Speaker</span>
+              <span className="font-medium text-white">Headset/Speaker</span>
             </div>
             <div className="flex items-center gap-3">
-              <select className="bg-black/5 hover:bg-black/10 text-black px-3 py-2 rounded-md text-sm">
+              <select className="bg-white/10 hover:bg-white/20 text-white px-3 py-2 rounded-md text-sm border border-white/20">
                 <option>Default</option>
               </select>
               <input 
@@ -349,7 +324,7 @@ function HeadsetSpeakerPage() {
                 placeholder="Search" 
                 value={searchTerm}
                 onChange={(e) => setSearchTerm(e.target.value)}
-                className="bg-black/5 hover:bg-black/10 text-black px-3 py-2 rounded-md text-sm w-48" 
+                className="bg-white/10 hover:bg-white/20 text-white px-3 py-2 rounded-md text-sm w-48 border border-white/20 placeholder-white/60" 
               />
             </div>
           </div>
@@ -357,11 +332,11 @@ function HeadsetSpeakerPage() {
           <div className="flex">
             {/* Filters */}
             <div className="w-80 hidden md:block pr-6">
-              <div className="rounded-lg border border-black/10 bg-white p-4 space-y-6">
+              <div className="rounded-lg border border-white/20 bg-white/10 p-4 space-y-6">
                 <div>
-                  <h3 className="text-base font-semibold mb-3">Price</h3>
+                  <h3 className="text-base font-semibold mb-3 text-white">Price</h3>
                   <div className="space-y-2">
-                    <div className="flex justify-between text-xs text-black/60">
+                    <div className="flex justify-between text-xs text-white/60">
                       <span>$20</span>
                       <span>$500</span>
                     </div>
@@ -377,10 +352,10 @@ function HeadsetSpeakerPage() {
                 </div>
 
                 <div>
-                  <h3 className="text-base font-semibold mb-3">Type</h3>
+                  <h3 className="text-base font-semibold mb-3 text-white">Type</h3>
                   <div className="space-y-2 text-sm">
                     {['HEADPHONE','HEADSET','SPEAKER','EARPHONE'].map((type) => (
-                      <label key={type} className="flex items-center gap-2">
+                      <label key={type} className="flex items-center gap-2 text-white">
                         <input 
                           type="checkbox" 
                           checked={selectedTypes.includes(type)}
@@ -390,15 +365,15 @@ function HeadsetSpeakerPage() {
                         <span>{type}</span>
                       </label>
                     ))}
-                    <button onClick={() => setShowTypePopup(true)} className="text-blue-600 text-xs">Show More</button>
+                    <button onClick={() => setShowTypePopup(true)} className="text-blue-400 text-xs">Show More</button>
                   </div>
                 </div>
 
                 <div>
-                  <h3 className="text-base font-semibold mb-3">Connectivity</h3>
+                  <h3 className="text-base font-semibold mb-3 text-white">Connectivity</h3>
                   <div className="space-y-2 text-sm">
                     {['WIRED','WIRELESS','BLUETOOTH','USB','3.5MM'].map((connectivity) => (
-                      <label key={connectivity} className="flex items-center gap-2">
+                      <label key={connectivity} className="flex items-center gap-2 text-white">
                         <input 
                           type="checkbox" 
                           checked={selectedConnectivities.includes(connectivity)}
@@ -408,15 +383,15 @@ function HeadsetSpeakerPage() {
                         <span>{connectivity}</span>
                       </label>
                     ))}
-                    <button onClick={() => setShowConnectivityPopup(true)} className="text-blue-600 text-xs">Show More</button>
+                    <button onClick={() => setShowConnectivityPopup(true)} className="text-blue-400 text-xs">Show More</button>
                   </div>
                 </div>
 
                 <div>
-                  <h3 className="text-base font-semibold mb-3">Brand</h3>
+                  <h3 className="text-base font-semibold mb-3 text-white">Brand</h3>
                   <div className="space-y-2 text-sm">
                     {['Logitech','SteelSeries','Corsair','Razer','HyperX'].map((brand) => (
-                      <label key={brand} className="flex items-center gap-2">
+                      <label key={brand} className="flex items-center gap-2 text-white">
                         <input 
                           type="checkbox" 
                           checked={selectedBrands.includes(brand)}
@@ -426,14 +401,14 @@ function HeadsetSpeakerPage() {
                         <span>{brand}</span>
                       </label>
                     ))}
-                    <button onClick={() => setShowBrandPopup(true)} className="text-blue-600 text-xs">Show More</button>
+                    <button onClick={() => setShowBrandPopup(true)} className="text-blue-400 text-xs">Show More</button>
                   </div>
                 </div>
 
                 <div>
-                  <h3 className="text-base font-semibold mb-3">Wireless</h3>
+                  <h3 className="text-base font-semibold mb-3 text-white">Wireless</h3>
                   <div className="space-y-2 text-sm">
-                    <label className="flex items-center gap-2">
+                    <label className="flex items-center gap-2 text-white">
                       <input 
                         type="checkbox" 
                         checked={selectedWireless === true}
@@ -442,7 +417,7 @@ function HeadsetSpeakerPage() {
                       />
                       <span>Yes</span>
                     </label>
-                    <label className="flex items-center gap-2">
+                    <label className="flex items-center gap-2 text-white">
                       <input 
                         type="checkbox" 
                         checked={selectedWireless === false}
@@ -455,9 +430,9 @@ function HeadsetSpeakerPage() {
                 </div>
 
                 <div>
-                  <h3 className="text-base font-semibold mb-3">Microphone</h3>
+                  <h3 className="text-base font-semibold mb-3 text-white">Microphone</h3>
                   <div className="space-y-2 text-sm">
-                    <label className="flex items-center gap-2">
+                    <label className="flex items-center gap-2 text-white">
                       <input 
                         type="checkbox" 
                         checked={selectedMicrophone === true}
@@ -466,7 +441,7 @@ function HeadsetSpeakerPage() {
                       />
                       <span>Yes</span>
                     </label>
-                    <label className="flex items-center gap-2">
+                    <label className="flex items-center gap-2 text-white">
                       <input 
                         type="checkbox" 
                         checked={selectedMicrophone === false}
@@ -479,9 +454,9 @@ function HeadsetSpeakerPage() {
                 </div>
 
                 <div>
-                  <h3 className="text-base font-semibold mb-3">RGB Lighting</h3>
+                  <h3 className="text-base font-semibold mb-3 text-white">RGB Lighting</h3>
                   <div className="space-y-2 text-sm">
-                    <label className="flex items-center gap-2">
+                    <label className="flex items-center gap-2 text-white">
                       <input 
                         type="checkbox" 
                         checked={selectedRGB === true}
@@ -490,7 +465,7 @@ function HeadsetSpeakerPage() {
                       />
                       <span>Yes</span>
                     </label>
-                    <label className="flex items-center gap-2">
+                    <label className="flex items-center gap-2 text-white">
                       <input 
                         type="checkbox" 
                         checked={selectedRGB === false}
@@ -503,9 +478,9 @@ function HeadsetSpeakerPage() {
                 </div>
 
                 <div>
-                  <h3 className="text-base font-semibold mb-3">Noise Cancellation</h3>
+                  <h3 className="text-base font-semibold mb-3 text-white">Noise Cancellation</h3>
                   <div className="space-y-2 text-sm">
-                    <label className="flex items-center gap-2">
+                    <label className="flex items-center gap-2 text-white">
                       <input 
                         type="checkbox" 
                         checked={selectedNoiseCancellation === true}
@@ -514,7 +489,7 @@ function HeadsetSpeakerPage() {
                       />
                       <span>Yes</span>
                     </label>
-                    <label className="flex items-center gap-2">
+                    <label className="flex items-center gap-2 text-white">
                       <input 
                         type="checkbox" 
                         checked={selectedNoiseCancellation === false}
@@ -529,19 +504,19 @@ function HeadsetSpeakerPage() {
             </div>
 
             {/* Grid */}
-            <div className="flex-1">
+            <div className="flex-1" style={{ maxWidth: '100%', overflow: 'hidden' }}>
               {loading && (
                 <div className="flex justify-center items-center py-12">
-                  <div className="text-lg text-gray-600">Đang tải dữ liệu Headset/Speaker...</div>
+                  <div className="text-lg text-white/70">Đang tải dữ liệu Headset/Speaker...</div>
                 </div>
               )}
 
               {filteredHeadsetSpeakers.length === 0 ? (
                 <div className="text-center py-12">
-                  <div className="text-lg text-gray-600 mb-4">
+                  <div className="text-lg text-white/70 mb-4">
                     {headsetSpeakers.length === 0 ? 'Không có Headset/Speaker nào trong database' : 'Không tìm thấy Headset/Speaker nào phù hợp'}
                   </div>
-                  <div className="text-sm text-gray-500 mb-4">
+                  <div className="text-sm text-white/50 mb-4">
                     {headsetSpeakers.length === 0 ? 'Vui lòng thêm Headset/Speaker vào database' : 'Thử điều chỉnh bộ lọc hoặc tìm kiếm khác'}
                   </div>
                   {headsetSpeakers.length > 0 && (
@@ -564,21 +539,21 @@ function HeadsetSpeakerPage() {
                   )}
                 </div>
               ) : (
-                <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4 md:gap-6">
+                <div className="product-grid">
                   {filteredHeadsetSpeakers.map((headsetSpeakerItem) => (
-                    <div key={headsetSpeakerItem.id} className="rounded-lg border border-black/10 bg-white hover:bg-black/5 transition cursor-pointer" onClick={() => setSelectedHeadsetSpeaker(headsetSpeakerItem)}>
+                    <div key={headsetSpeakerItem.id} className="rounded-lg border border-white/20 bg-white/10 hover:bg-white/20 transition cursor-pointer" onClick={() => setSelectedHeadsetSpeaker(headsetSpeakerItem)}>
                       <div className="p-4">
                         <img src={headsetSpeakerItem.image} alt={headsetSpeakerItem.name} className="w-full h-48 object-cover rounded-lg mb-4" />
-                        <div className="text-sm font-medium mb-2 line-clamp-2">{headsetSpeakerItem.name}</div>
-                        <div className="text-lg font-bold mb-3">
+                        <div className="text-sm font-medium mb-2 line-clamp-2 text-white">{headsetSpeakerItem.name}</div>
+                        <div className="text-lg font-bold mb-3 text-white">
                           {headsetSpeakerItem.price > 0 ? `${headsetSpeakerItem.price.toLocaleString('vi-VN')} VND` : 'Liên hệ'}
                         </div>
-                        <div className="space-y-1 text-xs text-black/60 mb-4">
-                          <div className="flex justify-between"><span>Type:</span><span className="text-black">{headsetSpeakerItem.specs.type}</span></div>
-                          <div className="flex justify-between"><span>Connectivity:</span><span className="text-black">{headsetSpeakerItem.specs.connectivity}</span></div>
-                          <div className="flex justify-between"><span>Wireless:</span><span className="text-black">{headsetSpeakerItem.specs.wireless ? 'Yes' : 'No'}</span></div>
-                          <div className="flex justify-between"><span>Microphone:</span><span className="text-black">{headsetSpeakerItem.specs.microphone ? 'Yes' : 'No'}</span></div>
-                          <div className="flex justify-between"><span>Drivers:</span><span className="text-black">{headsetSpeakerItem.specs.drivers}</span></div>
+                        <div className="space-y-1 text-xs text-white/60 mb-4">
+                          <div className="flex justify-between"><span>Type:</span><span className="text-white">{headsetSpeakerItem.specs.type}</span></div>
+                          <div className="flex justify-between"><span>Connectivity:</span><span className="text-white">{headsetSpeakerItem.specs.connectivity}</span></div>
+                          <div className="flex justify-between"><span>Wireless:</span><span className="text-white">{headsetSpeakerItem.specs.wireless ? 'Yes' : 'No'}</span></div>
+                          <div className="flex justify-between"><span>Microphone:</span><span className="text-white">{headsetSpeakerItem.specs.microphone ? 'Yes' : 'No'}</span></div>
+                          <div className="flex justify-between"><span>Drivers:</span><span className="text-white">{headsetSpeakerItem.specs.drivers}</span></div>
                         </div>
                         <button className="w-full btn-primary">+ Add to build</button>
                       </div>

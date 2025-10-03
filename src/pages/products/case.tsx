@@ -388,43 +388,18 @@ function CasePage() {
   return (
     <div className="page bg-grid bg-radial">
       <div className="layout">
-        {/* Sidebar giống HomePage */}
-        <aside className="sidebar">
-          <div className="flex items-center justify-between px-2 mb-6">
-            <div className="flex items-center gap-2">
-              <div className="size-6 rounded-lg bg-blue-600" />
-              <span className="font-semibold">EzBuild</span>
-            </div>
-          </div>
-
-          <div>
-            <div className="sidebar-group">Apps</div>
-            <Link className="nav-item" to="/">PC Builder</Link>
-            <span className="nav-item">Products</span>
-            <a className="nav-item" href="#">Sales</a>
-            <a className="nav-item" href="#">Compare</a>
-            <a className="nav-item" href="#">PC Part Gallery</a>
-          </div>
-
-          <div>
-            <div className="sidebar-group">Community</div>
-            <a className="nav-item" href="#">Completed Builds</a>
-            <a className="nav-item" href="#">Updates</a>
-            <a className="nav-item" href="#">Setup Builder</a>
-          </div>
-        </aside>
 
         {/* Main */}
         <main className="main">
           {/* Breadcrumb + controls */}
           <div className="mb-4 flex flex-col gap-3 md:flex-row md:items-center md:justify-between">
-            <div className="flex items-center gap-2 text-sm text-black/70">
+            <div className="flex items-center gap-2 text-sm text-white/70">
               <span>Products</span>
               <svg className="w-3 h-3" viewBox="0 0 20 20" fill="currentColor"><path fillRule="evenodd" d="M7.293 14.707a1 1 0 010-1.414L10.586 10 7.293 6.707a1 1 0 011.414-1.414l4 4a1 1 0 010 1.414l-4 4a1 1 0 01-1.414 0z" clipRule="evenodd"/></svg>
-              <span className="font-medium text-black">Case</span>
+              <span className="font-medium text-white">Case</span>
             </div>
             <div className="flex items-center gap-3">
-              <select className="bg-black/5 hover:bg-black/10 text-black px-3 py-2 rounded-md text-sm">
+              <select className="bg-white/10 hover:bg-white/20 text-white px-3 py-2 rounded-md text-sm border border-white/20">
                 <option>Default</option>
               </select>
               <input 
@@ -432,7 +407,7 @@ function CasePage() {
                 placeholder="Search" 
                 value={searchTerm}
                 onChange={(e) => setSearchTerm(e.target.value)}
-                className="bg-black/5 hover:bg-black/10 text-black px-3 py-2 rounded-md text-sm w-48" 
+                className="bg-white/10 hover:bg-white/20 text-white px-3 py-2 rounded-md text-sm w-48 border border-white/20 placeholder-white/60" 
               />
             </div>
           </div>
@@ -440,11 +415,11 @@ function CasePage() {
           <div className="flex">
             {/* Filters */}
             <div className="w-80 hidden md:block pr-6">
-              <div className="rounded-lg border border-black/10 bg-white p-4 space-y-6">
+              <div className="rounded-lg border border-white/20 bg-white/10 p-4 space-y-6">
                 <div>
-                  <h3 className="text-base font-semibold mb-3">Price</h3>
+                  <h3 className="text-base font-semibold mb-3 text-white">Price</h3>
                   <div className="space-y-2">
-                    <div className="flex justify-between text-xs text-black/60">
+                    <div className="flex justify-between text-xs text-white/60">
                       <span>$38.99</span>
                       <span>$1399.99</span>
                     </div>
@@ -460,10 +435,10 @@ function CasePage() {
                 </div>
 
                 <div>
-                  <h3 className="text-base font-semibold mb-3">Form Factor</h3>
+                  <h3 className="text-base font-semibold mb-3 text-white">Form Factor</h3>
                   <div className="space-y-2 text-sm">
                     {['ATX Desktop','ATX Full Tower','ATX Mid Tower','ATX Mini Tower','ATX Test Bench','EATX','EATX Full Tower','EATX Mid Tower'].map((factor) => (
-                      <label key={factor} className="flex items-center gap-2">
+                      <label key={factor} className="flex items-center gap-2 text-white">
                         <input 
                           type="checkbox" 
                           checked={selectedFormFactors.includes(factor)}
@@ -473,15 +448,15 @@ function CasePage() {
                         <span>{factor}</span>
                       </label>
                     ))}
-                    <button onClick={() => setShowFormFactorPopup(true)} className="text-blue-600 text-xs">Show More</button>
+                    <button onClick={() => setShowFormFactorPopup(true)} className="text-blue-400 text-xs">Show More</button>
                   </div>
                 </div>
 
                 <div>
-                  <h3 className="text-base font-semibold mb-3">Side Panel</h3>
+                  <h3 className="text-base font-semibold mb-3 text-white">Side Panel</h3>
                   <div className="space-y-2 text-sm">
                     {['Acrylic','Aluminum','Mesh','None','Solid','Steel','Tempered Glass','Tinted Acrylic'].map((panel) => (
-                      <label key={panel} className="flex items-center gap-2">
+                      <label key={panel} className="flex items-center gap-2 text-white">
                         <input 
                           type="checkbox" 
                           checked={selectedSidePanels.includes(panel)}
@@ -491,15 +466,15 @@ function CasePage() {
                         <span>{panel}</span>
                       </label>
                     ))}
-                    <button onClick={() => setShowSidePanelPopup(true)} className="text-blue-600 text-xs">Show More</button>
+                    <button onClick={() => setShowSidePanelPopup(true)} className="text-blue-400 text-xs">Show More</button>
                   </div>
                 </div>
 
                 <div>
-                  <h3 className="text-base font-semibold mb-3">Manufacturer</h3>
+                  <h3 className="text-base font-semibold mb-3 text-white">Manufacturer</h3>
                   <div className="space-y-2 text-sm">
                     {['NZXT','Fractal Design','Corsair','Lian Li'].map((manufacturer) => (
-                      <label key={manufacturer} className="flex items-center gap-2">
+                      <label key={manufacturer} className="flex items-center gap-2 text-white">
                         <input 
                           type="checkbox" 
                           checked={selectedManufacturers.includes(manufacturer)}
@@ -509,15 +484,15 @@ function CasePage() {
                         <span>{manufacturer}</span>
                       </label>
                     ))}
-                    <button onClick={() => setShowManufacturerPopup(true)} className="text-blue-600 text-xs">Show More</button>
+                    <button onClick={() => setShowManufacturerPopup(true)} className="text-blue-400 text-xs">Show More</button>
                   </div>
                 </div>
 
                 <div>
-                  <h3 className="text-base font-semibold mb-3">Color</h3>
+                  <h3 className="text-base font-semibold mb-3 text-white">Color</h3>
                   <div className="space-y-2 text-sm">
                     {['Black','White','Silver','RGB'].map((color) => (
-                      <label key={color} className="flex items-center gap-2">
+                      <label key={color} className="flex items-center gap-2 text-white">
                         <input 
                           type="checkbox" 
                           checked={selectedColors.includes(color)}
@@ -527,14 +502,14 @@ function CasePage() {
                         <span>{color}</span>
                       </label>
                     ))}
-                    <button onClick={() => setShowColorPopup(true)} className="text-blue-600 text-xs">Show More</button>
+                    <button onClick={() => setShowColorPopup(true)} className="text-blue-400 text-xs">Show More</button>
                   </div>
                 </div>
 
                 <div>
-                  <h3 className="text-base font-semibold mb-3">Transparent Side Panel</h3>
+                  <h3 className="text-base font-semibold mb-3 text-white">Transparent Side Panel</h3>
                   <div className="space-y-2 text-sm">
-                    <label className="flex items-center gap-2">
+                    <label className="flex items-center gap-2 text-white">
                       <input 
                         type="checkbox" 
                         checked={selectedTransparentSidePanel === true}
@@ -543,7 +518,7 @@ function CasePage() {
                       />
                       <span>Yes</span>
                     </label>
-                    <label className="flex items-center gap-2">
+                    <label className="flex items-center gap-2 text-white">
                       <input 
                         type="checkbox" 
                         checked={selectedTransparentSidePanel === false}
@@ -556,10 +531,10 @@ function CasePage() {
                 </div>
 
                 <div>
-                  <h3 className="text-base font-semibold mb-3">Max CPU Length</h3>
+                  <h3 className="text-base font-semibold mb-3 text-white">Max CPU Length</h3>
                   <div className="space-y-2 text-sm">
                     {['155mm','160mm','170mm','180mm'].map((length) => (
-                      <label key={length} className="flex items-center gap-2">
+                      <label key={length} className="flex items-center gap-2 text-white">
                         <input 
                           type="checkbox" 
                           checked={selectedMaxCPULength.includes(length)}
@@ -569,15 +544,15 @@ function CasePage() {
                         <span>{length}</span>
                       </label>
                     ))}
-                    <button onClick={() => setShowMaxCPULengthPopup(true)} className="text-blue-600 text-xs">Show More</button>
+                    <button onClick={() => setShowMaxCPULengthPopup(true)} className="text-blue-400 text-xs">Show More</button>
                   </div>
                 </div>
 
                 <div>
-                  <h3 className="text-base font-semibold mb-3">Max CPU Cooler Height</h3>
+                  <h3 className="text-base font-semibold mb-3 text-white">Max CPU Cooler Height</h3>
                   <div className="space-y-2 text-sm">
                     {['155mm','170mm','185mm'].map((height) => (
-                      <label key={height} className="flex items-center gap-2">
+                      <label key={height} className="flex items-center gap-2 text-white">
                         <input 
                           type="checkbox" 
                           checked={selectedMaxCPUCoolerHeight.includes(height)}
@@ -587,15 +562,15 @@ function CasePage() {
                         <span>{height}</span>
                       </label>
                     ))}
-                    <button onClick={() => setShowMaxCPUCoolerHeightPopup(true)} className="text-blue-600 text-xs">Show More</button>
+                    <button onClick={() => setShowMaxCPUCoolerHeightPopup(true)} className="text-blue-400 text-xs">Show More</button>
                   </div>
                 </div>
 
                 <div>
-                  <h3 className="text-base font-semibold mb-3">3.5 Drive Bays</h3>
+                  <h3 className="text-base font-semibold mb-3 text-white">3.5 Drive Bays</h3>
                   <div className="space-y-2 text-sm">
                     {['0','2','6'].map((bays) => (
-                      <label key={bays} className="flex items-center gap-2">
+                      <label key={bays} className="flex items-center gap-2 text-white">
                         <input 
                           type="checkbox" 
                           checked={selectedDriveBays35.includes(bays)}
@@ -605,15 +580,15 @@ function CasePage() {
                         <span>{bays}</span>
                       </label>
                     ))}
-                    <button onClick={() => setShowDriveBays35Popup(true)} className="text-blue-600 text-xs">Show More</button>
+                    <button onClick={() => setShowDriveBays35Popup(true)} className="text-blue-400 text-xs">Show More</button>
                   </div>
                 </div>
 
                 <div>
-                  <h3 className="text-base font-semibold mb-3">2.5 Drive Bays</h3>
+                  <h3 className="text-base font-semibold mb-3 text-white">2.5 Drive Bays</h3>
                   <div className="space-y-2 text-sm">
                     {['2','4'].map((bays) => (
-                      <label key={bays} className="flex items-center gap-2">
+                      <label key={bays} className="flex items-center gap-2 text-white">
                         <input 
                           type="checkbox" 
                           checked={selectedDriveBays25.includes(bays)}
@@ -623,15 +598,15 @@ function CasePage() {
                         <span>{bays}</span>
                       </label>
                     ))}
-                    <button onClick={() => setShowDriveBays25Popup(true)} className="text-blue-600 text-xs">Show More</button>
+                    <button onClick={() => setShowDriveBays25Popup(true)} className="text-blue-400 text-xs">Show More</button>
                   </div>
                 </div>
 
                 <div>
-                  <h3 className="text-base font-semibold mb-3">Expansion Slots</h3>
+                  <h3 className="text-base font-semibold mb-3 text-white">Expansion Slots</h3>
                   <div className="space-y-2 text-sm">
                     {['7'].map((slots) => (
-                      <label key={slots} className="flex items-center gap-2">
+                      <label key={slots} className="flex items-center gap-2 text-white">
                         <input 
                           type="checkbox" 
                           checked={selectedExpansionSlots.includes(slots)}
@@ -641,15 +616,15 @@ function CasePage() {
                         <span>{slots}</span>
                       </label>
                     ))}
-                    <button onClick={() => setShowExpansionSlotsPopup(true)} className="text-blue-600 text-xs">Show More</button>
+                    <button onClick={() => setShowExpansionSlotsPopup(true)} className="text-blue-400 text-xs">Show More</button>
                   </div>
                 </div>
 
                 <div>
-                  <h3 className="text-base font-semibold mb-3">Volume</h3>
+                  <h3 className="text-base font-semibold mb-3 text-white">Volume</h3>
                   <div className="space-y-2 text-sm">
                     {['41.2L','45.5L','48.5L','55.2L'].map((volume) => (
-                      <label key={volume} className="flex items-center gap-2">
+                      <label key={volume} className="flex items-center gap-2 text-white">
                         <input 
                           type="checkbox" 
                           checked={selectedVolume.includes(volume)}
@@ -659,15 +634,15 @@ function CasePage() {
                         <span>{volume}</span>
                       </label>
                     ))}
-                    <button onClick={() => setShowVolumePopup(true)} className="text-blue-600 text-xs">Show More</button>
+                    <button onClick={() => setShowVolumePopup(true)} className="text-blue-400 text-xs">Show More</button>
                   </div>
                 </div>
 
                 <div>
-                  <h3 className="text-base font-semibold mb-3">Weight</h3>
+                  <h3 className="text-base font-semibold mb-3 text-white">Weight</h3>
                   <div className="space-y-2 text-sm">
                     {['7.8kg','8.2kg','9.2kg','12.8kg'].map((weight) => (
-                      <label key={weight} className="flex items-center gap-2">
+                      <label key={weight} className="flex items-center gap-2 text-white">
                         <input 
                           type="checkbox" 
                           checked={selectedWeight.includes(weight)}
@@ -677,26 +652,26 @@ function CasePage() {
                         <span>{weight}</span>
                       </label>
                     ))}
-                    <button onClick={() => setShowWeightPopup(true)} className="text-blue-600 text-xs">Show More</button>
+                    <button onClick={() => setShowWeightPopup(true)} className="text-blue-400 text-xs">Show More</button>
                   </div>
                 </div>
               </div>
             </div>
 
             {/* Grid */}
-            <div className="flex-1">
+            <div className="flex-1" style={{ maxWidth: '100%', overflow: 'hidden' }}>
               {loading && (
                 <div className="flex justify-center items-center py-12">
-                  <div className="text-lg text-gray-600">Đang tải dữ liệu Case...</div>
+                  <div className="text-lg text-white/70">Đang tải dữ liệu Case...</div>
                 </div>
               )}
 
               {filteredCases.length === 0 ? (
                 <div className="text-center py-12">
-                  <div className="text-lg text-gray-600 mb-4">
+                  <div className="text-lg text-white/70 mb-4">
                     {cases.length === 0 ? 'Không có Case nào trong database' : 'Không tìm thấy Case nào phù hợp'}
                   </div>
-                  <div className="text-sm text-gray-500 mb-4">
+                  <div className="text-sm text-white/50 mb-4">
                     {cases.length === 0 ? 'Vui lòng thêm Case vào database' : 'Thử điều chỉnh bộ lọc hoặc tìm kiếm khác'}
                   </div>
                   {cases.length > 0 && (
@@ -724,21 +699,21 @@ function CasePage() {
                   )}
                 </div>
               ) : (
-                <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4 md:gap-6">
+                <div className="product-grid">
                   {filteredCases.map((caseItem) => (
-                    <div key={caseItem.id} className="rounded-lg border border-black/10 bg-white hover:bg-black/5 transition cursor-pointer" onClick={() => setSelectedCase(caseItem)}>
+                    <div key={caseItem.id} className="rounded-lg border border-white/20 bg-white/10 hover:bg-white/20 transition cursor-pointer" onClick={() => setSelectedCase(caseItem)}>
                       <div className="p-4">
                         <img src={caseItem.image} alt={caseItem.name} className="w-full h-48 object-cover rounded-lg mb-4" />
-                        <div className="text-sm font-medium mb-2 line-clamp-2">{caseItem.name}</div>
-                        <div className="text-lg font-bold mb-3">
+                        <div className="text-sm font-medium mb-2 line-clamp-2 text-white">{caseItem.name}</div>
+                        <div className="text-lg font-bold mb-3 text-white">
                           {caseItem.price > 0 ? `${caseItem.price.toLocaleString('vi-VN')} VND` : 'Liên hệ'}
                         </div>
-                        <div className="space-y-1 text-xs text-black/60 mb-4">
-                          <div className="flex justify-between"><span>Form Factor:</span><span className="text-black">{caseItem.specs.formFactor}</span></div>
-                          <div className="flex justify-between"><span>Side Panel:</span><span className="text-black">{caseItem.specs.transparentSidePanel ? 'Tempered Glass' : 'Solid'}</span></div>
-                          <div className="flex justify-between"><span>Max GPU Length:</span><span className="text-black">{caseItem.specs.maxGPULength}</span></div>
-                          <div className="flex justify-between"><span>Color:</span><span className="text-black">{caseItem.specs.color}</span></div>
-                          <div className="flex justify-between"><span>Weight:</span><span className="text-black">{caseItem.specs.weight}</span></div>
+                        <div className="space-y-1 text-xs text-white/60 mb-4">
+                          <div className="flex justify-between"><span>Form Factor:</span><span className="text-white">{caseItem.specs.formFactor}</span></div>
+                          <div className="flex justify-between"><span>Side Panel:</span><span className="text-white">{caseItem.specs.transparentSidePanel ? 'Tempered Glass' : 'Solid'}</span></div>
+                          <div className="flex justify-between"><span>Max GPU Length:</span><span className="text-white">{caseItem.specs.maxGPULength}</span></div>
+                          <div className="flex justify-between"><span>Color:</span><span className="text-white">{caseItem.specs.color}</span></div>
+                          <div className="flex justify-between"><span>Weight:</span><span className="text-white">{caseItem.specs.weight}</span></div>
                         </div>
                         <button className="w-full btn-primary">+ Add to build</button>
                       </div>

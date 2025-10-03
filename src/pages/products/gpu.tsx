@@ -1,5 +1,4 @@
 import { useEffect, useState } from 'react'
-import { Link } from 'react-router-dom'
 import '../../Homepage.css'
 import { ApiService } from '../../services/api'
 
@@ -371,33 +370,6 @@ function GPUPage() {
   return (
     <div className="page bg-grid bg-radial">
       <div className="layout">
-        {/* Sidebar giống HomePage */}
-        <aside className="sidebar">
-          <div className="flex items-center justify-between px-2 mb-6">
-            <div className="flex items-center gap-2">
-              <div className="size-6 rounded-lg bg-blue-600" />
-              <span className="font-semibold">EzBuild</span>
-            </div>
-          </div>
-
-          <div>
-            <div className="sidebar-group">Apps</div>
-            <Link className="nav-item" to="/">PC Builder</Link>
-            <span className="nav-item">Products</span>
-            <Link className="nav-item" to="/sales">Sales</Link>
-            <a className="nav-item" href="#">Compare</a>
-            <a className="nav-item" href="#">PC Part Gallery</a>
-          </div>
-
-          <div>
-            <div className="sidebar-group">Community</div>
-            <a className="nav-item" href="#">Completed Builds</a>
-            <a className="nav-item" href="#">Updates</a>
-            <a className="nav-item" href="#">Setup Builder</a>
-          </div>
-        </aside>
-
-        {/* Main */}
         <main className="main">
           {/* Breadcrumb + controls */}
           <div className="mb-4 flex flex-col gap-3 md:flex-row md:items-center md:justify-between">
@@ -631,7 +603,7 @@ function GPUPage() {
             </div>
 
             {/* Grid */}
-            <div className="flex-1">
+            <div className="flex-1" style={{ maxWidth: '100%', overflow: 'hidden' }}>
               {loading && (
                 <div className="flex justify-center items-center py-12">
                   <div className="text-lg text-white/70">Đang tải dữ liệu GPU...</div>
@@ -669,7 +641,7 @@ function GPUPage() {
                   )}
                 </div>
               ) : (
-                <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4 md:gap-6">
+                <div className="product-grid">
                   {filteredGPUs.map((gpuItem) => (
                     <div key={gpuItem.id} className="rounded-lg border border-white/20 bg-white/10 hover:bg-white/20 transition cursor-pointer" onClick={() => setSelectedGPU(gpuItem)}>
                       <div className="p-4">

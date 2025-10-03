@@ -2,25 +2,108 @@ import { useEffect, useMemo, useRef, useState } from 'react'
 import { Link } from 'react-router-dom'
 import '../../Homepage.css'
 import './index.css'
+import { ApiService } from '../../services/api'
 
 interface ProductRow {
   label: string
   value: string
 }
 
-const MOCK_PRODUCTS = [
-  { id: 'ryzen-5-5600', name: 'AMD Ryzen 5 5600', type: 'CPU', brand: 'AMD', cores: 6, threads: 12, baseClock: '3.5 GHz' },
-  { id: 'i5-12400f', name: 'Intel Core i5-12400F', type: 'CPU', brand: 'Intel', cores: 6, threads: 12, baseClock: '2.5 GHz' },
-  { id: 'rtx-4060', name: 'NVIDIA GeForce RTX 4060', type: 'GPU', brand: 'NVIDIA', vram: '8 GB', length: '244 mm' },
-]
+interface ApiProduct {
+  id?: number
+  name?: string
+  brand?: string
+  model?: string
+  specs?: string
+  image_url1?: string
+  category_id?: number
+  productPrices?: Array<{ price: number }>
+}
+
+interface CompareProduct {
+  id: number
+  name: string
+  brand: string
+  model: string
+  specs: string
+  image: string
+  price: number
+  category: string
+  categoryId: number
+}
+
+// Category mapping moved outside component
+const categoryMap: { [key: number]: string } = {
+  1: 'CPU',
+  2: 'GPU',
+  3: 'RAM',
+  4: 'Mainboard',
+  5: 'Storage',
+  6: 'PSU',
+  7: 'Case',
+  8: 'Cooling',
+  9: 'Monitor',
+  10: 'Keyboard',
+  11: 'Mouse',
+  12: 'Headset/Speaker'
+}
 
 function ComparePage() {
   const [query, setQuery] = useState('')
-  const [selectedId, setSelectedId] = useState<string | null>(null)
+  const [selectedId, setSelectedId] = useState<number | null>(null)
+  const [products, setProducts] = useState<CompareProduct[]>([])
+  const [loading, setLoading] = useState(false)
 
   const [isProductsOpen, setIsProductsOpen] = useState(false)
   const productsBtnRef = useRef<HTMLAnchorElement | null>(null)
   const popoverRef = useRef<HTMLDivElement | null>(null)
+
+  // Fetch all products from API
+  useEffect(() => {
+    const fetchAllProducts = async () => {
+      setLoading(true)
+      try {
+        const allProducts: CompareProduct[] = []
+        
+        // Fetch products from each category
+        for (const categoryId of Object.keys(categoryMap).map(Number)) {
+          try {
+            const categoryProducts = await ApiService.getProductsByCategory(categoryId)
+            const formattedProducts = (categoryProducts as ApiProduct[]).map((item) => {
+              const productPrices = item.productPrices as Array<{ price: number }>
+              const minPrice = Array.isArray(productPrices) && productPrices.length > 0
+                ? Math.min(...productPrices.map(p => p.price))
+                : 0
+
+              return {
+                id: Number(item.id) || 0,
+                name: String(item.name) || 'Unknown Product',
+                brand: String(item.brand) || 'Unknown',
+                model: String(item.model) || 'Unknown',
+                specs: String(item.specs) || 'No specifications available',
+                image: String(item.image_url1) || 'https://images.unsplash.com/photo-1591799264318-7e6ef8ddb7ea?w=300&h=200&fit=crop',
+                price: minPrice,
+                category: categoryMap[categoryId] || 'Unknown',
+                categoryId: categoryId
+              }
+            })
+            allProducts.push(...formattedProducts)
+          } catch (err) {
+            console.error(`Error fetching products for category ${categoryId}:`, err)
+          }
+        }
+        
+        setProducts(allProducts)
+      } catch (err) {
+        console.error('Error fetching products:', err)
+        setProducts([])
+      } finally {
+        setLoading(false)
+      }
+    }
+
+    fetchAllProducts()
+  }, [])
 
   useEffect(() => {
     if (!isProductsOpen) return
@@ -51,124 +134,161 @@ function ComparePage() {
 
   const filtered = useMemo(() => {
     const q = query.trim().toLowerCase()
-    if (!q) return MOCK_PRODUCTS
-    return MOCK_PRODUCTS.filter(p => p.name.toLowerCase().includes(q) || p.id.toLowerCase().includes(q))
-  }, [query])
+    if (!q) return [] // Chỉ hiển thị kết quả khi có search query
+    return products.filter(p => 
+      p.name.toLowerCase().includes(q) || 
+      p.brand.toLowerCase().includes(q) || 
+      p.model.toLowerCase().includes(q) ||
+      p.category.toLowerCase().includes(q)
+    )
+  }, [query, products])
 
   const selected = useMemo(() => filtered.find(p => p.id === selectedId) || filtered[0] || null, [filtered, selectedId])
 
   const rows: ProductRow[] = useMemo(() => {
     if (!selected) return []
-    const entries = Object.entries(selected)
-      .filter(([key]) => key !== 'id')
-      .map(([key, value]) => ({ label: key, value: String(value) }))
-    return entries
+    
+    const basicInfo = [
+      { label: 'Name', value: selected.name },
+      { label: 'Brand', value: selected.brand },
+      { label: 'Model', value: selected.model },
+      { label: 'Category', value: selected.category },
+      { label: 'Price', value: selected.price > 0 ? `${selected.price.toLocaleString('vi-VN')} VND` : 'Liên hệ' }
+    ]
+    
+    // Parse specs if available
+    const specsInfo: ProductRow[] = []
+    if (selected.specs && selected.specs !== 'No specifications available') {
+      const specsLines = selected.specs.split('\n').filter(line => line.trim())
+      specsLines.forEach(line => {
+        const [key, value] = line.split(':').map(s => s.trim())
+        if (key && value) {
+          specsInfo.push({ label: key, value })
+        }
+      })
+    }
+    
+    return [...basicInfo, ...specsInfo]
   }, [selected])
 
   return (
     <div className="page bg-grid bg-radial">
       <div className="layout">
-        <aside className="sidebar">
-          <div className="flex items-center justify-between px-2 mb-6">
-            <div className="flex items-center gap-2">
-              <div className="size-6 rounded-lg bg-blue-600" />
-              <span className="font-semibold">EzBuild</span>
-            </div>
-          </div>
-
-          <div>
-            <div className="sidebar-group">Apps</div>
-            <Link className="nav-item" to="/">PC Builder</Link>
-            <a
-              className="nav-item cursor-pointer"
-              href="#"
-              ref={productsBtnRef}
-              onClick={(e) => {
-                e.preventDefault()
-                setIsProductsOpen((v) => !v)
-              }}
-            >
-              Products
-            </a>
-            <Link className="nav-item" to="/sales">Sales</Link>
-            <Link className="nav-item" to="/compare">Compare</Link>
-            <a className="nav-item" href="#">PC Part Gallery</a>
-          </div>
-
-          <div>
-            <div className="sidebar-group">Community</div>
-            <a className="nav-item" href="#">Completed Builds</a>
-            <a className="nav-item" href="#">Updates</a>
-            <a className="nav-item" href="#">Setup Builder</a>
-          </div>
-
-          <div className="mt-8 px-2 text-xs text-white/50">
-            <div className="flex gap-3">
-              <a href="#">Contact</a>
-              <a href="#">FAQ</a>
-            </div>
-          </div>
-        </aside>
-
         <main className="main">
           <section className="hero">
-            <h1 className="hero-title">Compare</h1>
-            <p className="hero-subtitle">Search a product to see its details. Read-only.</p>
+            <h1 className="hero-title">So sánh sản phẩm</h1>
+            <p className="hero-subtitle">Tìm kiếm và so sánh thông tin chi tiết các sản phẩm từ database.</p>
             <div className="hero-actions">
               <input
                 value={query}
                 onChange={(e) => setQuery(e.target.value)}
-                placeholder="Search product..."
+                placeholder="Tìm kiếm sản phẩm..."
                 className="compare-search"
               />
             </div>
           </section>
 
-          <div className="section-title">Results</div>
-          <div className="compare-grid">
-            <div>
-              <div className="compare-list">
-                {filtered.map(p => (
-                  <button
-                    key={p.id}
-                    onClick={() => setSelectedId(p.id)}
-                    className={selected?.id === p.id ? 'is-active' : ''}
-                  >
-                    {p.name}
-                  </button>
-                ))}
-                {filtered.length === 0 && (
-                  <div className="px-3 py-2 text-sm text-white/60">No results</div>
-                )}
-              </div>
+          {loading && (
+            <div className="flex justify-center items-center py-12">
+              <div className="text-lg text-white/70">Đang tải dữ liệu sản phẩm...</div>
             </div>
+          )}
+          
+          {!loading && (
+            <>
+              {query.trim() === '' ? (
+                <div className="text-center py-16">
+                  <div className="mb-6">
+                    <svg className="w-16 h-16 mx-auto text-white/40 mb-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z" />
+                    </svg>
+                  </div>
+                  <h3 className="text-xl font-semibold text-white mb-2">Bắt đầu tìm kiếm sản phẩm</h3>
+                  <p className="text-white/60 mb-4">Nhập tên sản phẩm, thương hiệu hoặc danh mục để bắt đầu so sánh</p>
+                  <div className="text-sm text-white/40">
+                    <p>Ví dụ: "Intel Core i5", "NVIDIA RTX", "ASUS", "CPU", "GPU"...</p>
+                  </div>
+                </div>
+              ) : (
+                <>
+                  <div className="section-title">
+                    Kết quả tìm kiếm: "{query}" ({filtered.length} sản phẩm)
+                  </div>
+                  <div className="compare-grid">
+                    <div>
+                      <div className="compare-list">
+                        {filtered.map(p => (
+                          <button
+                            key={p.id}
+                            onClick={() => setSelectedId(p.id)}
+                            className={selected?.id === p.id ? 'is-active' : ''}
+                          >
+                            <div className="text-left">
+                              <div className="font-medium">{p.name}</div>
+                              <div className="text-xs text-white/60">{p.brand} - {p.category}</div>
+                            </div>
+                          </button>
+                        ))}
+                        {filtered.length === 0 && (
+                          <div className="px-3 py-8 text-center">
+                            <svg className="w-12 h-12 mx-auto text-white/40 mb-3" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M9.172 16.172a4 4 0 015.656 0M9 12h6m-6-4h6m2 5.291A7.962 7.962 0 0112 15c-2.34 0-4.29-1.009-5.824-2.709M15 12a3 3 0 11-6 0 3 3 0 016 0z" />
+                            </svg>
+                            <div className="text-sm text-white/60 mb-2">Không tìm thấy sản phẩm nào phù hợp</div>
+                            <div className="text-xs text-white/40">Thử tìm kiếm với từ khóa khác</div>
+                          </div>
+                        )}
+                      </div>
+                    </div>
 
-            <div>
-              <div className="compare-table">
-                <table>
-                  <thead>
-                    <tr>
-                      <th className="compare-field">Field</th>
-                      <th>Value</th>
-                    </tr>
-                  </thead>
-                  <tbody>
-                    {rows.map((r) => (
-                      <tr key={r.label}>
-                        <td className="capitalize">{r.label}</td>
-                        <td>{r.value}</td>
-                      </tr>
-                    ))}
-                    {!selected && (
-                      <tr>
-                        <td className="px-3 py-6 text-white/60" colSpan={2}>Select a product to view details</td>
-                      </tr>
-                    )}
-                  </tbody>
-                </table>
-              </div>
-            </div>
-          </div>
+                    <div>
+                      <div className="compare-table">
+                        {selected && (
+                          <div className="p-4 border-b border-white/20">
+                            <div className="flex items-center gap-4">
+                              <img 
+                                src={selected.image} 
+                                alt={selected.name}
+                                className="w-16 h-16 object-cover rounded-lg"
+                              />
+                              <div>
+                                <h3 className="text-lg font-semibold text-white">{selected.name}</h3>
+                                <p className="text-sm text-white/60">{selected.brand} - {selected.category}</p>
+                                {selected.price > 0 && (
+                                  <p className="text-sm font-medium text-blue-400">{selected.price.toLocaleString('vi-VN')} VND</p>
+                                )}
+                              </div>
+                            </div>
+                          </div>
+                        )}
+                        <table>
+                          <thead>
+                            <tr>
+                              <th className="compare-field">Thông tin</th>
+                              <th>Giá trị</th>
+                            </tr>
+                          </thead>
+                          <tbody>
+                            {rows.map((r) => (
+                              <tr key={r.label}>
+                                <td className="capitalize font-medium">{r.label}</td>
+                                <td>{r.value}</td>
+                              </tr>
+                            ))}
+                            {!selected && (
+                              <tr>
+                                <td className="px-3 py-6 text-white/60" colSpan={2}>Chọn sản phẩm để xem chi tiết</td>
+                              </tr>
+                            )}
+                          </tbody>
+                        </table>
+                      </div>
+                    </div>
+                  </div>
+                </>
+              )}
+            </>
+          )}
         </main>
 
         {isProductsOpen && (
