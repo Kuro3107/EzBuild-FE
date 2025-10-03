@@ -338,43 +338,16 @@ function CPUPage() {
   return (
     <div className="page bg-grid bg-radial">
       <div className="layout">
-        {/* Sidebar giống HomePage */}
-        <aside className="sidebar">
-          <div className="flex items-center justify-between px-2 mb-6">
-            <div className="flex items-center gap-2">
-              <div className="size-6 rounded-lg bg-blue-600" />
-              <span className="font-semibold">EzBuild</span>
-            </div>
-          </div>
-
-          <div>
-            <div className="sidebar-group">Apps</div>
-            <Link className="nav-item" to="/">PC Builder</Link>
-            <span className="nav-item">Products</span>
-            <Link className="nav-item" to="/sales">Sales</Link>
-            <a className="nav-item" href="#">Compare</a>
-            <a className="nav-item" href="#">PC Part Gallery</a>
-          </div>
-
-          <div>
-            <div className="sidebar-group">Community</div>
-            <a className="nav-item" href="#">Completed Builds</a>
-            <a className="nav-item" href="#">Updates</a>
-            <a className="nav-item" href="#">Setup Builder</a>
-          </div>
-        </aside>
-
-        {/* Main */}
         <main className="main">
           {/* Breadcrumb + controls */}
           <div className="mb-4 flex flex-col gap-3 md:flex-row md:items-center md:justify-between">
-            <div className="flex items-center gap-2 text-sm text-black/70">
+            <div className="flex items-center gap-2 text-sm text-white/70">
               <span>Products</span>
               <svg className="w-3 h-3" viewBox="0 0 20 20" fill="currentColor"><path fillRule="evenodd" d="M7.293 14.707a1 1 0 010-1.414L10.586 10 7.293 6.707a1 1 0 011.414-1.414l4 4a1 1 0 010 1.414l-4 4a1 1 0 01-1.414 0z" clipRule="evenodd"/></svg>
-              <span className="font-medium text-black">CPU</span>
+              <span className="font-medium text-white">CPU</span>
             </div>
             <div className="flex items-center gap-3">
-              <select className="bg-black/5 hover:bg-black/10 text-black px-3 py-2 rounded-md text-sm">
+              <select className="bg-white/10 hover:bg-white/20 text-white px-3 py-2 rounded-md text-sm border border-white/20">
                 <option>Default</option>
               </select>
               <input 
@@ -382,7 +355,7 @@ function CPUPage() {
                 placeholder="Search" 
                 value={searchTerm}
                 onChange={(e) => setSearchTerm(e.target.value)}
-                className="bg-black/5 hover:bg-black/10 text-black px-3 py-2 rounded-md text-sm w-48" 
+                className="bg-white/10 hover:bg-white/20 text-white px-3 py-2 rounded-md text-sm w-48 border border-white/20 placeholder-white/60" 
               />
             </div>
           </div>
@@ -390,9 +363,9 @@ function CPUPage() {
           <div className="flex">
             {/* Filters */}
             <div className="w-80 hidden md:block pr-6">
-              <div className="rounded-lg border border-black/10 bg-white p-4 space-y-6">
+              <div className="rounded-lg border border-white/20 bg-white/10 p-4 space-y-6">
                 <div>
-                  <h3 className="text-base font-semibold mb-3">Price Range</h3>
+                  <h3 className="text-base font-semibold mb-3 text-white">Price Range</h3>
                   <PriceRangeSlider
                     value={priceRange}
                     onChange={setPriceRange}
@@ -404,10 +377,10 @@ function CPUPage() {
                 </div>
 
                 <div>
-                  <h3 className="text-base font-semibold mb-3">Socket Type</h3>
+                  <h3 className="text-base font-semibold mb-3 text-white">Socket Type</h3>
                   <div className="space-y-2 text-sm">
                     {['LGA 1700','AM5','LGA 1200','AM4'].map((socket) => (
-                      <label key={socket} className="flex items-center gap-2">
+                      <label key={socket} className="flex items-center gap-2 text-white">
                         <input 
                           type="checkbox" 
                           checked={selectedSocketTypes.includes(socket)}
@@ -417,15 +390,15 @@ function CPUPage() {
                         <span>{socket}</span>
                       </label>
                     ))}
-                    <button onClick={() => setShowSocketTypePopup(true)} className="text-blue-600 text-xs">Show More</button>
+                    <button onClick={() => setShowSocketTypePopup(true)} className="text-blue-400 text-xs">Show More</button>
                   </div>
                 </div>
 
                 <div>
-                  <h3 className="text-base font-semibold mb-3">Number of Cores</h3>
+                  <h3 className="text-base font-semibold mb-3 text-white">Number of Cores</h3>
                   <div className="space-y-2 text-sm">
                     {['6','8','14','16','24'].map((cores) => (
-                      <label key={cores} className="flex items-center gap-2">
+                      <label key={cores} className="flex items-center gap-2 text-white">
                         <input 
                           type="checkbox" 
                           checked={selectedCores.includes(cores)}
@@ -435,15 +408,15 @@ function CPUPage() {
                         <span>{cores}</span>
                       </label>
                     ))}
-                    <button onClick={() => setShowCoresPopup(true)} className="text-blue-600 text-xs">Show More</button>
+                    <button onClick={() => setShowCoresPopup(true)} className="text-blue-400 text-xs">Show More</button>
                   </div>
                 </div>
 
                 <div>
-                  <h3 className="text-base font-semibold mb-3">Base Clock</h3>
+                  <h3 className="text-base font-semibold mb-3 text-white">Base Clock</h3>
                   <div className="space-y-2 text-sm">
                     {['3.0 GHz','3.4 GHz','3.5 GHz','4.5 GHz','4.7 GHz'].map((clock) => (
-                      <label key={clock} className="flex items-center gap-2">
+                      <label key={clock} className="flex items-center gap-2 text-white">
                         <input 
                           type="checkbox" 
                           checked={selectedBaseClocks.includes(clock)}
@@ -453,15 +426,15 @@ function CPUPage() {
                         <span>{clock}</span>
                       </label>
                     ))}
-                    <button onClick={() => setShowBaseClockPopup(true)} className="text-blue-600 text-xs">Show More</button>
+                    <button onClick={() => setShowBaseClockPopup(true)} className="text-blue-400 text-xs">Show More</button>
                   </div>
                 </div>
 
                 <div>
-                  <h3 className="text-base font-semibold mb-3">Boost Clock</h3>
+                  <h3 className="text-base font-semibold mb-3 text-white">Boost Clock</h3>
                   <div className="space-y-2 text-sm">
                     {['5.1 GHz','5.3 GHz','5.4 GHz','5.7 GHz','5.8 GHz'].map((clock) => (
-                      <label key={clock} className="flex items-center gap-2">
+                      <label key={clock} className="flex items-center gap-2 text-white">
                         <input 
                           type="checkbox" 
                           checked={selectedBoostClocks.includes(clock)}
@@ -471,15 +444,15 @@ function CPUPage() {
                         <span>{clock}</span>
                       </label>
                     ))}
-                    <button onClick={() => setShowBoostClockPopup(true)} className="text-blue-600 text-xs">Show More</button>
+                    <button onClick={() => setShowBoostClockPopup(true)} className="text-blue-400 text-xs">Show More</button>
                   </div>
                 </div>
 
                 <div>
-                  <h3 className="text-base font-semibold mb-3">TDP</h3>
+                  <h3 className="text-base font-semibold mb-3 text-white">TDP</h3>
                   <div className="space-y-2 text-sm">
                     {['105W','125W','170W'].map((tdp) => (
-                      <label key={tdp} className="flex items-center gap-2">
+                      <label key={tdp} className="flex items-center gap-2 text-white">
                         <input 
                           type="checkbox" 
                           checked={selectedTDPs.includes(tdp)}
@@ -489,14 +462,14 @@ function CPUPage() {
                         <span>{tdp}</span>
                       </label>
                     ))}
-                    <button onClick={() => setShowTDPPopup(true)} className="text-blue-600 text-xs">Show More</button>
+                    <button onClick={() => setShowTDPPopup(true)} className="text-blue-400 text-xs">Show More</button>
                   </div>
                 </div>
 
                 <div>
-                  <h3 className="text-base font-semibold mb-3">Integrated Graphics</h3>
+                  <h3 className="text-base font-semibold mb-3 text-white">Integrated Graphics</h3>
                   <div className="space-y-2 text-sm">
-                    <label className="flex items-center gap-2">
+                    <label className="flex items-center gap-2 text-white">
                       <input 
                         type="checkbox" 
                         checked={selectedIntegratedGraphics === true}
@@ -505,7 +478,7 @@ function CPUPage() {
                       />
                       <span>Yes</span>
                     </label>
-                    <label className="flex items-center gap-2">
+                    <label className="flex items-center gap-2 text-white">
                       <input 
                         type="checkbox" 
                         checked={selectedIntegratedGraphics === false}
@@ -518,10 +491,10 @@ function CPUPage() {
                 </div>
 
                 <div>
-                  <h3 className="text-base font-semibold mb-3">Manufacturer</h3>
+                  <h3 className="text-base font-semibold mb-3 text-white">Manufacturer</h3>
                   <div className="space-y-2 text-sm">
                     {['Intel','AMD'].map((manufacturer) => (
-                      <label key={manufacturer} className="flex items-center gap-2">
+                      <label key={manufacturer} className="flex items-center gap-2 text-white">
                         <input 
                           type="checkbox" 
                           checked={selectedManufacturers.includes(manufacturer)}
@@ -531,15 +504,15 @@ function CPUPage() {
                         <span>{manufacturer}</span>
                       </label>
                     ))}
-                    <button onClick={() => setShowManufacturerPopup(true)} className="text-blue-600 text-xs">Show More</button>
+                    <button onClick={() => setShowManufacturerPopup(true)} className="text-blue-400 text-xs">Show More</button>
                   </div>
                 </div>
 
                 <div>
-                  <h3 className="text-base font-semibold mb-3">Lithography</h3>
+                  <h3 className="text-base font-semibold mb-3 text-white">Lithography</h3>
                   <div className="space-y-2 text-sm">
                     {['5nm','10nm'].map((lithography) => (
-                      <label key={lithography} className="flex items-center gap-2">
+                      <label key={lithography} className="flex items-center gap-2 text-white">
                         <input 
                           type="checkbox" 
                           checked={selectedLithography.includes(lithography)}
@@ -549,15 +522,15 @@ function CPUPage() {
                         <span>{lithography}</span>
                       </label>
                     ))}
-                    <button onClick={() => setShowLithographyPopup(true)} className="text-blue-600 text-xs">Show More</button>
+                    <button onClick={() => setShowLithographyPopup(true)} className="text-blue-400 text-xs">Show More</button>
                   </div>
                 </div>
 
                 <div>
-                  <h3 className="text-base font-semibold mb-3">Memory Type</h3>
+                  <h3 className="text-base font-semibold mb-3 text-white">Memory Type</h3>
                   <div className="space-y-2 text-sm">
                     {['DDR4-3200, DDR5-5600','DDR5-5200'].map((memoryType) => (
-                      <label key={memoryType} className="flex items-center gap-2">
+                      <label key={memoryType} className="flex items-center gap-2 text-white">
                         <input 
                           type="checkbox" 
                           checked={selectedMemoryTypes.includes(memoryType)}
@@ -567,27 +540,27 @@ function CPUPage() {
                         <span>{memoryType}</span>
                       </label>
                     ))}
-                    <button onClick={() => setShowMemoryTypePopup(true)} className="text-blue-600 text-xs">Show More</button>
+                    <button onClick={() => setShowMemoryTypePopup(true)} className="text-blue-400 text-xs">Show More</button>
                   </div>
                 </div>
               </div>
             </div>
 
             {/* Grid */}
-            <div className="flex-1">
+            <div className="flex-1" style={{ maxWidth: '100%', overflow: 'hidden' }}>
               {loading && (
                 <div className="flex justify-center items-center py-12">
-                  <div className="text-lg text-gray-600">Đang tải dữ liệu CPU...</div>
+                  <div className="text-lg text-white/70">Đang tải dữ liệu CPU...</div>
                 </div>
               )}
               
               
               {filteredCPUs.length === 0 ? (
                 <div className="text-center py-12">
-                  <div className="text-lg text-gray-600 mb-4">
+                  <div className="text-lg text-white/70 mb-4">
                     {cpus.length === 0 ? 'Không có CPU nào trong database' : 'Không tìm thấy CPU nào phù hợp'}
                   </div>
-                  <div className="text-sm text-gray-500 mb-4">
+                  <div className="text-sm text-white/50 mb-4">
                     {cpus.length === 0 ? 'Vui lòng thêm CPU vào database' : 'Thử điều chỉnh bộ lọc hoặc tìm kiếm khác'}
                   </div>
                   {cpus.length > 0 && (
@@ -612,21 +585,21 @@ function CPUPage() {
                   )}
                 </div>
               ) : (
-                <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4 md:gap-6">
+                <div className="product-grid">
                   {filteredCPUs.map((cpuItem) => (
-                  <div key={cpuItem.id} className="rounded-lg border border-black/10 bg-white hover:bg-black/5 transition cursor-pointer" onClick={() => setSelectedCPU(cpuItem)}>
+                  <div key={cpuItem.id} className="rounded-lg border border-white/20 bg-white/10 hover:bg-white/20 transition cursor-pointer" onClick={() => setSelectedCPU(cpuItem)}>
                     <div className="p-4">
                       <img src={cpuItem.image} alt={cpuItem.name} className="w-full h-48 object-cover rounded-lg mb-4" />
-                      <div className="text-sm font-medium mb-2 line-clamp-2">{cpuItem.name}</div>
-                      <div className="text-lg font-bold mb-3">
+                      <div className="text-sm font-medium mb-2 line-clamp-2 text-white">{cpuItem.name}</div>
+                      <div className="text-lg font-bold mb-3 text-white">
                         {cpuItem.price > 0 ? `${cpuItem.price.toLocaleString('vi-VN')} VND` : 'Liên hệ'}
                       </div>
-                      <div className="space-y-1 text-xs text-black/60 mb-4">
-                        <div className="flex justify-between"><span>Socket:</span><span className="text-black">{cpuItem.specs.socketType}</span></div>
-                        <div className="flex justify-between"><span>Cores:</span><span className="text-black">{cpuItem.specs.cores}</span></div>
-                        <div className="flex justify-between"><span>Base Clock:</span><span className="text-black">{cpuItem.specs.baseClock}</span></div>
-                        <div className="flex justify-between"><span>Boost Clock:</span><span className="text-black">{cpuItem.specs.boostClock}</span></div>
-                        <div className="flex justify-between"><span>TDP:</span><span className="text-black">{cpuItem.specs.tdp}</span></div>
+                      <div className="space-y-1 text-xs text-white/60 mb-4">
+                        <div className="flex justify-between"><span>Socket:</span><span className="text-white">{cpuItem.specs.socketType}</span></div>
+                        <div className="flex justify-between"><span>Cores:</span><span className="text-white">{cpuItem.specs.cores}</span></div>
+                        <div className="flex justify-between"><span>Base Clock:</span><span className="text-white">{cpuItem.specs.baseClock}</span></div>
+                        <div className="flex justify-between"><span>Boost Clock:</span><span className="text-white">{cpuItem.specs.boostClock}</span></div>
+                        <div className="flex justify-between"><span>TDP:</span><span className="text-white">{cpuItem.specs.tdp}</span></div>
                       </div>
                       <button className="w-full btn-primary">+ Add to build</button>
                     </div>

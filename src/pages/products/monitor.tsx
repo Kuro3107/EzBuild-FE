@@ -1,5 +1,4 @@
 import { useEffect, useState } from 'react'
-import { Link } from 'react-router-dom'
 import '../../Homepage.css'
 import { ApiService } from '../../services/api'
 
@@ -345,43 +344,18 @@ function MonitorPage() {
   return (
     <div className="page bg-grid bg-radial">
       <div className="layout">
-        {/* Sidebar giống HomePage */}
-        <aside className="sidebar">
-          <div className="flex items-center justify-between px-2 mb-6">
-            <div className="flex items-center gap-2">
-              <div className="size-6 rounded-lg bg-blue-600" />
-              <span className="font-semibold">EzBuild</span>
-            </div>
-          </div>
-
-          <div>
-            <div className="sidebar-group">Apps</div>
-            <Link className="nav-item" to="/">PC Builder</Link>
-            <span className="nav-item">Products</span>
-            <a className="nav-item" href="#">Sales</a>
-            <a className="nav-item" href="#">Compare</a>
-            <a className="nav-item" href="#">PC Part Gallery</a>
-          </div>
-
-          <div>
-            <div className="sidebar-group">Community</div>
-            <a className="nav-item" href="#">Completed Builds</a>
-            <a className="nav-item" href="#">Updates</a>
-            <a className="nav-item" href="#">Setup Builder</a>
-          </div>
-        </aside>
-
+        
         {/* Main */}
         <main className="main">
           {/* Breadcrumb + controls */}
           <div className="mb-4 flex flex-col gap-3 md:flex-row md:items-center md:justify-between">
-            <div className="flex items-center gap-2 text-sm text-black/70">
+            <div className="flex items-center gap-2 text-sm text-white/70">
               <span>Products</span>
               <svg className="w-3 h-3" viewBox="0 0 20 20" fill="currentColor"><path fillRule="evenodd" d="M7.293 14.707a1 1 0 010-1.414L10.586 10 7.293 6.707a1 1 0 011.414-1.414l4 4a1 1 0 010 1.414l-4 4a1 1 0 01-1.414 0z" clipRule="evenodd"/></svg>
-              <span className="font-medium text-black">Monitor</span>
+              <span className="font-medium text-white">Monitor</span>
             </div>
             <div className="flex items-center gap-3">
-              <select className="bg-black/5 hover:bg-black/10 text-black px-3 py-2 rounded-md text-sm">
+              <select className="bg-white/10 hover:bg-white/20 text-white px-3 py-2 rounded-md text-sm border border-white/20">
                 <option>Default</option>
               </select>
               <input 
@@ -389,7 +363,7 @@ function MonitorPage() {
                 placeholder="Search" 
                 value={searchTerm}
                 onChange={(e) => setSearchTerm(e.target.value)}
-                className="bg-black/5 hover:bg-black/10 text-black px-3 py-2 rounded-md text-sm w-48" 
+                className="bg-white/10 hover:bg-white/20 text-white px-3 py-2 rounded-md text-sm w-48 border border-white/20 placeholder-white/60" 
               />
             </div>
           </div>
@@ -397,11 +371,11 @@ function MonitorPage() {
           <div className="flex">
             {/* Filters */}
             <div className="w-80 hidden md:block pr-6">
-              <div className="rounded-lg border border-black/10 bg-white p-4 space-y-6">
+              <div className="rounded-lg border border-white/20 bg-white/10 p-4 space-y-6">
                 <div>
-                  <h3 className="text-base font-semibold mb-3">Price</h3>
+                  <h3 className="text-base font-semibold mb-3 text-white">Price</h3>
                   <div className="space-y-2">
-                    <div className="flex justify-between text-xs text-black/60">
+                    <div className="flex justify-between text-xs text-white/60">
                       <span>$100</span>
                       <span>$2000</span>
                     </div>
@@ -417,10 +391,10 @@ function MonitorPage() {
                 </div>
 
                 <div>
-                  <h3 className="text-base font-semibold mb-3">Size</h3>
+                  <h3 className="text-base font-semibold mb-3 text-white">Size</h3>
                   <div className="space-y-2 text-sm">
                     {['24"','27"','32"'].map((size) => (
-                      <label key={size} className="flex items-center gap-2">
+                      <label key={size} className="flex items-center gap-2 text-white">
                         <input 
                           type="checkbox" 
                           checked={selectedSizes.includes(size)}
@@ -430,15 +404,15 @@ function MonitorPage() {
                         <span>{size}</span>
                       </label>
                     ))}
-                    <button onClick={() => setShowSizePopup(true)} className="text-blue-600 text-xs">Show More</button>
+                    <button onClick={() => setShowSizePopup(true)} className="text-blue-400 text-xs">Show More</button>
                   </div>
                 </div>
 
                 <div>
-                  <h3 className="text-base font-semibold mb-3">Resolution</h3>
+                  <h3 className="text-base font-semibold mb-3 text-white">Resolution</h3>
                   <div className="space-y-2 text-sm">
                     {['1920 x 1080','2560 x 1440','3840 x 2160'].map((resolution) => (
-                      <label key={resolution} className="flex items-center gap-2">
+                      <label key={resolution} className="flex items-center gap-2 text-white">
                         <input 
                           type="checkbox" 
                           checked={selectedResolutions.includes(resolution)}
@@ -448,15 +422,15 @@ function MonitorPage() {
                         <span>{resolution}</span>
                       </label>
                     ))}
-                    <button onClick={() => setShowResolutionPopup(true)} className="text-blue-600 text-xs">Show More</button>
+                    <button onClick={() => setShowResolutionPopup(true)} className="text-blue-400 text-xs">Show More</button>
                   </div>
                 </div>
 
                 <div>
-                  <h3 className="text-base font-semibold mb-3">Refresh Rate</h3>
+                  <h3 className="text-base font-semibold mb-3 text-white">Refresh Rate</h3>
                   <div className="space-y-2 text-sm">
                     {['60Hz','144Hz','165Hz','240Hz'].map((refreshRate) => (
-                      <label key={refreshRate} className="flex items-center gap-2">
+                      <label key={refreshRate} className="flex items-center gap-2 text-white">
                         <input 
                           type="checkbox" 
                           checked={selectedRefreshRates.includes(refreshRate)}
@@ -466,15 +440,15 @@ function MonitorPage() {
                         <span>{refreshRate}</span>
                       </label>
                     ))}
-                    <button onClick={() => setShowRefreshRatePopup(true)} className="text-blue-600 text-xs">Show More</button>
+                    <button onClick={() => setShowRefreshRatePopup(true)} className="text-blue-400 text-xs">Show More</button>
                   </div>
                 </div>
 
                 <div>
-                  <h3 className="text-base font-semibold mb-3">Panel Type</h3>
+                  <h3 className="text-base font-semibold mb-3 text-white">Panel Type</h3>
                   <div className="space-y-2 text-sm">
                     {['IPS','VA','TN','Nano IPS'].map((panelType) => (
-                      <label key={panelType} className="flex items-center gap-2">
+                      <label key={panelType} className="flex items-center gap-2 text-white">
                         <input 
                           type="checkbox" 
                           checked={selectedPanelTypes.includes(panelType)}
@@ -484,15 +458,15 @@ function MonitorPage() {
                         <span>{panelType}</span>
                       </label>
                     ))}
-                    <button onClick={() => setShowPanelTypePopup(true)} className="text-blue-600 text-xs">Show More</button>
+                    <button onClick={() => setShowPanelTypePopup(true)} className="text-blue-400 text-xs">Show More</button>
                   </div>
                 </div>
 
                 <div>
-                  <h3 className="text-base font-semibold mb-3">Response Time</h3>
+                  <h3 className="text-base font-semibold mb-3 text-white">Response Time</h3>
                   <div className="space-y-2 text-sm">
                     {['1ms','4ms','5ms'].map((responseTime) => (
-                      <label key={responseTime} className="flex items-center gap-2">
+                      <label key={responseTime} className="flex items-center gap-2 text-white">
                         <input 
                           type="checkbox" 
                           checked={selectedResponseTimes.includes(responseTime)}
@@ -502,15 +476,15 @@ function MonitorPage() {
                         <span>{responseTime}</span>
                       </label>
                     ))}
-                    <button onClick={() => setShowResponseTimePopup(true)} className="text-blue-600 text-xs">Show More</button>
+                    <button onClick={() => setShowResponseTimePopup(true)} className="text-blue-400 text-xs">Show More</button>
                   </div>
                 </div>
 
                 <div>
-                  <h3 className="text-base font-semibold mb-3">Brand</h3>
+                  <h3 className="text-base font-semibold mb-3 text-white">Brand</h3>
                   <div className="space-y-2 text-sm">
                     {['ASUS','LG','Samsung','Dell','MSI','AOC'].map((brand) => (
-                      <label key={brand} className="flex items-center gap-2">
+                      <label key={brand} className="flex items-center gap-2 text-white">
                         <input 
                           type="checkbox" 
                           checked={selectedBrands.includes(brand)}
@@ -520,15 +494,15 @@ function MonitorPage() {
                         <span>{brand}</span>
                       </label>
                     ))}
-                    <button onClick={() => setShowBrandPopup(true)} className="text-blue-600 text-xs">Show More</button>
+                    <button onClick={() => setShowBrandPopup(true)} className="text-blue-400 text-xs">Show More</button>
                   </div>
                 </div>
 
                 <div>
-                  <h3 className="text-base font-semibold mb-3">Connectivity</h3>
+                  <h3 className="text-base font-semibold mb-3 text-white">Connectivity</h3>
                   <div className="space-y-2 text-sm">
                     {['DisplayPort','HDMI','USB-C','USB 3.0'].map((connectivity) => (
-                      <label key={connectivity} className="flex items-center gap-2">
+                      <label key={connectivity} className="flex items-center gap-2 text-white">
                         <input 
                           type="checkbox" 
                           checked={selectedConnectivities.includes(connectivity)}
@@ -538,14 +512,14 @@ function MonitorPage() {
                         <span>{connectivity}</span>
                       </label>
                     ))}
-                    <button onClick={() => setShowConnectivityPopup(true)} className="text-blue-600 text-xs">Show More</button>
+                    <button onClick={() => setShowConnectivityPopup(true)} className="text-blue-400 text-xs">Show More</button>
                   </div>
                 </div>
 
                 <div>
-                  <h3 className="text-base font-semibold mb-3">HDR</h3>
+                  <h3 className="text-base font-semibold mb-3 text-white">HDR</h3>
                   <div className="space-y-2 text-sm">
-                    <label className="flex items-center gap-2">
+                    <label className="flex items-center gap-2 text-white">
                       <input 
                         type="checkbox" 
                         checked={selectedHDR === true}
@@ -554,7 +528,7 @@ function MonitorPage() {
                       />
                       <span>Yes</span>
                     </label>
-                    <label className="flex items-center gap-2">
+                    <label className="flex items-center gap-2 text-white">
                       <input 
                         type="checkbox" 
                         checked={selectedHDR === false}
@@ -567,9 +541,9 @@ function MonitorPage() {
                 </div>
 
                 <div>
-                  <h3 className="text-base font-semibold mb-3">G-Sync</h3>
+                  <h3 className="text-base font-semibold mb-3 text-white">G-Sync</h3>
                   <div className="space-y-2 text-sm">
-                    <label className="flex items-center gap-2">
+                    <label className="flex items-center gap-2 text-white">
                       <input 
                         type="checkbox" 
                         checked={selectedGSync === true}
@@ -578,7 +552,7 @@ function MonitorPage() {
                       />
                       <span>Yes</span>
                     </label>
-                    <label className="flex items-center gap-2">
+                    <label className="flex items-center gap-2 text-white">
                       <input 
                         type="checkbox" 
                         checked={selectedGSync === false}
@@ -591,9 +565,9 @@ function MonitorPage() {
                 </div>
 
                 <div>
-                  <h3 className="text-base font-semibold mb-3">FreeSync</h3>
+                  <h3 className="text-base font-semibold mb-3 text-white">FreeSync</h3>
                   <div className="space-y-2 text-sm">
-                    <label className="flex items-center gap-2">
+                    <label className="flex items-center gap-2 text-white">
                       <input 
                         type="checkbox" 
                         checked={selectedFreeSync === true}
@@ -602,7 +576,7 @@ function MonitorPage() {
                       />
                       <span>Yes</span>
                     </label>
-                    <label className="flex items-center gap-2">
+                    <label className="flex items-center gap-2 text-white">
                       <input 
                         type="checkbox" 
                         checked={selectedFreeSync === false}
@@ -617,38 +591,59 @@ function MonitorPage() {
             </div>
 
             {/* Grid */}
-            <div className="flex-1">
+            <div className="flex-1" style={{ maxWidth: '100%', overflow: 'hidden' }}>
               {loading && (
                 <div className="flex justify-center items-center py-12">
-                  <div className="text-lg text-gray-600">Đang tải dữ liệu Monitor...</div>
+                  <div className="text-lg text-white/70">Đang tải dữ liệu Monitor...</div>
                 </div>
               )}
 
               {filteredMonitors.length === 0 ? (
                 <div className="text-center py-12">
-                  <div className="text-lg text-gray-600 mb-4">
+                  <div className="text-lg text-white/70 mb-4">
                     {monitors.length === 0 ? 'Không có Monitor nào trong database' : 'Không tìm thấy Monitor nào phù hợp'}
                   </div>
-                  <div className="text-sm text-gray-500 mb-4">
+                  <div className="text-sm text-white/50 mb-4">
                     {monitors.length === 0 ? 'Vui lòng thêm Monitor vào database' : 'Thử điều chỉnh bộ lọc hoặc tìm kiếm khác'}
                   </div>
+                  {monitors.length > 0 && (
+                    <button 
+                      onClick={() => {
+                        setSearchTerm('')
+                        setSelectedSizes([])
+                        setSelectedResolutions([])
+                        setSelectedRefreshRates([])
+                        setSelectedPanelTypes([])
+                        setSelectedResponseTimes([])
+                        setSelectedBrands([])
+                        setSelectedConnectivities([])
+                        setSelectedHDR(null)
+                        setSelectedGSync(null)
+                        setSelectedFreeSync(null)
+                        setPriceRange([100, 2000])
+                      }}
+                      className="px-4 py-2 bg-blue-500 text-white rounded hover:bg-blue-600"
+                    >
+                      Xóa tất cả bộ lọc
+                    </button>
+                  )}
                 </div>
               ) : (
-                <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4 md:gap-6">
+                <div className="product-grid">
                   {filteredMonitors.map((monitorItem) => (
-                    <div key={monitorItem.id} className="rounded-lg border border-black/10 bg-white hover:bg-black/5 transition cursor-pointer" onClick={() => setSelectedMonitor(monitorItem)}>
+                    <div key={monitorItem.id} className="rounded-lg border border-white/20 bg-white/10 hover:bg-white/20 transition cursor-pointer" onClick={() => setSelectedMonitor(monitorItem)}>
                       <div className="p-4">
                         <img src={monitorItem.image} alt={monitorItem.name} className="w-full h-48 object-cover rounded-lg mb-4" />
-                        <div className="text-sm font-medium mb-2 line-clamp-2">{monitorItem.name}</div>
-                        <div className="text-lg font-bold mb-3">
+                        <div className="text-sm font-medium mb-2 line-clamp-2 text-white">{monitorItem.name}</div>
+                        <div className="text-lg font-bold mb-3 text-white">
                           {monitorItem.price > 0 ? `${monitorItem.price.toLocaleString('vi-VN')} VND` : 'Liên hệ'}
                         </div>
-                        <div className="space-y-1 text-xs text-black/60 mb-4">
-                          <div className="flex justify-between"><span>Size:</span><span className="text-black">{monitorItem.specs.size}</span></div>
-                          <div className="flex justify-between"><span>Resolution:</span><span className="text-black">{monitorItem.specs.resolution}</span></div>
-                          <div className="flex justify-between"><span>Refresh Rate:</span><span className="text-black">{monitorItem.specs.refreshRate}</span></div>
-                          <div className="flex justify-between"><span>Panel Type:</span><span className="text-black">{monitorItem.specs.panelType}</span></div>
-                          <div className="flex justify-between"><span>Response Time:</span><span className="text-black">{monitorItem.specs.responseTime}</span></div>
+                        <div className="space-y-1 text-xs text-white/60 mb-4">
+                          <div className="flex justify-between"><span>Size:</span><span className="text-white">{monitorItem.specs.size}</span></div>
+                          <div className="flex justify-between"><span>Resolution:</span><span className="text-white">{monitorItem.specs.resolution}</span></div>
+                          <div className="flex justify-between"><span>Refresh Rate:</span><span className="text-white">{monitorItem.specs.refreshRate}</span></div>
+                          <div className="flex justify-between"><span>Panel Type:</span><span className="text-white">{monitorItem.specs.panelType}</span></div>
+                          <div className="flex justify-between"><span>Response Time:</span><span className="text-white">{monitorItem.specs.responseTime}</span></div>
                         </div>
                         <button className="w-full btn-primary">+ Add to build</button>
                       </div>

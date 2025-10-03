@@ -66,12 +66,9 @@ const LandingFooter: React.FC = () => {
     <footer style={{
       background: 'linear-gradient(135deg, #1e3a8a 0%, #000000 100%)',
       color: 'white',
-      padding: '100px 0 100px',
-      width: '100vw',
-      marginLeft: 'calc(-50vw + 50%)',
-      position: 'relative',
-      left: '10%',
-      right: '70%'
+      padding: '60px 0',
+      width: '100%',
+      marginTop: '40px'
     }}>
       <div style={{ 
         maxWidth: '1200px', 
@@ -82,9 +79,9 @@ const LandingFooter: React.FC = () => {
         {/* Main Footer Content */}
         <div style={{ 
           display: 'grid', 
-          gridTemplateColumns: 'repeat(auto-fit, minmax(250px, 1fr))', 
-          gap: '48px',
-          marginBottom: '48px'
+          gridTemplateColumns: 'repeat(auto-fit, minmax(200px, 1fr))', 
+          gap: '32px',
+          marginBottom: '32px'
         }}>
           {/* Brand Section */}
           <div style={{ marginBottom: '32px' }}>
@@ -246,11 +243,11 @@ const LandingFooter: React.FC = () => {
         </div>
 
         {/* Newsletter Section */}
-        <div style={{ borderTop: '1px solid rgba(255,255,255,0.2)', margin: '48px 0', paddingTop: '48px' }}>
+        <div style={{ borderTop: '1px solid rgba(255,255,255,0.2)', margin: '32px 0', paddingTop: '32px' }}>
           <div style={{ 
             display: 'grid', 
-            gridTemplateColumns: 'repeat(auto-fit, minmax(300px, 1fr))', 
-            gap: '32px',
+            gridTemplateColumns: 'repeat(auto-fit, minmax(250px, 1fr))', 
+            gap: '24px',
             alignItems: 'center'
           }}>
             <div>
@@ -297,7 +294,7 @@ const LandingFooter: React.FC = () => {
         </div>
 
         {/* Bottom Section */}
-        <div style={{ borderTop: '1px solid rgba(255,255,255,0.2)', margin: '48px 0 32px', paddingTop: '32px' }}>
+        <div style={{ borderTop: '1px solid rgba(255,255,255,0.2)', margin: '32px 0 16px', paddingTop: '24px' }}>
           <div style={{ 
             display: 'flex', 
             justifyContent: 'space-between', 

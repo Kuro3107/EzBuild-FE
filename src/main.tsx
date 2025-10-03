@@ -4,6 +4,7 @@ import { BrowserRouter as Router, Routes, Route } from 'react-router-dom'
 import './index.css'
 import ProtectedRoute from './components/ProtectedRoute'
 import HomePage from './HomePage.tsx'
+import AppShell from './components/AppShell'
 import SalesPage from './pages/sales/index.tsx'
 import CasePage from './pages/products/case.tsx'
 import CPUPage from './pages/products/cpu.tsx'
@@ -28,36 +29,36 @@ createRoot(document.getElementById('root')!).render(
   <StrictMode>
     <Router>
       <Routes>
-        <Route path="/" element={<HomePage />} />
-        <Route path="/sales" element={<SalesPage />} />
-        <Route path="/compare" element={<ComparePage />} />
         <Route path="/login" element={<LoginPage />} />
         <Route path="/register" element={<RegisterPage />} />
-        <Route path="/products/case" element={<CasePage />} />
-        <Route path="/products/cpu" element={<CPUPage />} />
-        <Route path="/products/mainboard" element={<MainboardPage />} />
-        <Route path="/products/gpu" element={<GPUPage />} />
-        <Route path="/products/ram" element={<RAMPage />} />
-        <Route path="/products/storage" element={<StoragePage />} />
-        <Route path="/products/psu" element={<PSUPage />} />
-        <Route path="/products/cooling" element={<CoolingPage />} />
-        <Route path="/products/headset-speaker" element={<HeadsetSpeakerPage />} />
-        <Route path="/products/monitor" element={<MonitorPage />} />
-        <Route path="/products/mouse" element={<MousePage />} />
-        <Route path="/products/keyboard" element={<KeyboardPage />} />
-        <Route path="/customer" element={<CustomerProfilePage />} />
-        
-        {/* Protected Routes */}
-        <Route path="/staff" element={
-          <ProtectedRoute requiredRole="Staff">
-            <StaffPage />
-          </ProtectedRoute>
-        } />
-        <Route path="/admin" element={
-          <ProtectedRoute requiredRole="Admin">
-            <AdminPage />
-          </ProtectedRoute>
-        } />
+        <Route element={<AppShell />}>
+          <Route path="/" element={<HomePage />} />
+          <Route path="/sales" element={<SalesPage />} />
+          <Route path="/compare" element={<ComparePage />} />
+          <Route path="/products/case" element={<CasePage />} />
+          <Route path="/products/cpu" element={<CPUPage />} />
+          <Route path="/products/mainboard" element={<MainboardPage />} />
+          <Route path="/products/gpu" element={<GPUPage />} />
+          <Route path="/products/ram" element={<RAMPage />} />
+          <Route path="/products/storage" element={<StoragePage />} />
+          <Route path="/products/psu" element={<PSUPage />} />
+          <Route path="/products/cooling" element={<CoolingPage />} />
+          <Route path="/products/headset-speaker" element={<HeadsetSpeakerPage />} />
+          <Route path="/products/monitor" element={<MonitorPage />} />
+          <Route path="/products/mouse" element={<MousePage />} />
+          <Route path="/products/keyboard" element={<KeyboardPage />} />
+          <Route path="/customer" element={<CustomerProfilePage />} />
+          <Route path="/staff" element={
+            <ProtectedRoute requiredRole="Staff">
+              <StaffPage />
+            </ProtectedRoute>
+          } />
+          <Route path="/admin" element={
+            <ProtectedRoute requiredRole="Admin">
+              <AdminPage />
+            </ProtectedRoute>
+          } />
+        </Route>
       </Routes>
     </Router>
   </StrictMode>,

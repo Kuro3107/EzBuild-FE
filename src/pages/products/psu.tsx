@@ -334,43 +334,18 @@ function PSUPage() {
   return (
     <div className="page bg-grid bg-radial">
       <div className="layout">
-        {/* Sidebar giống HomePage */}
-        <aside className="sidebar">
-          <div className="flex items-center justify-between px-2 mb-6">
-            <div className="flex items-center gap-2">
-              <div className="size-6 rounded-lg bg-blue-600" />
-              <span className="font-semibold">EzBuild</span>
-            </div>
-          </div>
-
-          <div>
-            <div className="sidebar-group">Apps</div>
-            <Link className="nav-item" to="/">PC Builder</Link>
-            <span className="nav-item">Products</span>
-            <a className="nav-item" href="#">Sales</a>
-            <a className="nav-item" href="#">Compare</a>
-            <a className="nav-item" href="#">PC Part Gallery</a>
-          </div>
-
-          <div>
-            <div className="sidebar-group">Community</div>
-            <a className="nav-item" href="#">Completed Builds</a>
-            <a className="nav-item" href="#">Updates</a>
-            <a className="nav-item" href="#">Setup Builder</a>
-          </div>
-        </aside>
 
         {/* Main */}
         <main className="main">
           {/* Breadcrumb + controls */}
           <div className="mb-4 flex flex-col gap-3 md:flex-row md:items-center md:justify-between">
-            <div className="flex items-center gap-2 text-sm text-black/70">
+            <div className="flex items-center gap-2 text-sm text-white/70">
               <span>Products</span>
               <svg className="w-3 h-3" viewBox="0 0 20 20" fill="currentColor"><path fillRule="evenodd" d="M7.293 14.707a1 1 0 010-1.414L10.586 10 7.293 6.707a1 1 0 011.414-1.414l4 4a1 1 0 010 1.414l-4 4a1 1 0 01-1.414 0z" clipRule="evenodd"/></svg>
-              <span className="font-medium text-black">Power Supply</span>
+              <span className="font-medium text-white">Power Supply</span>
             </div>
             <div className="flex items-center gap-3">
-              <select className="bg-black/5 hover:bg-black/10 text-black px-3 py-2 rounded-md text-sm">
+              <select className="bg-white/10 hover:bg-white/20 text-white px-3 py-2 rounded-md text-sm border border-white/20">
                 <option>Default</option>
               </select>
               <input 
@@ -378,7 +353,7 @@ function PSUPage() {
                 placeholder="Search" 
                 value={searchTerm}
                 onChange={(e) => setSearchTerm(e.target.value)}
-                className="bg-black/5 hover:bg-black/10 text-black px-3 py-2 rounded-md text-sm w-48" 
+                className="bg-white/10 hover:bg-white/20 text-white px-3 py-2 rounded-md text-sm w-48 border border-white/20 placeholder-white/60" 
               />
             </div>
           </div>
@@ -386,11 +361,11 @@ function PSUPage() {
           <div className="flex">
             {/* Filters */}
             <div className="w-80 hidden md:block pr-6">
-              <div className="rounded-lg border border-black/10 bg-white p-4 space-y-6">
+              <div className="rounded-lg border border-white/20 bg.white/10 p-4 space-y-6">
                 <div>
-                  <h3 className="text-base font-semibold mb-3">Price</h3>
+                  <h3 className="text-base font-semibold mb-3 text-white">Price</h3>
                   <div className="space-y-2">
-                    <div className="flex justify-between text-xs text-black/60">
+                    <div className="flex justify-between text-xs text-white/60">
                       <span>$50</span>
                       <span>$500</span>
                     </div>
@@ -406,10 +381,10 @@ function PSUPage() {
                 </div>
 
                 <div>
-                  <h3 className="text-base font-semibold mb-3">Wattage</h3>
+                  <h3 className="text-base font-semibold mb-3 text-white">Wattage</h3>
                   <div className="space-y-2 text-sm">
                     {['550W','650W','750W','850W','1000W','1200W'].map((wattage) => (
-                      <label key={wattage} className="flex items-center gap-2">
+                      <label key={wattage} className="flex items-center gap-2 text-white">
                         <input 
                           type="checkbox" 
                           checked={selectedWattages.includes(wattage)}
@@ -419,15 +394,15 @@ function PSUPage() {
                         <span>{wattage}</span>
                       </label>
                     ))}
-                    <button onClick={() => setShowWattagePopup(true)} className="text-blue-600 text-xs">Show More</button>
+                    <button onClick={() => setShowWattagePopup(true)} className="text-blue-400 text-xs">Show More</button>
                   </div>
                 </div>
 
                 <div>
-                  <h3 className="text-base font-semibold mb-3">Efficiency</h3>
+                  <h3 className="text-base font-semibold mb-3 text-white">Efficiency</h3>
                   <div className="space-y-2 text-sm">
                     {['80+ Gold','80+ Platinum'].map((efficiency) => (
-                      <label key={efficiency} className="flex items-center gap-2">
+                      <label key={efficiency} className="flex items-center gap-2 text-white">
                         <input 
                           type="checkbox" 
                           checked={selectedEfficiencies.includes(efficiency)}
@@ -437,15 +412,15 @@ function PSUPage() {
                         <span>{efficiency}</span>
                       </label>
                     ))}
-                    <button onClick={() => setShowEfficiencyPopup(true)} className="text-blue-600 text-xs">Show More</button>
+                    <button onClick={() => setShowEfficiencyPopup(true)} className="text-blue-400 text-xs">Show More</button>
                   </div>
                 </div>
 
                 <div>
-                  <h3 className="text-base font-semibold mb-3">Modular</h3>
+                  <h3 className="text-base font-semibold mb-3 text-white">Modular</h3>
                   <div className="space-y-2 text-sm">
                     {['Non-Modular','Semi-Modular','Fully Modular'].map((modular) => (
-                      <label key={modular} className="flex items-center gap-2">
+                      <label key={modular} className="flex items-center gap-2 text-white">
                         <input 
                           type="checkbox" 
                           checked={selectedModulars.includes(modular)}
@@ -455,15 +430,15 @@ function PSUPage() {
                         <span>{modular}</span>
                       </label>
                     ))}
-                    <button onClick={() => setShowModularPopup(true)} className="text-blue-600 text-xs">Show More</button>
+                    <button onClick={() => setShowModularPopup(true)} className="text-blue-400 text-xs">Show More</button>
                   </div>
                 </div>
 
                 <div>
-                  <h3 className="text-base font-semibold mb-3">Form Factor</h3>
+                  <h3 className="text-base font-semibold mb-3 text-white">Form Factor</h3>
                   <div className="space-y-2 text-sm">
                     {['ATX'].map((formFactor) => (
-                      <label key={formFactor} className="flex items-center gap-2">
+                      <label key={formFactor} className="flex items-center gap-2 text-white">
                         <input 
                           type="checkbox" 
                           checked={selectedFormFactors.includes(formFactor)}
@@ -473,15 +448,15 @@ function PSUPage() {
                         <span>{formFactor}</span>
                       </label>
                     ))}
-                    <button onClick={() => setShowFormFactorPopup(true)} className="text-blue-600 text-xs">Show More</button>
+                    <button onClick={() => setShowFormFactorPopup(true)} className="text-blue-400 text-xs">Show More</button>
                   </div>
                 </div>
 
                 <div>
-                  <h3 className="text-base font-semibold mb-3">Certification</h3>
+                  <h3 className="text-base font-semibold mb-3 text-white">Certification</h3>
                   <div className="space-y-2 text-sm">
                     {['80+ Gold','80+ Platinum'].map((certification) => (
-                      <label key={certification} className="flex items-center gap-2">
+                      <label key={certification} className="flex items-center gap-2 text-white">
                         <input 
                           type="checkbox" 
                           checked={selectedCertifications.includes(certification)}
@@ -491,15 +466,15 @@ function PSUPage() {
                         <span>{certification}</span>
                       </label>
                     ))}
-                    <button onClick={() => setShowCertificationPopup(true)} className="text-blue-600 text-xs">Show More</button>
+                    <button onClick={() => setShowCertificationPopup(true)} className="text-blue-400 text-xs">Show More</button>
                   </div>
                 </div>
 
                 <div>
-                  <h3 className="text-base font-semibold mb-3">Brand</h3>
+                  <h3 className="text-base font-semibold mb-3 text-white">Brand</h3>
                   <div className="space-y-2 text-sm">
                     {['Corsair','EVGA','Seasonic','Thermaltake','Cooler Master','ASUS'].map((brand) => (
-                      <label key={brand} className="flex items-center gap-2">
+                      <label key={brand} className="flex items-center gap-2 text-white">
                         <input 
                           type="checkbox" 
                           checked={selectedBrands.includes(brand)}
@@ -509,15 +484,15 @@ function PSUPage() {
                         <span>{brand}</span>
                       </label>
                     ))}
-                    <button onClick={() => setShowBrandPopup(true)} className="text-blue-600 text-xs">Show More</button>
+                    <button onClick={() => setShowBrandPopup(true)} className="text-blue-400 text-xs">Show More</button>
                   </div>
                 </div>
 
                 <div>
-                  <h3 className="text-base font-semibold mb-3">Fan Size</h3>
+                  <h3 className="text-base font-semibold mb-3 text-white">Fan Size</h3>
                   <div className="space-y-2 text-sm">
                     {['120mm','135mm','140mm'].map((fanSize) => (
-                      <label key={fanSize} className="flex items-center gap-2">
+                      <label key={fanSize} className="flex items-center gap-2 text-white">
                         <input 
                           type="checkbox" 
                           checked={selectedFanSizes.includes(fanSize)}
@@ -527,15 +502,15 @@ function PSUPage() {
                         <span>{fanSize}</span>
                       </label>
                     ))}
-                    <button onClick={() => setShowFanSizePopup(true)} className="text-blue-600 text-xs">Show More</button>
+                    <button onClick={() => setShowFanSizePopup(true)} className="text-blue-400 text-xs">Show More</button>
                   </div>
                 </div>
 
                 <div>
-                  <h3 className="text-base font-semibold mb-3">Fan Type</h3>
+                  <h3 className="text-base font-semibold mb-3 text-white">Fan Type</h3>
                   <div className="space-y-2 text-sm">
                     {['Sleeve Bearing','Fluid Dynamic Bearing'].map((fanType) => (
-                      <label key={fanType} className="flex items-center gap-2">
+                      <label key={fanType} className="flex items-center gap-2 text-white">
                         <input 
                           type="checkbox" 
                           checked={selectedFanTypes.includes(fanType)}
@@ -545,14 +520,14 @@ function PSUPage() {
                         <span>{fanType}</span>
                       </label>
                     ))}
-                    <button onClick={() => setShowFanTypePopup(true)} className="text-blue-600 text-xs">Show More</button>
+                    <button onClick={() => setShowFanTypePopup(true)} className="text-blue-400 text-xs">Show More</button>
                   </div>
                 </div>
 
                 <div>
-                  <h3 className="text-base font-semibold mb-3">RGB</h3>
+                  <h3 className="text-base font-semibold mb-3 text white">RGB</h3>
                   <div className="space-y-2 text-sm">
-                    <label className="flex items-center gap-2">
+                    <label className="flex items-center gap-2 text-white">
                       <input 
                         type="checkbox" 
                         checked={selectedRGB === true}
@@ -561,7 +536,7 @@ function PSUPage() {
                       />
                       <span>Yes</span>
                     </label>
-                    <label className="flex items-center gap-2">
+                    <label className="flex items-center gap-2 text-white">
                       <input 
                         type="checkbox" 
                         checked={selectedRGB === false}
@@ -576,19 +551,19 @@ function PSUPage() {
             </div>
 
             {/* Grid */}
-            <div className="flex-1">
+            <div className="flex-1" style={{ maxWidth: '100%', overflow: 'hidden' }}>
               {loading && (
                 <div className="flex justify-center items-center py-12">
-                  <div className="text-lg text-gray-600">Đang tải dữ liệu PSU...</div>
+                  <div className="text-lg text-white/70">Đang tải dữ liệu PSU...</div>
                 </div>
               )}
 
               {filteredPSUs.length === 0 ? (
                 <div className="text-center py-12">
-                  <div className="text-lg text-gray-600 mb-4">
+                  <div className="text-lg text-white/70 mb-4">
                     {psus.length === 0 ? 'Không có PSU nào trong database' : 'Không tìm thấy PSU nào phù hợp'}
                   </div>
-                  <div className="text-sm text-gray-500 mb-4">
+                  <div className="text-sm text-white/50 mb-4">
                     {psus.length === 0 ? 'Vui lòng thêm PSU vào database' : 'Thử điều chỉnh bộ lọc hoặc tìm kiếm khác'}
                   </div>
                   {psus.length > 0 && (
@@ -613,21 +588,21 @@ function PSUPage() {
                   )}
                 </div>
               ) : (
-                <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4 md:gap-6">
+                <div className="product-grid">
                   {filteredPSUs.map((psuItem) => (
-                    <div key={psuItem.id} className="rounded-lg border border-black/10 bg-white hover:bg-black/5 transition cursor-pointer" onClick={() => setSelectedPSU(psuItem)}>
+                    <div key={psuItem.id} className="rounded-lg border border-white/20 bg-white/10 hover:bg.white/20 transition cursor-pointer" onClick={() => setSelectedPSU(psuItem)}>
                       <div className="p-4">
                         <img src={psuItem.image} alt={psuItem.name} className="w-full h-48 object-cover rounded-lg mb-4" />
-                        <div className="text-sm font-medium mb-2 line-clamp-2">{psuItem.name}</div>
-                        <div className="text-lg font-bold mb-3">
+                        <div className="text-sm font-medium mb-2 line-clamp-2 text-white">{psuItem.name}</div>
+                        <div className="text-lg font-bold mb-3 text-white">
                           {psuItem.price > 0 ? `${psuItem.price.toLocaleString('vi-VN')} VND` : 'Liên hệ'}
                         </div>
-                        <div className="space-y-1 text-xs text-black/60 mb-4">
-                          <div className="flex justify-between"><span>Wattage:</span><span className="text-black">{psuItem.specs.wattage}</span></div>
-                          <div className="flex justify-between"><span>Efficiency:</span><span className="text-black">{psuItem.specs.efficiency}</span></div>
-                          <div className="flex justify-between"><span>Modular:</span><span className="text-black">{psuItem.specs.modular}</span></div>
-                          <div className="flex justify-between"><span>Form Factor:</span><span className="text-black">{psuItem.specs.formFactor}</span></div>
-                          <div className="flex justify-between"><span>Fan Size:</span><span className="text-black">{psuItem.specs.fanSize}</span></div>
+                        <div className="space-y-1 text-xs text-white/60 mb-4">
+                          <div className="flex justify-between"><span>Wattage:</span><span className="text-white">{psuItem.specs.wattage}</span></div>
+                          <div className="flex justify-between"><span>Efficiency:</span><span className="text-white">{psuItem.specs.efficiency}</span></div>
+                          <div className="flex justify-between"><span>Modular:</span><span className="text-white">{psuItem.specs.modular}</span></div>
+                          <div className="flex justify-between"><span>Form Factor:</span><span className="text-white">{psuItem.specs.formFactor}</span></div>
+                          <div className="flex justify-between"><span>Fan Size:</span><span className="text-white">{psuItem.specs.fanSize}</span></div>
                         </div>
                         <button className="w-full btn-primary">+ Add to build</button>
                       </div>

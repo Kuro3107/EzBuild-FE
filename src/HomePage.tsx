@@ -2,13 +2,10 @@ import './Homepage.css'
 import { useEffect, useRef, useState } from 'react'
 import { Link, useNavigate } from 'react-router-dom'
 import { ApiService } from './services/api'
-// Removed Ant Design imports - using native HTML/CSS instead
 import LandingHero from './components/LandingHero'
 import LandingFeatures from './components/LandingFeatures'
 import LandingStats from './components/LandingStats'
 import LandingFooter from './components/LandingFooter'
-
-// Removed Ant Design Layout destructuring
 
 function HomePage() {
   const [isProductsOpen, setIsProductsOpen] = useState(false)
@@ -19,32 +16,6 @@ function HomePage() {
   const userMenuRef = useRef<HTMLDivElement | null>(null)
   const navigate = useNavigate()
 
-  // Menu items for sidebar - simplified without Ant Design
-  const menuItems = [
-    { key: 'home', label: 'PC Builder', link: '/' },
-    { key: 'products', label: 'Products', children: [
-      { key: 'case', label: 'Case', link: '/products/case' },
-      { key: 'cpu', label: 'CPU', link: '/products/cpu' },
-      { key: 'mainboard', label: 'Mainboard', link: '/products/mainboard' },
-      { key: 'gpu', label: 'GPU', link: '/products/gpu' },
-      { key: 'ram', label: 'RAM', link: '/products/ram' },
-      { key: 'storage', label: 'Storage', link: '/products/storage' },
-      { key: 'psu', label: 'Power Supply', link: '/products/psu' },
-      { key: 'cooling', label: 'Cooling', link: '/products/cooling' },
-      { key: 'headset', label: 'Headset/Speaker', link: '/products/headset-speaker' },
-      { key: 'monitor', label: 'Monitor', link: '/products/monitor' },
-      { key: 'mouse', label: 'Mouse', link: '/products/mouse' },
-      { key: 'keyboard', label: 'Keyboard', link: '/products/keyboard' },
-    ]},
-    { key: 'sales', label: 'Sales', link: '/sales' },
-    { key: 'compare', label: 'Compare', link: '/compare' },
-    { key: 'gallery', label: 'PC Part Gallery' },
-    { key: 'builds', label: 'Completed Builds' },
-    { key: 'updates', label: 'Updates' },
-    { key: 'setup', label: 'Setup Builder' },
-    ...(ApiService.isStaff() && !ApiService.isAdmin() ? [{ key: 'staff', label: 'Staff Panel', link: '/staff' }] : []),
-    ...(ApiService.isAdmin() ? [{ key: 'admin', label: 'Admin Panel', link: '/admin' }] : []),
-  ]
 
   // Kiểm tra trạng thái đăng nhập khi component mount
   useEffect(() => {
@@ -135,7 +106,7 @@ function HomePage() {
 
 
   return (
-    <div style={{ minHeight: '100vh', background: 'linear-gradient(135deg, #1e3a8a 0%, #000000 100%)', color: 'white' }}>
+    <div style={{ minHeight: '100vh', background: 'linear-gradient(135deg, #1e3a8a 0%, #000000 100%)', color: 'white', overflowX: 'hidden' }}>
       {/* Header with user avatar or login button */}
       {currentUser ? (
         <header style={{ 
@@ -248,133 +219,10 @@ function HomePage() {
         </header>
       )}
 
-      <div style={{ display: 'flex', minHeight: '100vh' }}>
-        {/* Sidebar */}
-        <aside style={{ 
-          width: '256px',
-          background: '#000000',
-          borderRight: '1px solid #333333',
-          position: 'fixed',
-          height: '100vh',
-          left: 0,
-          top: 0,
-          zIndex: 100,
-          display: window.innerWidth >= 768 ? 'block' : 'none'
-        }}>
-          {/* Logo */}
-          <div style={{ 
-            padding: '16px', 
-            borderBottom: '1px solid #333333',
-            display: 'flex',
-            alignItems: 'center',
-            gap: '8px'
-          }}>
-            <div style={{ 
-              width: '24px', 
-              height: '24px', 
-              borderRadius: '6px', 
-              background: '#1e3a8a' 
-            }} />
-            <span style={{ fontWeight: '600', fontSize: '16px', color: 'white' }}>EzBuild</span>
-          </div>
-
-          {/* Menu */}
-          <nav style={{ 
-            height: 'calc(100% - 80px)', 
-            paddingTop: '8px',
-            background: '#000000',
-            overflowY: 'auto'
-          }}>
-            <div style={{ padding: '0 16px' }}>
-              <div style={{ color: '#8c8c8c', fontSize: '12px', fontWeight: '600', marginBottom: '16px', textTransform: 'uppercase' }}>APPS</div>
-              
-              {menuItems.map((item) => (
-                <div key={item.key}>
-                  {item.link ? (
-                    <Link 
-                      to={item.link}
-                      style={{ 
-                        display: 'block', 
-                        padding: '12px 16px', 
-                        color: 'white', 
-                        textDecoration: 'none',
-                        borderRadius: '6px',
-                        marginBottom: '4px',
-                        transition: 'background-color 0.2s'
-                      }}
-                      onMouseEnter={(e) => e.currentTarget.style.backgroundColor = '#1e3a8a'}
-                      onMouseLeave={(e) => e.currentTarget.style.backgroundColor = 'transparent'}
-                    >
-                      {item.label}
-                    </Link>
-                  ) : (
-                    <div style={{ 
-                      padding: '12px 16px', 
-                      color: 'white',
-                      cursor: 'pointer',
-                      borderRadius: '6px',
-                      marginBottom: '4px',
-                      transition: 'background-color 0.2s'
-                    }}
-                    onMouseEnter={(e) => e.currentTarget.style.backgroundColor = '#1e3a8a'}
-                    onMouseLeave={(e) => e.currentTarget.style.backgroundColor = 'transparent'}
-                    >
-                      {item.label}
-                    </div>
-                  )}
-                  
-                  {item.children && (
-                    <div style={{ marginLeft: '16px', marginTop: '8px' }}>
-                      {item.children.map((child) => (
-                        <Link 
-                          key={child.key}
-                          to={child.link}
-                          style={{ 
-                            display: 'block', 
-                            padding: '8px 16px', 
-                            color: '#cccccc', 
-                            textDecoration: 'none',
-                            fontSize: '14px',
-                            borderRadius: '6px',
-                            marginBottom: '2px',
-                            transition: 'background-color 0.2s'
-                          }}
-                          onMouseEnter={(e) => e.currentTarget.style.backgroundColor = '#1e3a8a'}
-                          onMouseLeave={(e) => e.currentTarget.style.backgroundColor = 'transparent'}
-                        >
-                          {child.label}
-                        </Link>
-                      ))}
-                    </div>
-                  )}
-                </div>
-              ))}
-            </div>
-          </nav>
-
-          {/* Footer links */}
-          <div style={{ 
-            position: 'absolute', 
-            bottom: '16px', 
-            left: '16px', 
-            right: '16px',
-            fontSize: '12px',
-            color: '#8c8c8c'
-          }}>
-            <div style={{ display: 'flex', gap: '12px' }}>
-              <a href="#" style={{ color: '#1e3a8a' }}>Contact</a>
-              <a href="#" style={{ color: '#1e3a8a' }}>FAQ</a>
-            </div>
-          </div>
-        </aside>
+      <div>
 
         {/* Main Content */}
-        <main style={{ 
-          marginLeft: window.innerWidth >= 768 ? '256px' : '0', 
-          background: 'linear-gradient(135deg, #1e3a8a 0%, #000000 100%)',
-          flex: 1,
-          minHeight: '100vh'
-        }}>
+        <main>
           {/* Landing Hero Section */}
           <LandingHero currentUser={currentUser} />
 
@@ -384,11 +232,11 @@ function HomePage() {
           {/* Landing Stats Section */}
           <LandingStats />
 
-          <div style={{ padding: '80px 40px', maxWidth: '1200px', margin: '0 auto' }}>
-            <div className="section-title" style={{ color: 'white', fontSize: '36px', fontWeight: 700, textAlign: 'center', marginBottom: '16px' }}>Quick Start</div>
+          <div style={{ padding: '60px 20px', maxWidth: '1200px', margin: '0 auto', width: '100%', boxSizing: 'border-box' }}>
+            <div className="section-title" style={{ color: 'white', fontSize: '32px', fontWeight: 700, textAlign: 'center', marginBottom: '24px' }}>Quick Start</div>
           
             {/* Desktop: Grid Layout */}
-            <div className="hidden md:grid md:grid-cols-3 gap-6">
+            <div className="hidden md:grid md:grid-cols-3 gap-4" style={{ maxWidth: '100%', overflow: 'hidden' }}>
               {[
                 { 
                   title: 'All-AMD Red Build', 
@@ -409,8 +257,8 @@ function HomePage() {
                   image: 'https://images.unsplash.com/photo-1556438064-2d7646166914?w=400&h=300&fit=crop'
                 },
               ].map((item) => (
-                 <article key={item.title} className="qs-card group" style={{ background: '#111111', borderRadius: '16px', border: '1px solid #333333', overflow: 'hidden' }}>
-                   <div className="qs-media relative overflow-hidden">
+                 <article key={item.title} className="qs-card group" style={{ background: '#111111', borderRadius: '16px', border: '1px solid #333333', overflow: 'hidden', maxWidth: '100%' }}>
+                   <div className="qs-media relative overflow-hidden" style={{ height: '200px' }}>
                      <img 
                        src={item.image} 
                        alt={item.title}
@@ -421,17 +269,17 @@ function HomePage() {
                        {item.price}
                      </div>
                    </div>
-                   <div className="qs-body" style={{ padding: '24px' }}>
-                     <div className="qs-title" style={{ color: 'white', fontSize: '20px', fontWeight: 700, marginBottom: '12px' }}>{item.title}</div>
-                     <p className="text-sm mb-3" style={{ color: 'rgba(255,255,255,0.7)' }}>{item.description}</p>
-                     <div className="qs-cta" style={{ background: '#1e3a8a', color: 'white', padding: '12px 24px', borderRadius: '8px', textAlign: 'center', fontWeight: 600, cursor: 'pointer' }}>Open Build</div>
+                   <div className="qs-body" style={{ padding: '16px' }}>
+                     <div className="qs-title" style={{ color: 'white', fontSize: '18px', fontWeight: 700, marginBottom: '8px' }}>{item.title}</div>
+                     <p className="text-sm mb-3" style={{ color: 'rgba(255,255,255,0.7)', fontSize: '12px' }}>{item.description}</p>
+                     <div className="qs-cta" style={{ background: '#1e3a8a', color: 'white', padding: '8px 16px', borderRadius: '6px', textAlign: 'center', fontWeight: 600, cursor: 'pointer', fontSize: '14px' }}>Open Build</div>
                   </div>
                 </article>
               ))}
             </div>
 
             {/* Mobile: Simple Grid Layout (replaced Carousel) */}
-            <div className="md:hidden grid grid-cols-1 gap-4">
+            <div className="md:hidden grid grid-cols-1 gap-4" style={{ maxWidth: '100%', overflow: 'hidden' }}>
               {[
                 { 
                   title: 'All-AMD Red Build', 
@@ -452,19 +300,19 @@ function HomePage() {
                   image: 'https://images.unsplash.com/photo-1556438064-2d7646166914?w=400&h=300&fit=crop'
                 },
                ].map((item, index) => (
-                 <article key={index} className="qs-card group" style={{ background: '#111111', borderRadius: '16px', border: '1px solid #333333', overflow: 'hidden' }}>
-                   <div className="qs-media relative overflow-hidden h-48">
+                 <article key={index} className="qs-card group" style={{ background: '#111111', borderRadius: '16px', border: '1px solid #333333', overflow: 'hidden', maxWidth: '100%' }}>
+                   <div className="qs-media relative overflow-hidden" style={{ height: '200px' }}>
                      <img 
                        src={item.image} 
                        alt={item.title}
                        className="w-full h-full object-cover transition-transform duration-300 group-hover:scale-105"
                      />
                      <div className="absolute inset-0 bg-gradient-to-t from-black/50 to-transparent" />
-                     <div className="absolute bottom-3 left-3 text-white font-bold text-xl">
+                     <div className="absolute bottom-3 left-3 text-white font-bold text-lg">
                        {item.price}
                      </div>
                    </div>
-                   <div className="qs-body p-4">
+                   <div className="qs-body" style={{ padding: '16px' }}>
                      <div className="qs-title text-lg font-bold mb-2" style={{ color: 'white' }}>{item.title}</div>
                      <p className="text-sm mb-4" style={{ color: 'rgba(255,255,255,0.7)' }}>{item.description}</p>
                      <div className="qs-cta px-4 py-2 rounded-lg text-center font-medium transition-colors" style={{ background: '#1e3a8a', color: 'white' }}>
