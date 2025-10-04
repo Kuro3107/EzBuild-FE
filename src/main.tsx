@@ -3,7 +3,8 @@ import { createRoot } from 'react-dom/client'
 import { BrowserRouter as Router, Routes, Route } from 'react-router-dom'
 import './index.css'
 import ProtectedRoute from './components/ProtectedRoute'
-import HomePage from './HomePage.tsx'
+import HomePage from './pages/homepage/index.tsx'
+import PCBuilderPage from './pages/pcbuilder/index.tsx'
 import AppShell from './components/AppShell'
 import SalesPage from './pages/sales/index.tsx'
 import CasePage from './pages/products/case.tsx'
@@ -31,8 +32,9 @@ createRoot(document.getElementById('root')!).render(
       <Routes>
         <Route path="/login" element={<LoginPage />} />
         <Route path="/register" element={<RegisterPage />} />
+        <Route path="/" element={<HomePage />} />
         <Route element={<AppShell />}>
-          <Route path="/" element={<HomePage />} />
+          <Route path="/pcbuilder" element={<PCBuilderPage />} />
           <Route path="/sales" element={<SalesPage />} />
           <Route path="/compare" element={<ComparePage />} />
           <Route path="/products/case" element={<CasePage />} />
