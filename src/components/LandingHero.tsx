@@ -1,4 +1,5 @@
 import React from 'react'
+import { Link } from 'react-router-dom'
 // Removed Ant Design imports - using native HTML/CSS instead
 
 interface LandingHeroProps {
@@ -50,7 +51,8 @@ const LandingHero: React.FC<LandingHeroProps> = ({ currentUser }) => {
             </p>
             
             <div style={{ display: 'flex', gap: '16px', flexWrap: 'wrap', marginBottom: '24px' }}>
-              <button 
+              <Link 
+                to="/pcbuilder"
                 style={{
                   height: '52px',
                   padding: '0 36px',
@@ -64,7 +66,8 @@ const LandingHero: React.FC<LandingHeroProps> = ({ currentUser }) => {
                   alignItems: 'center',
                   gap: '8px',
                   cursor: 'pointer',
-                  transition: 'all 0.3s ease'
+                  transition: 'all 0.3s ease',
+                  textDecoration: 'none'
                 }}
                 onMouseEnter={(e) => {
                   e.currentTarget.style.background = '#3b82f6'
@@ -80,7 +83,7 @@ const LandingHero: React.FC<LandingHeroProps> = ({ currentUser }) => {
                   <path d="M12 5l7 7-7 7"/>
                 </svg>
                 Start Building
-              </button>
+              </Link>
               
               <button 
                 style={{
@@ -119,7 +122,8 @@ const LandingHero: React.FC<LandingHeroProps> = ({ currentUser }) => {
                 <span style={{ color: 'rgba(255,255,255,0.7)', fontSize: '14px' }}>
                   Already have an account?
                 </span>
-                <button 
+                <Link 
+                  to="/login"
                   style={{ 
                     color: '#ffd700', 
                     padding: 0,
@@ -132,7 +136,7 @@ const LandingHero: React.FC<LandingHeroProps> = ({ currentUser }) => {
                   }}
                 >
                   Sign In
-                </button>
+                </Link>
               </div>
             )}
           </div>

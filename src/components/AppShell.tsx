@@ -13,7 +13,7 @@ function AppShell() {
   const navigate = useNavigate()
 
   const menuItems = [
-    { key: 'home', label: 'PC Builder', link: '/' },
+    { key: 'home', label: 'PC Builder', link: '/pcbuilder' },
     { key: 'products', label: 'Products', children: [
       { key: 'case', label: 'Case', link: '/products/case' },
       { key: 'cpu', label: 'CPU', link: '/products/cpu' },
@@ -156,10 +156,10 @@ function AppShell() {
 
       <div style={{ display: 'flex', minHeight: '100vh' }}>
         <aside style={{ width: '256px', background: '#000000', borderRight: '1px solid #333333', position: 'fixed', height: '100vh', left: 0, top: 0, zIndex: 100, display: window.innerWidth >= 768 ? 'block' : 'none' }}>
-          <div style={{ padding: '16px', borderBottom: '1px solid #333333', display: 'flex', alignItems: 'center', gap: '8px' }}>
+          <Link to="/" style={{ padding: '16px', borderBottom: '1px solid #333333', display: 'flex', alignItems: 'center', gap: '8px', textDecoration: 'none' }}>
             <div style={{ width: '24px', height: '24px', borderRadius: '6px', background: '#1e3a8a' }} />
             <span style={{ fontWeight: '600', fontSize: '16px', color: 'white' }}>EzBuild</span>
-          </div>
+          </Link>
           <nav style={{ height: 'calc(100% - 80px)', paddingTop: '8px', background: '#000000', overflowY: 'auto' }}>
             <div style={{ padding: '0 16px' }}>
               {menuItems.map((item) => (

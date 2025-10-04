@@ -1,11 +1,11 @@
-import './Homepage.css'
+import '../../Homepage.css'
 import { useEffect, useRef, useState } from 'react'
 import { Link, useNavigate } from 'react-router-dom'
-import { ApiService } from './services/api'
-import LandingHero from './components/LandingHero'
-import LandingFeatures from './components/LandingFeatures'
-import LandingStats from './components/LandingStats'
-import LandingFooter from './components/LandingFooter'
+import { ApiService } from '../../services/api'
+import LandingHero from '../../components/LandingHero'
+import LandingFeatures from '../../components/LandingFeatures'
+import LandingStats from '../../components/LandingStats'
+import LandingFooter from '../../components/LandingFooter'
 
 function HomePage() {
   const [isProductsOpen, setIsProductsOpen] = useState(false)
@@ -15,7 +15,6 @@ function HomePage() {
   const popoverRef = useRef<HTMLDivElement | null>(null)
   const userMenuRef = useRef<HTMLDivElement | null>(null)
   const navigate = useNavigate()
-
 
   // Kiểm tra trạng thái đăng nhập khi component mount
   useEffect(() => {
@@ -103,7 +102,6 @@ function HomePage() {
       alert('Đăng xuất thành công!')
     }
   }
-
 
   return (
     <div style={{ minHeight: '100vh', background: 'linear-gradient(135deg, #1e3a8a 0%, #000000 100%)', color: 'white', overflowX: 'hidden' }}>
@@ -220,7 +218,6 @@ function HomePage() {
       )}
 
       <div>
-
         {/* Main Content */}
         <main>
           {/* Landing Hero Section */}
@@ -333,5 +330,3 @@ function HomePage() {
 }
 
 export default HomePage
-
-
