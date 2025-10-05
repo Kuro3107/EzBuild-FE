@@ -4,7 +4,6 @@ import { BrowserRouter as Router, Routes, Route } from 'react-router-dom'
 import './index.css'
 import ProtectedRoute from './components/ProtectedRoute'
 import HomePage from './pages/homepage/index.tsx'
-import PCBuilderPage from './pages/pcbuilder/index.tsx'
 import AppShell from './components/AppShell'
 import SalesPage from './pages/sales/index.tsx'
 import CasePage from './pages/products/case.tsx'
@@ -25,18 +24,21 @@ import ComparePage from './pages/compare/compare.tsx'
 import StaffPage from './pages/staff/index.tsx'
 import AdminPage from './pages/admin/index.tsx'
 import CustomerProfilePage from './pages/customer/index.tsx'
+import PCBuilderPage from './pages/pcbuilder/index.tsx'
+import OAuth2RedirectHandler from "./pages/login&register/OAuth2RedirectHandler"  
 
 createRoot(document.getElementById('root')!).render(
   <StrictMode>
     <Router>
       <Routes>
         <Route path="/login" element={<LoginPage />} />
+        <Route path="/oauth2/redirect" element={<OAuth2RedirectHandler />} />
         <Route path="/register" element={<RegisterPage />} />
-        <Route path="/" element={<HomePage />} />
         <Route element={<AppShell />}>
-          <Route path="/pcbuilder" element={<PCBuilderPage />} />
+          <Route path="/" element={<HomePage />} />
           <Route path="/sales" element={<SalesPage />} />
           <Route path="/compare" element={<ComparePage />} />
+          <Route path="/pcbuilder" element={<PCBuilderPage />} />
           <Route path="/products/case" element={<CasePage />} />
           <Route path="/products/cpu" element={<CPUPage />} />
           <Route path="/products/mainboard" element={<MainboardPage />} />
