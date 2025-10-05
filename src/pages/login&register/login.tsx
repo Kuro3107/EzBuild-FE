@@ -230,6 +230,11 @@ function LoginPage() {
             <Link to="/register" className="auth-link">Sign Up</Link>
           </div>
           
+          <div className="auth-switch">
+            Forget Password?{' '}
+            <Link to="/forgot-password" className="auth-link">Click to reset Password</Link>
+          </div>
+          
    
         </div>
       </div>

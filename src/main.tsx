@@ -20,6 +20,7 @@ import MousePage from './pages/products/mouse.tsx'
 import KeyboardPage from './pages/products/keyboard.tsx'
 import LoginPage from './pages/login&register/login.tsx'
 import RegisterPage from './pages/login&register/register.tsx'
+import ForgotPasswordPage from './pages/login&register/forgot-password.tsx'
 import ComparePage from './pages/compare/compare.tsx'
 import StaffPage from './pages/staff/index.tsx'
 import AdminPage from './pages/admin/index.tsx'
@@ -34,6 +35,7 @@ createRoot(document.getElementById('root')!).render(
         <Route path="/login" element={<LoginPage />} />
         <Route path="/oauth2/redirect" element={<OAuth2RedirectHandler />} />
         <Route path="/register" element={<RegisterPage />} />
+        <Route path="/forgot-password" element={<ForgotPasswordPage />} />
         <Route element={<AppShell />}>
           <Route path="/" element={<HomePage />} />
           <Route path="/sales" element={<SalesPage />} />
