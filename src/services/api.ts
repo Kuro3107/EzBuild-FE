@@ -201,6 +201,137 @@ export class ApiService {
     return this.extractTokenFromResponse(data)
   }
 
+  static async sendOTP(email: string): Promise<{ message: string }> {
+    console.log('=== SEND OTP DEBUG ===')
+    console.log('API URL:', `${API_BASE_URL}/api/auth/forgot-password`)
+    console.log('Email:', email)
+    
+    const response = await fetch(`${API_BASE_URL}/api/auth/forgot-password`, {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/x-www-form-urlencoded',
+      },
+      body: `email=${encodeURIComponent(email)}`,
+    })
+
+    console.log('Response status:', response.status)
+    console.log('Response headers:', Object.fromEntries(response.headers.entries()))
+
+    if (!response.ok) {
+      let errorData = {}
+      try {
+        errorData = await response.json()
+      } catch (parseError) {
+        console.error('Error parsing response JSON:', parseError)
+      }
+      
+      console.log('=== API ERROR DEBUG ===')
+      console.log('Status:', response.status)
+      console.log('Status Text:', response.statusText)
+      console.log('Error Data:', errorData)
+      
+      const error: ApiError = {
+        message: (errorData as Record<string, unknown>)?.message as string || (errorData as Record<string, unknown>)?.error as string || `HTTP ${response.status}: ${response.statusText}`,
+        status: response.status
+      }
+      throw error
+    }
+
+    // Backend trả về text thay vì JSON
+    const responseText = await response.text()
+    console.log('Response text:', responseText)
+    
+    return { message: responseText }
+  }
+
+  static async validateOTP(email: string, otp: string): Promise<{ message: string }> {
+    console.log('=== VALIDATE OTP DEBUG ===')
+    console.log('API URL:', `${API_BASE_URL}/api/auth/validate-otp`)
+    console.log('Email:', email)
+    console.log('OTP:', otp)
+    
+    const response = await fetch(`${API_BASE_URL}/api/auth/validate-otp`, {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/x-www-form-urlencoded',
+      },
+      body: `email=${encodeURIComponent(email)}&otp=${encodeURIComponent(otp)}`,
+    })
+
+    console.log('Response status:', response.status)
+    console.log('Response headers:', Object.fromEntries(response.headers.entries()))
+
+    if (!response.ok) {
+      let errorData = {}
+      try {
+        errorData = await response.json()
+      } catch (parseError) {
+        console.error('Error parsing response JSON:', parseError)
+      }
+      
+      console.log('=== API ERROR DEBUG ===')
+      console.log('Status:', response.status)
+      console.log('Status Text:', response.statusText)
+      console.log('Error Data:', errorData)
+      
+      const error: ApiError = {
+        message: (errorData as Record<string, unknown>)?.message as string || (errorData as Record<string, unknown>)?.error as string || `HTTP ${response.status}: ${response.statusText}`,
+        status: response.status
+      }
+      throw error
+    }
+
+    // Backend trả về text thay vì JSON
+    const responseText = await response.text()
+    console.log('Response text:', responseText)
+    
+    return { message: responseText }
+  }
+
+  static async resetPassword(email: string, otp: string, newPassword: string): Promise<{ message: string }> {
+    console.log('=== RESET PASSWORD DEBUG ===')
+    console.log('API URL:', `${API_BASE_URL}/api/auth/reset-password`)
+    console.log('Email:', email)
+    console.log('OTP:', otp)
+    
+    const response = await fetch(`${API_BASE_URL}/api/auth/reset-password`, {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/x-www-form-urlencoded',
+      },
+      body: `email=${encodeURIComponent(email)}&otp=${encodeURIComponent(otp)}&newPassword=${encodeURIComponent(newPassword)}`,
+    })
+
+    console.log('Response status:', response.status)
+    console.log('Response headers:', Object.fromEntries(response.headers.entries()))
+
+    if (!response.ok) {
+      let errorData = {}
+      try {
+        errorData = await response.json()
+      } catch (parseError) {
+        console.error('Error parsing response JSON:', parseError)
+      }
+      
+      console.log('=== API ERROR DEBUG ===')
+      console.log('Status:', response.status)
+      console.log('Status Text:', response.statusText)
+      console.log('Error Data:', errorData)
+      
+      const error: ApiError = {
+        message: (errorData as Record<string, unknown>)?.message as string || (errorData as Record<string, unknown>)?.error as string || `HTTP ${response.status}: ${response.statusText}`,
+        status: response.status
+      }
+      throw error
+    }
+
+    // Backend trả về text thay vì JSON
+    const responseText = await response.text()
+    console.log('Response text:', responseText)
+    
+    return { message: responseText }
+  }
+
   static async getUserProfile(userId: string): Promise<Record<string, unknown>> {
     const token = localStorage.getItem('authToken')
     if (!token) {
