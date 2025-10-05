@@ -49,7 +49,7 @@ export class ApiService {
       console.log('Error Data:', errorData)
       
       const error: ApiError = {
-        message: (errorData as any)?.message || (errorData as any)?.error || `HTTP ${response.status}: ${response.statusText}`,
+        message: (errorData as Record<string, unknown>)?.message as string || (errorData as Record<string, unknown>)?.error as string || `HTTP ${response.status}: ${response.statusText}`,
         status: response.status
       }
       throw error
@@ -123,11 +123,30 @@ export class ApiService {
 
   static decodeToken(token: string): Record<string, unknown> | null {
     try {
-      const decoded = atob(token)
-      const jsonString = decodeURIComponent(decoded)
-      return JSON.parse(jsonString)
+      // Kiểm tra nếu là JWT token (có 3 phần được phân tách bởi dấu chấm)
+      if (token.includes('.') && token.split('.').length === 3) {
+        console.log('Detected JWT token format')
+        // JWT token: header.payload.signature
+        const parts = token.split('.')
+        const payload = parts[1]
+        
+        // Decode base64url (JWT sử dụng base64url, không phải base64 thông thường)
+        const base64 = payload.replace(/-/g, '+').replace(/_/g, '/')
+        const padded = base64 + '='.repeat((4 - base64.length % 4) % 4)
+        const decoded = atob(padded)
+        
+        console.log('JWT payload decoded:', decoded)
+        return JSON.parse(decoded)
+      } else {
+        // Token tự tạo (base64 encoded JSON)
+        console.log('Detected custom token format')
+        const decoded = atob(token)
+        const jsonString = decodeURIComponent(decoded)
+        return JSON.parse(jsonString)
+      }
     } catch (error) {
       console.error('Error decoding token:', error)
+      console.error('Token that failed to decode:', token)
       return null
     }
   }
@@ -197,6 +216,176 @@ export class ApiService {
     })
 
     return this.handleResponse<Record<string, unknown>>(response)
+  }
+
+  // Method để lấy thông tin user hiện tại từ backend
+  static async getCurrentUserProfile(): Promise<Record<string, unknown> | null> {
+    const token = localStorage.getItem('authToken')
+    if (!token) {
+      return null
+    }
+
+    try {
+      // Thử gọi API /api/user/home để lấy thông tin user
+      const response = await fetch(`${API_BASE_URL}/api/user/home`, {
+        method: 'GET',
+        headers: {
+          'Authorization': `Bearer ${token}`,
+          'Content-Type': 'application/json',
+        },
+      })
+
+      if (response.ok) {
+        const responseText = await response.text()
+        console.log('Raw response from /api/user/home:', responseText)
+        
+        // Backend trả về string "Xin chào email", cần extract email
+        const emailMatch = responseText.match(/Xin chào (.+)/)
+        if (emailMatch) {
+          const email = emailMatch[1]
+          console.log('Extracted email from response:', email)
+          
+          // Tạo user object với thông tin cơ bản
+          const userData = {
+            email: email,
+            fullname: email.split('@')[0], // Lấy phần trước @ làm tên
+            username: email.split('@')[0],
+            role: 'User', // Default role, sẽ được cập nhật từ database
+            userId: email,
+            phone: '',
+            dob: '',
+            address: ''
+          }
+          
+          console.log('Created user data:', userData)
+          return userData
+        }
+        
+        return null
+      } else {
+        console.log('Failed to get user profile from API:', response.status)
+        return null
+      }
+    } catch (error) {
+      console.error('Error fetching user profile:', error)
+      return null
+    }
+  }
+
+  // Method để lấy thông tin user đầy đủ từ database (cần backend endpoint mới)
+  static async getUserByEmail(email: string): Promise<Record<string, unknown> | null> {
+    const token = localStorage.getItem('authToken')
+    if (!token) {
+      console.log('No auth token found for getUserByEmail')
+      return null
+    }
+
+    const url = `${API_BASE_URL}/api/user/by-email/${encodeURIComponent(email)}`
+    console.log('Calling getUserByEmail API:', url)
+    console.log('Using token:', token.substring(0, 20) + '...')
+
+    try {
+      // Gọi API để lấy thông tin user đầy đủ từ database
+      const response = await fetch(url, {
+        method: 'GET',
+        headers: {
+          'Authorization': `Bearer ${token}`,
+          'Content-Type': 'application/json',
+        },
+      })
+
+      console.log('getUserByEmail response status:', response.status)
+      console.log('getUserByEmail response headers:', Object.fromEntries(response.headers.entries()))
+
+      if (response.ok) {
+        const userData = await response.json()
+        console.log('Full user data from database:', userData)
+        return userData
+      } else {
+        const errorText = await response.text()
+        console.log('Failed to get user by email from API:', response.status, errorText)
+        return null
+      }
+    } catch (error) {
+      console.error('Error fetching user by email:', error)
+      return null
+    }
+  }
+
+  // Method để thử lấy thông tin user từ nhiều endpoint khác nhau
+  static async tryGetUserInfo(email: string): Promise<Record<string, unknown> | null> {
+    const token = localStorage.getItem('authToken')
+    if (!token) {
+      return null
+    }
+
+    // Thử các endpoint khác nhau
+    const endpoints = [
+      `/api/user/by-email/${encodeURIComponent(email)}`,
+      `/api/user/profile`,
+      `/api/user/me`,
+      `/api/user/current`
+    ]
+
+    for (const endpoint of endpoints) {
+      try {
+        console.log(`Trying endpoint: ${endpoint}`)
+        const response = await fetch(`${API_BASE_URL}${endpoint}`, {
+          method: 'GET',
+          headers: {
+            'Authorization': `Bearer ${token}`,
+            'Content-Type': 'application/json',
+          },
+        })
+
+        if (response.ok) {
+          const userData = await response.json()
+          console.log(`Success with endpoint ${endpoint}:`, userData)
+          return userData
+        } else {
+          console.log(`Endpoint ${endpoint} failed with status:`, response.status)
+        }
+      } catch (error) {
+        console.log(`Endpoint ${endpoint} error:`, error)
+      }
+    }
+
+    console.log('All endpoints failed, returning null')
+    return null
+  }
+
+  // Method để lấy user info từ database bằng cách gọi login API với email
+  static async getUserInfoByEmail(email: string): Promise<Record<string, unknown> | null> {
+    try {
+      console.log('Trying to get user info by calling login API with email...')
+      
+      // Gọi login API với email (không cần password cho OAuth user)
+      const response = await fetch(`${API_BASE_URL}/api/user/login`, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({
+          identifier: email,
+          password: 'oauth_user' // Dummy password, backend cần xử lý OAuth user
+        })
+      })
+
+      if (response.ok) {
+        const loginData = await response.json()
+        console.log('Login API response for OAuth user:', loginData)
+        
+        if (loginData.user) {
+          return loginData.user
+        }
+      } else {
+        console.log('Login API failed for OAuth user:', response.status)
+      }
+    } catch (error) {
+      console.error('Error calling login API for OAuth user:', error)
+    }
+    
+    return null
   }
 
   static async updateUserProfile(userId: string, userData: Record<string, unknown>): Promise<Record<string, unknown>> {
@@ -485,12 +674,26 @@ export class ApiService {
       const decoded = this.decodeToken(token)
       if (!decoded) return false
 
-      // Kiểm tra timestamp (token hết hạn sau 24h)
-      const tokenTime = decoded.timestamp as number
-      const currentTime = Date.now()
-      const maxAge = 24 * 60 * 60 * 1000 // 24 hours
+      // Kiểm tra nếu là JWT token từ backend (có exp field)
+      if (decoded.exp) {
+        const currentTime = Math.floor(Date.now() / 1000) // JWT exp là seconds
+        const tokenExp = decoded.exp as number
+        console.log('JWT token validation:', { currentTime, tokenExp, isValid: currentTime < tokenExp })
+        return currentTime < tokenExp
+      }
 
-      return (currentTime - tokenTime) < maxAge
+      // Kiểm tra timestamp cho token tự tạo (token hết hạn sau 24h)
+      if (decoded.timestamp) {
+        const tokenTime = decoded.timestamp as number
+        const currentTime = Date.now()
+        const maxAge = 24 * 60 * 60 * 1000 // 24 hours
+        console.log('Custom token validation:', { currentTime, tokenTime, isValid: (currentTime - tokenTime) < maxAge })
+        return (currentTime - tokenTime) < maxAge
+      }
+
+      // Nếu không có exp hoặc timestamp, coi như hợp lệ (để tương thích)
+      console.log('Token without exp/timestamp, assuming valid')
+      return true
     } catch (error) {
       console.error('Error validating token:', error)
       return false
@@ -499,23 +702,90 @@ export class ApiService {
 
   static getCurrentUser(): Record<string, unknown> | null {
     const token = localStorage.getItem('authToken')
-    if (!token) return null
+    if (!token) {
+      console.log('No auth token found in getCurrentUser')
+      return null
+    }
+
+    console.log('=== GET CURRENT USER DEBUG ===')
+    console.log('Token exists:', !!token)
+    console.log('Token valid:', this.isTokenValid(token))
 
     // Kiểm tra token có hợp lệ không
     if (!this.isTokenValid(token)) {
+      console.log('Token is invalid, clearing auth data')
       // Token không hợp lệ, xóa khỏi localStorage
       localStorage.removeItem('authToken')
       localStorage.removeItem('authUser')
       return null
     }
 
+    // Ưu tiên lấy user info từ localStorage (thông tin đầy đủ từ API)
+    const authUser = localStorage.getItem('authUser')
+    if (authUser) {
+      try {
+        const user = JSON.parse(authUser)
+        console.log('Using user info from localStorage:', user)
+        return user
+      } catch (error) {
+        console.error('Error parsing authUser from localStorage:', error)
+      }
+    }
+
+    // Fallback: lấy từ token
     const decoded = this.decodeToken(token)
-    return decoded || null
+    if (!decoded) {
+      console.log('Failed to decode token')
+      return null
+    }
+
+    console.log('Decoded token:', decoded)
+
+    // Xử lý JWT token từ backend Spring Boot
+    if (decoded.sub || decoded.userId || decoded.username) {
+      // JWT token từ backend chỉ có sub (email), cần tạo user info cơ bản
+      const email = decoded.sub || decoded.email
+      const userInfo = {
+        userId: decoded.sub || decoded.userId || decoded.id,
+        username: decoded.username || decoded.sub,
+        email: email, // Backend dùng sub = email
+        fullname: decoded.fullname || decoded.name || (email && typeof email === 'string' ? email.split('@')[0] : 'Google User'),
+        role: decoded.role || (Array.isArray(decoded.authorities) ? decoded.authorities[0] : undefined) || 'User',
+        phone: decoded.phone || '',
+        dob: decoded.dob || '',
+        address: decoded.address || '',
+        createdAt: decoded.createdAt || decoded.iat,
+        // Giữ nguyên các field khác từ JWT
+        ...decoded
+      }
+      console.log('Extracted user info from JWT:', userInfo)
+      return userInfo
+    }
+
+    // Token tự tạo (đã có đầy đủ thông tin)
+    console.log('Using custom token user info:', decoded)
+    return decoded
   }
 
   static getUserRole(): string | null {
+    // Ưu tiên lấy role từ localStorage (thông tin đầy đủ từ API)
+    const authUser = localStorage.getItem('authUser')
+    if (authUser) {
+      try {
+        const user = JSON.parse(authUser)
+        const role = user.role
+        console.log('User role from localStorage:', role)
+        return role || null
+      } catch (error) {
+        console.error('Error parsing authUser from localStorage:', error)
+      }
+    }
+    
+    // Fallback: lấy từ token
     const user = this.getCurrentUser()
-    return user?.role as string || null
+    const role = user?.role as string || null
+    console.log('User role from token (fallback):', role)
+    return role
   }
 
   static isAdmin(): boolean {
@@ -558,10 +828,22 @@ export class ApiService {
 
   // Function để kiểm tra và clear dữ liệu cũ
   static checkAndClearOldData(): void {
+    console.log('=== CHECK AND CLEAR OLD DATA ===')
     const token = localStorage.getItem('authToken')
-    if (token && !this.isTokenValid(token)) {
-      console.log('Phát hiện token cũ hoặc không hợp lệ, đang xóa...')
-      this.clearAuthData()
+    console.log('Token exists:', !!token)
+    
+    if (token) {
+      const isValid = this.isTokenValid(token)
+      console.log('Token is valid:', isValid)
+      
+      if (!isValid) {
+        console.log('Phát hiện token cũ hoặc không hợp lệ, đang xóa...')
+        this.clearAuthData()
+      } else {
+        console.log('Token is valid, keeping auth data')
+      }
+    } else {
+      console.log('No token found')
     }
   }
 }

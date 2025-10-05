@@ -61,7 +61,7 @@ function CustomerProfilePage() {
         return
       }
 
-      if (!currentUser?.userId) {
+      if (!currentUser?.id && !currentUser?.userId) {
         if (isMounted) {
           setError('Không tìm thấy thông tin user')
           setIsLoading(false)
@@ -69,68 +69,61 @@ function CustomerProfilePage() {
         return
       }
 
-      try {
+      // Ưu tiên sử dụng dữ liệu từ localStorage trước
+      if (currentUser && (currentUser.id || currentUser.userId)) {
+        const fallbackData: UserProfile = {
+          id: String(currentUser.id || currentUser.userId || ''),
+          email: String(currentUser.email || ''),
+          username: String(currentUser.username || ''),
+          fullname: String(currentUser.fullname || ''),
+          phone: String(currentUser.phone || ''),
+          address: String(currentUser.address || ''),
+          dob: String(currentUser.dob || ''),
+          role: String(currentUser.role || 'Customer'),
+          createdAt: String(currentUser.createdAt || currentUser.timestamp || ''),
+          avatar: '',
+          bio: ''
+        }
+        
         if (isMounted) {
-          setIsLoading(true)
-          setError(null)
-        }
-        
-        console.log('Fetching user data for userId:', currentUser.userId)
-        
-        // Fetch user profile từ backend
-        const userData = await ApiService.getUserProfile(currentUser.userId.toString())
-        
-        if (!isMounted) return // Component đã unmount, không update state
-        
-        // Transform data để phù hợp với interface
-        const transformedData: UserProfile = {
-          id: userData.id?.toString() || currentUser.userId?.toString() || '',
-          email: String(userData.email || currentUser.email || ''),
-          username: String(userData.username || currentUser.username || ''),
-          fullname: String(userData.fullname || currentUser.fullname || ''),
-          phone: String(userData.phone || ''),
-          address: String(userData.address || ''),
-          dob: String(userData.dob || ''),
-          role: String(userData.role || currentUser.role || 'Customer'),
-          createdAt: String(userData.createdAt || currentUser.timestamp?.toString() || ''),
-          avatar: String(userData.avatar || ''),
-          bio: String(userData.bio || '')
-        }
-        
-        setProfile(transformedData)
-        setFormData(transformedData)
-        
-        console.log('User data loaded:', transformedData)
-      } catch (error) {
-        console.error('Error fetching user data:', error)
-        
-        if (!isMounted) return
-        
-        setError('Không thể tải thông tin user')
-        
-        // Fallback: sử dụng data từ token nếu có
-        if (currentUser) {
-          const fallbackData: UserProfile = {
-            id: String(currentUser.userId || ''),
-            email: String(currentUser.email || ''),
-            username: String(currentUser.username || ''),
-            fullname: String(currentUser.fullname || ''),
-            phone: '',
-            address: '',
-            dob: '',
-            role: String(currentUser.role || 'Customer'),
-            createdAt: String(currentUser.timestamp || ''),
-            avatar: '',
-            bio: ''
-          }
           setProfile(fallbackData)
           setFormData(fallbackData)
-        }
-      } finally {
-        if (isMounted) {
           setIsLoading(false)
+          console.log('Using data from localStorage:', fallbackData)
         }
+        
+        // Vẫn thử fetch từ API để cập nhật dữ liệu mới nhất
+        try {
+          const userId = currentUser.id || currentUser.userId
+          const userData = await ApiService.getUserProfile(String(userId))
+          
+          if (!isMounted) return
+          
+          const transformedData: UserProfile = {
+            id: userData.id?.toString() || currentUser.id?.toString() || currentUser.userId?.toString() || '',
+            email: String(userData.email || currentUser.email || ''),
+            username: String(userData.username || currentUser.username || ''),
+            fullname: String(userData.fullname || currentUser.fullname || ''),
+            phone: String(userData.phone || currentUser.phone || ''),
+            address: String(userData.address || currentUser.address || ''),
+            dob: String(userData.dob || currentUser.dob || ''),
+            role: String(userData.role || currentUser.role || 'Customer'),
+            createdAt: String(userData.createdAt || currentUser.createdAt || currentUser.timestamp?.toString() || ''),
+            avatar: String(userData.avatar || ''),
+            bio: String(userData.bio || '')
+          }
+          
+          setProfile(transformedData)
+          setFormData(transformedData)
+          console.log('Updated with fresh data from API:', transformedData)
+        } catch (apiError) {
+          console.log('API fetch failed, keeping localStorage data:', apiError)
+          // Không cần xử lý lỗi ở đây vì đã có fallback data
+        }
+        
+        return
       }
+
     }
 
     fetchUserData()
@@ -139,7 +132,7 @@ function CustomerProfilePage() {
     return () => {
       isMounted = false
     }
-  }, [currentUser?.userId, currentUser?.email]) // Dependency array với các giá trị cần thiết
+  }, [currentUser, profile.id, profile.email]) // Dependency array với các giá trị cần thiết
 
   /**
    * Xử lý khi user thay đổi giá trị trong form
@@ -231,16 +224,6 @@ function CustomerProfilePage() {
     setIsEditing(false)
   }
 
-  /**
-   * Xử lý xóa avatar
-   * Xóa ảnh avatar khỏi form data
-   */
-  const handleRemoveAvatar = () => {
-    setFormData(prev => ({
-      ...prev,
-      avatar: ''
-    }))
-  }
 
   // Loading state
   if (isLoading) {

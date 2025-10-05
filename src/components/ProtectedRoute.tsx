@@ -12,16 +12,26 @@ function ProtectedRoute({ children, requiredRole, fallbackPath = '/login' }: Pro
   const location = useLocation()
   const currentUser = ApiService.getCurrentUser()
 
+  console.log('=== PROTECTED ROUTE DEBUG ===')
+  console.log('Current location:', location.pathname)
+  console.log('Required role:', requiredRole)
+  console.log('Current user:', currentUser)
+  console.log('Auth token exists:', !!localStorage.getItem('authToken'))
+  console.log('Auth user exists:', !!localStorage.getItem('authUser'))
+
   // Kiểm tra đăng nhập
   if (!currentUser) {
+    console.log('No current user found, redirecting to login')
     return <Navigate to={fallbackPath} state={{ from: location }} replace />
   }
 
   // Kiểm tra role nếu có yêu cầu
   if (requiredRole && !ApiService.hasRole(requiredRole)) {
+    console.log('User does not have required role:', requiredRole)
     return <AccessDeniedPage />
   }
 
+  console.log('Access granted')
   return <>{children}</>
 }
 
