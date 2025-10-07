@@ -104,7 +104,7 @@ function HomePage() {
   }
 
   return (
-    <div style={{ minHeight: '100vh', background: 'linear-gradient(135deg, #1e3a8a 0%, #000000 100%)', color: 'white', overflowX: 'hidden' }}>
+    <div className="page" style={{ minHeight: '100vh', color: 'white', overflowX: 'hidden' }}>
       {/* Header with user avatar or login button */}
       {currentUser ? (
         <header style={{ 
@@ -112,9 +112,11 @@ function HomePage() {
           top: 0, 
           right: 0, 
           zIndex: 1000, 
-          background: 'transparent',
-          padding: '8px 16px',
-          border: 'none',
+          background: 'rgba(255, 255, 255, 0.05)',
+          backdropFilter: 'blur(20px)',
+          border: '1px solid rgba(255, 255, 255, 0.1)',
+          borderRadius: '0 0 0 20px',
+          padding: '12px 20px',
           width: 'auto'
         }}>
           <div className="relative">
@@ -141,7 +143,7 @@ function HomePage() {
             {isUserMenuOpen && (
               <div
                 ref={userMenuRef}
-                className="absolute top-full right-0 mt-3 w-72 bg-gray-900 rounded-2xl shadow-2xl py-4 z-50 border border-gray-700"
+                className="absolute top-full right-0 mt-3 w-72 homepage-user-menu py-4 z-50"
               >
                 {/* User Info Section */}
                 <div className="px-6 py-4 border-b border-gray-700">
@@ -200,14 +202,16 @@ function HomePage() {
           top: 0, 
           right: 0, 
           zIndex: 1000, 
-          background: 'transparent',
-          padding: '8px 16px',
-          border: 'none',
+          background: 'rgba(255, 255, 255, 0.05)',
+          backdropFilter: 'blur(20px)',
+          border: '1px solid rgba(255, 255, 255, 0.1)',
+          borderRadius: '0 0 0 20px',
+          padding: '12px 20px',
           width: 'auto'
         }}>
           <Link 
             to="/login"
-            className="flex items-center gap-2 bg-white/95 backdrop-blur-sm border border-black/10 rounded-2xl px-4 py-2 shadow-lg hover:shadow-xl transition-all duration-200"
+            className="flex items-center gap-2 homepage-login-btn"
           >
             <svg className="w-5 h-5 text-gray-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
               <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M11 16l-4-4m0 0l4-4m-4 4h14m-5 4v1a3 3 0 01-3 3H6a3 3 0 01-3-3V7a3 3 0 013-3h7a3 3 0 013 3v1" />
@@ -229,8 +233,8 @@ function HomePage() {
           {/* Landing Stats Section */}
           <LandingStats />
 
-          <div style={{ padding: '60px 20px', maxWidth: '1200px', margin: '0 auto', width: '100%', boxSizing: 'border-box' }}>
-            <div className="section-title" style={{ color: 'white', fontSize: '32px', fontWeight: 700, textAlign: 'center', marginBottom: '24px' }}>Quick Start</div>
+          <div className="homepage-quick-start">
+            <div className="homepage-section-title">Quick Start</div>
           
             {/* Desktop: Grid Layout */}
             <div className="hidden md:grid md:grid-cols-3 gap-4" style={{ maxWidth: '100%', overflow: 'hidden' }}>
@@ -253,8 +257,8 @@ function HomePage() {
                   price: '$1,599',
                   image: 'https://images.unsplash.com/photo-1556438064-2d7646166914?w=400&h=300&fit=crop'
                 },
-              ].map((item) => (
-                 <article key={item.title} className="qs-card group" style={{ background: '#111111', borderRadius: '16px', border: '1px solid #333333', overflow: 'hidden', maxWidth: '100%' }}>
+              ].map((item, index) => (
+                 <article key={item.title} className={`qs-card group homepage-card homepage-float`} style={{ background: 'rgba(255, 255, 255, 0.05)', borderRadius: '16px', border: '1px solid rgba(255, 255, 255, 0.1)', overflow: 'hidden', maxWidth: '100%', backdropFilter: 'blur(10px)', transition: 'all 0.3s ease', position: 'relative', animationDelay: `${index * 0.5}s` }}>
                    <div className="qs-media relative overflow-hidden" style={{ height: '200px' }}>
                      <img 
                        src={item.image} 
@@ -269,7 +273,7 @@ function HomePage() {
                    <div className="qs-body" style={{ padding: '16px' }}>
                      <div className="qs-title" style={{ color: 'white', fontSize: '18px', fontWeight: 700, marginBottom: '8px' }}>{item.title}</div>
                      <p className="text-sm mb-3" style={{ color: 'rgba(255,255,255,0.7)', fontSize: '12px' }}>{item.description}</p>
-                     <div className="qs-cta" style={{ background: '#1e3a8a', color: 'white', padding: '8px 16px', borderRadius: '6px', textAlign: 'center', fontWeight: 600, cursor: 'pointer', fontSize: '14px' }}>Open Build</div>
+                     <div className="homepage-cta" style={{ fontSize: '14px' }}>Open Build</div>
                   </div>
                 </article>
               ))}
@@ -297,7 +301,7 @@ function HomePage() {
                   image: 'https://images.unsplash.com/photo-1556438064-2d7646166914?w=400&h=300&fit=crop'
                 },
                ].map((item, index) => (
-                 <article key={index} className="qs-card group" style={{ background: '#111111', borderRadius: '16px', border: '1px solid #333333', overflow: 'hidden', maxWidth: '100%' }}>
+                 <article key={index} className={`qs-card group homepage-card homepage-float`} style={{ background: 'rgba(255, 255, 255, 0.05)', borderRadius: '16px', border: '1px solid rgba(255, 255, 255, 0.1)', overflow: 'hidden', maxWidth: '100%', backdropFilter: 'blur(10px)', transition: 'all 0.3s ease', position: 'relative', animationDelay: `${index * 0.5}s` }}>
                    <div className="qs-media relative overflow-hidden" style={{ height: '200px' }}>
                      <img 
                        src={item.image} 
@@ -312,7 +316,7 @@ function HomePage() {
                    <div className="qs-body" style={{ padding: '16px' }}>
                      <div className="qs-title text-lg font-bold mb-2" style={{ color: 'white' }}>{item.title}</div>
                      <p className="text-sm mb-4" style={{ color: 'rgba(255,255,255,0.7)' }}>{item.description}</p>
-                     <div className="qs-cta px-4 py-2 rounded-lg text-center font-medium transition-colors" style={{ background: '#1e3a8a', color: 'white' }}>
+                     <div className="homepage-cta" style={{ fontSize: '14px' }}>
                        Open Build
                      </div>
                    </div>
