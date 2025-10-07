@@ -681,7 +681,10 @@ export class ApiService {
     }
   }
 
-  // Function riêng để lấy CPU (category_id = 1)
+  // Function tạo mock data cho giá CPU dựa trên database
+  // Đã xóa createMockPricesForCPU - KHÔNG dùng mock data
+
+  // Function riêng để lấy CPU (category_id = 1) với giá từ suppliers
   static async getCPUsOnly(): Promise<Record<string, unknown>[]> {
     try {
       console.log('Fetching CPUs with category_id = 1...')
@@ -710,7 +713,32 @@ export class ApiService {
       })
       
       console.log(`Found ${cpus.length} CPUs with category_id = 1`)
-      return cpus
+      
+      // API /api/product ĐÃ trả về productPrices sẵn rồi - không cần fetch riêng!
+      const cpusWithPrices = cpus.map((cpu) => {
+        // Lấy productPrices từ CPU object (đã có sẵn từ API)
+        const productPrices = cpu.productPrices as Array<Record<string, unknown>> || []
+        
+        console.log(`CPU ${cpu.name} (id: ${cpu.id}) - has ${productPrices.length} prices from API`)
+        
+        if (productPrices.length > 0) {
+          console.log(`✅ Found ${productPrices.length} real prices for CPU ${cpu.name}`)
+          console.log('Sample prices:', productPrices.slice(0, 2))
+          return {
+            ...cpu,
+            productPrices: productPrices
+          }
+        } else {
+          // KHÔNG dùng mock data - chỉ hiển thị CPU không có giá
+          console.log(`❌ No prices found for CPU ${cpu.name} - will show "Liên hệ"`)
+          return {
+            ...cpu,
+            productPrices: [] // Mảng rỗng thay vì mock data
+          }
+        }
+      })
+      
+      return cpusWithPrices
     } catch (error) {
       console.error('Error fetching CPUs only:', error)
       throw error

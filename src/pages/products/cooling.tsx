@@ -1,13 +1,14 @@
 import { useEffect, useState } from 'react'
-import { Link } from 'react-router-dom'
+// Bỏ import Link - không sử dụng
 import { ApiService } from '../../services/api'
 import '../../Homepage.css'
+import PriceRangeSlider from '../../components/PriceRangeSlider'
 
 interface CoolingItem {
   id: number
   name: string
   brand: string
-  price: number
+  price: string // Thay đổi từ number sang string để hiển thị min-max range
   image: string
   specs: {
     type: string
@@ -27,10 +28,22 @@ interface CoolingItem {
   rating: number
   reviews: number
   inStock: boolean
+  productPrices?: Array<{
+    id: number
+    supplier: {
+      id: number
+      name: string
+      website: string
+    }
+    price: number
+    supplierLink: string
+    updatedAt: string
+  }>
 }
 
 function CoolingPage() {
-  const [priceRange, setPriceRange] = useState<[number, number]>([20, 300])
+  const [selectedCooling, setSelectedCooling] = useState<CoolingItem | null>(null)
+  const [priceRange, setPriceRange] = useState<[number, number]>([500000, 50000000])
   const [searchTerm, setSearchTerm] = useState('')
   const [coolers, setCoolers] = useState<CoolingItem[]>([])
   const [loading, setLoading] = useState(false)
@@ -42,33 +55,7 @@ function CoolingPage() {
       try {
         const products = await ApiService.getProductsByCategory(8)
 
-        interface CoolingApiProduct {
-          id?: number
-          name?: string
-          brand?: string
-          specs?: string
-          image_url1?: string
-          imageUrl1?: string
-          type?: string
-          socket?: string
-          fan_size?: string | number
-          fanSize?: string | number
-          fan_count?: string | number
-          fanCount?: string | number
-          noise_level?: string
-          tdp_watt?: number | string
-          tdpWatt?: number | string
-          height?: string | number
-          weight?: string | number
-          material?: string
-          warranty?: string | number
-          rgb?: boolean
-          liquid_cooling?: boolean
-          liquidCooling?: boolean
-          productPrices?: Array<{ price: number }>
-        }
-
-        const formatted: CoolingItem[] = (products as CoolingApiProduct[]).map((item) => {
+        const formatted: CoolingItem[] = (products || []).map((item: Record<string, unknown>) => {
           const specsString = String(item.specs || '')
 
           const typeField = item.type || (specsString.match(/(AIR|LIQUID)/i)?.[0] ?? '')
@@ -82,14 +69,41 @@ function CoolingPage() {
           const materialField = item.material || (specsString.match(/(ALUMINUM|COPPER|NICKEL)/i)?.[0] ?? '')
           const warrantyField = item.warranty || (specsString.match(/(\d+)\s*year/i)?.[1] ?? '')
 
-          const prices = item.productPrices || []
-          const minPrice = prices.length ? Math.min(...prices.map(p => p.price)) : 0
+          // Lấy giá từ productPrices (tính min-max range)
+          const productPrices = item.productPrices as Array<{
+            id: number
+            supplier: {
+              id: number
+              name: string
+              website: string
+            }
+            price: number
+            supplierLink: string
+            updatedAt: string
+          }> || []
+          
+          // Tính min-max price range
+          let priceRange = 'Liên hệ'
+          if (productPrices.length > 0) {
+            const prices = productPrices.map(p => p.price)
+            const minPrice = Math.min(...prices)
+            const maxPrice = Math.max(...prices)
+            
+            if (minPrice === maxPrice) {
+              priceRange = `${minPrice.toLocaleString('vi-VN')} VND`
+            } else {
+              priceRange = `${minPrice.toLocaleString('vi-VN')} - ${maxPrice.toLocaleString('vi-VN')} VND`
+            }
+          }
+          
+          // Debug log để kiểm tra dữ liệu
+          console.log(`Cooling: ${item.name}, productPrices:`, productPrices, 'priceRange:', priceRange)
 
           return {
             id: Number(item.id) || 0,
             name: String(item.name) || 'Unknown Cooling',
             brand: String(item.brand) || 'Unknown',
-            price: minPrice,
+            price: priceRange,
             image: String(item.image_url1 || item.imageUrl1 || 'https://images.unsplash.com/photo-1591799264318-7e6ef8ddb7ea?w=300&h=200&fit=crop'),
             specs: {
               type: typeField ? String(typeField).toUpperCase() : 'Unknown',
@@ -108,7 +122,18 @@ function CoolingPage() {
             features: ['Unknown'],
             rating: 4.0,
             reviews: 0,
-            inStock: true
+            inStock: true,
+            productPrices: productPrices.map(pp => ({
+              id: pp.id || 0,
+              supplier: {
+                id: pp.supplier?.id || 0,
+                name: pp.supplier?.name || 'Unknown Supplier',
+                website: pp.supplier?.website || ''
+              },
+              price: pp.price || 0,
+              supplierLink: pp.supplierLink || '',
+              updatedAt: pp.updatedAt || ''
+            }))
           }
         })
 
@@ -127,11 +152,21 @@ function CoolingPage() {
   // Dữ liệu từ API
   const allCoolers = coolers
 
-  // Filter giống RAM: chỉ áp dụng price khi price > 0, và search theo name/brand
+  // Filter logic
   const filteredCoolers = allCoolers.filter((coolerItem) => {
-    if (coolerItem.price > 0 && (coolerItem.price < priceRange[0] || coolerItem.price > priceRange[1])) {
-      return false
+    // Price filter - parse min price từ price range string
+    if (coolerItem.price !== 'Liên hệ') {
+      // Lấy min price từ string (ví dụ: "19.900.000 - 20.990.000 VND" -> 19900000)
+      const minPriceMatch = coolerItem.price.match(/^([\d.,]+)/)
+      if (minPriceMatch) {
+        const minPrice = parseInt(minPriceMatch[1].replace(/[.,]/g, ''))
+        if (minPrice < priceRange[0] || minPrice > priceRange[1]) {
+          return false
+        }
+      }
     }
+
+    // Search filter
     if (searchTerm && !coolerItem.name.toLowerCase().includes(searchTerm.toLowerCase()) && 
         !coolerItem.brand.toLowerCase().includes(searchTerm.toLowerCase())) {
       return false
@@ -160,21 +195,15 @@ function CoolingPage() {
             <div className="w-80 hidden md:block pr-6">
               <div className="rounded-lg border border-white/20 bg-white/10 p-4 space-y-6">
                 <div>
-                  <h3 className="text-base font-semibold mb-3 text-white">Price</h3>
-                  <div className="space-y-2">
-                    <div className="flex justify-between text-xs text-white/60">
-                      <span>$20</span>
-                      <span>$300</span>
-                    </div>
-                    <input 
-                      type="range" 
-                      min="20" 
-                      max="300" 
-                      value={priceRange[1]}
-                      onChange={(e) => setPriceRange([priceRange[0], Number(e.target.value)])}
-                      className="w-full" 
-                    />
-                  </div>
+                  <h3 className="text-base font-semibold mb-3 text-white">Price Range</h3>
+                  <PriceRangeSlider
+                    value={priceRange}
+                    onChange={setPriceRange}
+                    min={500000}
+                    max={50000000}
+                    step={100000}
+                    currency="VND"
+                  />
                 </div>
               </div>
             </div>
@@ -198,12 +227,12 @@ function CoolingPage() {
               ) : (
                 <div className="product-grid">
                   {filteredCoolers.map((coolerItem) => (
-                    <div key={coolerItem.id} className="rounded-lg border border-white/20 bg-white/10 hover:bg-white/20 transition">
+                    <div key={coolerItem.id} className="rounded-lg border border-white/20 bg-white/10 hover:bg-white/20 transition cursor-pointer" onClick={() => setSelectedCooling(coolerItem)}>
                       <div className="p-4">
                         <img src={coolerItem.image} alt={coolerItem.name} className="w-full h-48 object-cover rounded-lg mb-4" />
                         <div className="text-sm font-medium mb-2 line-clamp-2 text-white">{coolerItem.name}</div>
                         <div className="text-lg font-bold mb-3 text-white">
-                          {coolerItem.price > 0 ? `${coolerItem.price.toLocaleString('vi-VN')} VND` : 'Liên hệ'}
+                          {coolerItem.price}
                         </div>
                         <div className="space-y-1 text-xs text-white/60 mb-4">
                           <div className="flex justify-between"><span>Type:</span><span className="text-white">{coolerItem.specs.type}</span></div>
@@ -222,6 +251,121 @@ function CoolingPage() {
           </div>
         </main>
       </div>
+
+      {/* Product Detail Modal */}
+      {selectedCooling && (
+        <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 p-4">
+          <div className="bg-gray-900 border border-white/20 rounded-lg max-w-4xl w-full max-h-[90vh] overflow-y-auto">
+            <div className="p-6">
+              <div className="flex justify-between items-start mb-6">
+                <div>
+                  <h2 className="text-3xl font-bold text-white">{selectedCooling.name}</h2>
+                  <p className="text-lg text-white/70">{selectedCooling.brand}</p>
+                </div>
+                <button
+                  onClick={() => setSelectedCooling(null)}
+                  className="text-white/60 hover:text-white"
+                >
+                  <svg className="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
+                  </svg>
+                </button>
+              </div>
+              
+              <div className="grid grid-cols-1 lg:grid-cols-2 gap-8">
+                <div>
+                  <img
+                    src={selectedCooling.image}
+                    alt={selectedCooling.name}
+                    className="w-full h-96 object-cover rounded-lg"
+                  />
+                </div>
+                
+                <div>
+                  <div className="text-3xl font-bold text-blue-400 mb-4">{selectedCooling.price}</div>
+                  
+                  {/* Hiển thị giá từ nhiều suppliers */}
+                  {selectedCooling.productPrices && selectedCooling.productPrices.length > 0 && (
+                    <div className="mb-6">
+                      <h3 className="text-lg font-semibold mb-3 text-white">Giá từ các nhà cung cấp</h3>
+                      <div className="space-y-2">
+                        {selectedCooling.productPrices
+                          .sort((a, b) => a.price - b.price)
+                          .map((priceInfo, index) => (
+                            <div key={index} className="flex justify-between items-center p-3 bg-white/5 rounded-lg border border-white/10">
+                              <div className="flex-1">
+                                <div className="text-white font-medium">
+                                  {priceInfo.supplier.name}
+                                </div>
+                                <div className="text-white/60 text-sm">
+                                  ID: {priceInfo.supplier.id}
+                                </div>
+                              </div>
+                              <div className="text-right">
+                                <div className="text-green-400 font-bold">
+                                  {priceInfo.price.toLocaleString('vi-VN')} VND
+                                </div>
+                                {priceInfo.supplierLink && (
+                                  <a 
+                                    href={priceInfo.supplierLink} 
+                                    target="_blank" 
+                                    rel="noopener noreferrer"
+                                    className="text-blue-400 text-sm hover:text-blue-300"
+                                  >
+                                    Xem tại shop
+                                  </a>
+                                )}
+                              </div>
+                            </div>
+                          ))}
+                      </div>
+                    </div>
+                  )}
+                  
+                  <div className="mb-6">
+                    <h3 className="text-lg font-semibold mb-3 text-white">Specifications</h3>
+                    <div className="space-y-2">
+                      {Object.entries(selectedCooling.specs).map(([key, value]) => (
+                        <div key={key} className="flex justify-between">
+                          <span className="text-white/60 capitalize">{key.replace(/([A-Z])/g, ' $1').trim()}:</span>
+                          <span className="font-medium text-white">{value}</span>
+                        </div>
+                      ))}
+                    </div>
+                  </div>
+                  
+                  <div className="mb-6">
+                    <h3 className="text-lg font-semibold mb-3 text-white">Features</h3>
+                    <div className="flex flex-wrap gap-2">
+                      {selectedCooling.features.map((feature, index) => (
+                        <span
+                          key={index}
+                          className="px-3 py-1 bg-blue-500/20 text-blue-400 text-sm rounded-full"
+                        >
+                          {feature}
+                        </span>
+                      ))}
+                    </div>
+                  </div>
+                  
+                  <div className="flex space-x-4">
+                    <button 
+                      className={`flex-1 px-6 py-3 rounded-lg font-semibold transition-colors ${
+                        selectedCooling.inStock 
+                          ? 'bg-blue-500 hover:bg-blue-600 text-white' 
+                          : 'bg-gray-500 text-gray-300 cursor-not-allowed'
+                      }`}
+                      disabled={!selectedCooling.inStock}
+                    >
+                      {selectedCooling.inStock ? '+ Add to build' : 'Out of Stock'}
+                    </button>
+                  </div>
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
+      )}
     </div>
   )
 }

@@ -11,7 +11,17 @@ interface ApiProduct {
   specs?: string
   image_url1?: string
   category_id?: number
-  productPrices?: Array<{ price: number }>
+  productPrices?: Array<{
+    id: number
+    supplier: {
+      id: number
+      name: string
+      website: string
+    }
+    price: number
+    supplierLink: string
+    updatedAt: string
+  }>
 }
 
 interface PCComponent {
@@ -21,9 +31,31 @@ interface PCComponent {
   model: string
   specs: string
   image: string
-  price: number
+  price: string // Thay đổi từ number sang string để hiển thị min-max range
   category: string
   categoryId: number
+  productPrices?: Array<{
+    id: number
+    supplier: {
+      id: number
+      name: string
+      website: string
+    }
+    price: number
+    supplierLink: string
+    updatedAt: string
+  }>
+  selectedSupplier?: {
+    id: number
+    supplier: {
+      id: number
+      name: string
+      website: string
+    }
+    price: number
+    supplierLink: string
+    updatedAt: string
+  }
 }
 
 interface BuildComponent {
@@ -76,6 +108,7 @@ function PCBuilderPage() {
   const [products, setProducts] = useState<PCComponent[]>([])
   const [loading, setLoading] = useState(false)
   const [searchQuery, setSearchQuery] = useState('')
+  const [selectedComponent, setSelectedComponent] = useState<PCComponent | null>(null)
 
   // Fetch all products from API
   useEffect(() => {
@@ -89,10 +122,32 @@ function PCBuilderPage() {
           try {
             const categoryProducts = await ApiService.getProductsByCategory(categoryId)
             const formattedProducts = (categoryProducts as ApiProduct[]).map((item) => {
-              const productPrices = item.productPrices as Array<{ price: number }>
-              const minPrice = Array.isArray(productPrices) && productPrices.length > 0
-                ? Math.min(...productPrices.map(p => p.price))
-                : 0
+              // Lấy giá từ productPrices (tính min-max range)
+              const productPrices = item.productPrices as Array<{
+                id: number
+                supplier: {
+                  id: number
+                  name: string
+                  website: string
+                }
+                price: number
+                supplierLink: string
+                updatedAt: string
+              }> || []
+              
+              // Tính min-max price range
+              let priceRange = 'Liên hệ'
+              if (productPrices.length > 0) {
+                const prices = productPrices.map(p => p.price)
+                const minPrice = Math.min(...prices)
+                const maxPrice = Math.max(...prices)
+                
+                if (minPrice === maxPrice) {
+                  priceRange = `${minPrice.toLocaleString('vi-VN')} VND`
+                } else {
+                  priceRange = `${minPrice.toLocaleString('vi-VN')} - ${maxPrice.toLocaleString('vi-VN')} VND`
+                }
+              }
 
               return {
                 id: Number(item.id) || 0,
@@ -101,9 +156,20 @@ function PCBuilderPage() {
                 model: String(item.model) || 'Unknown',
                 specs: String(item.specs) || 'No specifications available',
                 image: String(item.image_url1) || 'https://images.unsplash.com/photo-1591799264318-7e6ef8ddb7ea?w=300&h=200&fit=crop',
-                price: minPrice,
+                price: priceRange,
                 category: categoryMap[categoryId] || 'Unknown',
-                categoryId: categoryId
+                categoryId: categoryId,
+                productPrices: productPrices.map(pp => ({
+                  id: pp.id || 0,
+                  supplier: {
+                    id: pp.supplier?.id || 0,
+                    name: pp.supplier?.name || 'Unknown Supplier',
+                    website: pp.supplier?.website || ''
+                  },
+                  price: pp.price || 0,
+                  supplierLink: pp.supplierLink || '',
+                  updatedAt: pp.updatedAt || ''
+                }))
               }
             })
             allProducts.push(...formattedProducts)
@@ -147,18 +213,18 @@ function PCBuilderPage() {
   // Calculate total price
   const totalPrice = useMemo(() => {
     return buildComponents.reduce((total, buildComp) => {
-      return total + (buildComp.component?.price || 0)
+      if (buildComp.component?.price && buildComp.component.price !== 'Liên hệ') {
+        // Parse min price từ string (ví dụ: "19.900.000 - 20.990.000 VND" -> 19900000)
+        const minPriceMatch = buildComp.component.price.match(/^([\d.,]+)/)
+        if (minPriceMatch) {
+          const minPrice = parseInt(minPriceMatch[1].replace(/[.,]/g, ''))
+          return total + minPrice
+        }
+      }
+      return total
     }, 0)
   }, [buildComponents])
 
-  // Handle component selection
-  const handleSelectComponent = (component: PCComponent) => {
-    setBuildComponents(prev => prev.map(buildComp => 
-      buildComp.categoryId === component.categoryId 
-        ? { ...buildComp, component }
-        : buildComp
-    ))
-  }
 
   // Handle component removal
   const handleRemoveComponent = (categoryId: number) => {
@@ -278,9 +344,9 @@ function PCBuilderPage() {
                               <p style={{ color: 'rgba(255,255,255,0.6)', fontSize: '12px', margin: '0 0 4px 0' }}>
                                 {component.brand} - {component.model}
                               </p>
-                              {component.price > 0 && (
+                              {component.price !== 'Liên hệ' && (
                                 <p style={{ color: '#3b82f6', fontSize: '14px', fontWeight: '600', margin: 0 }}>
-                                  {component.price.toLocaleString('vi-VN')} VND
+                                  {component.price}
                                 </p>
                               )}
                             </div>
@@ -354,9 +420,7 @@ function PCBuilderPage() {
                         <div
                           key={product.id}
                           onClick={() => {
-                            handleSelectComponent(product)
-                            setSelectedCategory(null)
-                            setSearchQuery('')
+                            setSelectedComponent(product)
                           }}
                           style={{
                             background: 'rgba(255,255,255,0.05)',
@@ -389,9 +453,9 @@ function PCBuilderPage() {
                               <p style={{ color: 'rgba(255,255,255,0.6)', fontSize: '12px', margin: '0 0 4px 0' }}>
                                 {product.brand} - {product.model}
                               </p>
-                              {product.price > 0 && (
+                              {product.price !== 'Liên hệ' && (
                                 <p style={{ color: '#3b82f6', fontSize: '14px', fontWeight: '600', margin: 0 }}>
-                                  {product.price.toLocaleString('vi-VN')} VND
+                                  {product.price}
                                 </p>
                               )}
                             </div>
@@ -435,9 +499,16 @@ function PCBuilderPage() {
                         <span style={{ color: 'rgba(255,255,255,0.8)', fontSize: '14px' }}>
                           {category?.icon} {buildComp.category}
                         </span>
-                        <span style={{ color: '#3b82f6', fontSize: '14px', fontWeight: '600' }}>
-                          {buildComp.component.price.toLocaleString('vi-VN')} VND
-                        </span>
+                        <div style={{ textAlign: 'right' }}>
+                          <div style={{ color: '#3b82f6', fontSize: '14px', fontWeight: '600' }}>
+                            {buildComp.component.price}
+                          </div>
+                          {buildComp.component.selectedSupplier && (
+                            <div style={{ color: 'rgba(255, 255, 255, 0.6)', fontSize: '12px' }}>
+                              Từ: {buildComp.component.selectedSupplier.supplier.name}
+                            </div>
+                          )}
+                        </div>
                       </div>
                     )
                   })}
@@ -487,6 +558,299 @@ function PCBuilderPage() {
           </div>
         </main>
       </div>
+
+      {/* Supplier Prices Popup */}
+      {selectedComponent && (
+        <div style={{
+          position: 'fixed',
+          top: 0,
+          left: 0,
+          right: 0,
+          bottom: 0,
+          backgroundColor: 'rgba(0, 0, 0, 0.5)',
+          display: 'flex',
+          alignItems: 'center',
+          justifyContent: 'center',
+          zIndex: 1000,
+          padding: '20px'
+        }}>
+          <div style={{
+            backgroundColor: '#1f2937',
+            border: '1px solid rgba(255, 255, 255, 0.2)',
+            borderRadius: '12px',
+            maxWidth: '600px',
+            width: '100%',
+            maxHeight: '80vh',
+            overflowY: 'auto',
+            padding: '24px'
+          }}>
+            <div style={{
+              display: 'flex',
+              justifyContent: 'space-between',
+              alignItems: 'flex-start',
+              marginBottom: '24px'
+            }}>
+              <div>
+                <h2 style={{ color: 'white', fontSize: '24px', fontWeight: 'bold', margin: '0 0 8px 0' }}>
+                  {selectedComponent.name}
+                </h2>
+                <p style={{ color: 'rgba(255, 255, 255, 0.7)', fontSize: '16px', margin: 0 }}>
+                  {selectedComponent.brand} - {selectedComponent.model}
+                </p>
+                <p style={{ color: '#60a5fa', fontSize: '20px', fontWeight: 'bold', margin: '8px 0 0 0' }}>
+                  {selectedComponent.price}
+                </p>
+              </div>
+              <button
+                onClick={() => setSelectedComponent(null)}
+                style={{
+                  background: 'none',
+                  border: 'none',
+                  color: 'rgba(255, 255, 255, 0.6)',
+                  fontSize: '24px',
+                  cursor: 'pointer',
+                  padding: '4px'
+                }}
+              >
+                ×
+              </button>
+            </div>
+
+            {/* Hiển thị giá từ nhiều suppliers */}
+            {selectedComponent.productPrices && selectedComponent.productPrices.length > 0 ? (
+              <div>
+                <h3 style={{ color: 'white', fontSize: '18px', fontWeight: '600', margin: '0 0 16px 0' }}>
+                  Giá từ các nhà cung cấp
+                </h3>
+                <div style={{ display: 'flex', flexDirection: 'column', gap: '12px' }}>
+                  {selectedComponent.productPrices
+                    .sort((a, b) => a.price - b.price)
+                    .map((priceInfo, index) => (
+                      <div key={index} style={{
+                        display: 'flex',
+                        justifyContent: 'space-between',
+                        alignItems: 'center',
+                        padding: '16px',
+                        backgroundColor: 'rgba(255, 255, 255, 0.05)',
+                        borderRadius: '8px',
+                        border: '1px solid rgba(255, 255, 255, 0.1)'
+                      }}>
+                        <div style={{ flex: 1 }}>
+                          <div style={{ color: 'white', fontWeight: '500', fontSize: '16px' }}>
+                            {priceInfo.supplier.name}
+                          </div>
+                          <div style={{ color: 'rgba(255, 255, 255, 0.6)', fontSize: '14px' }}>
+                            ID: {priceInfo.supplier.id}
+                          </div>
+                        </div>
+                        <div style={{ textAlign: 'right', display: 'flex', flexDirection: 'column', alignItems: 'flex-end', gap: '8px' }}>
+                          <div style={{ color: '#10b981', fontWeight: 'bold', fontSize: '16px' }}>
+                            {priceInfo.price.toLocaleString('vi-VN')} VND
+                          </div>
+                          <div style={{ display: 'flex', gap: '8px', alignItems: 'center' }}>
+                            {priceInfo.supplierLink && (
+                              <a 
+                                href={priceInfo.supplierLink} 
+                                target="_blank" 
+                                rel="noopener noreferrer"
+                                style={{
+                                  color: '#60a5fa',
+                                  fontSize: '14px',
+                                  textDecoration: 'none',
+                                  padding: '4px 8px',
+                                  border: '1px solid #60a5fa',
+                                  borderRadius: '4px'
+                                }}
+                              >
+                                Xem shop
+                              </a>
+                            )}
+                            <button
+                              onClick={() => {
+                                // Lưu component với supplier được chọn
+                                const componentWithSupplier = {
+                                  ...selectedComponent,
+                                  selectedSupplier: priceInfo,
+                                  price: `${priceInfo.price.toLocaleString('vi-VN')} VND`
+                                }
+                                
+                                // Cập nhật build components
+                                setBuildComponents(prev => prev.map(buildComp => 
+                                  buildComp.categoryId === componentWithSupplier.categoryId 
+                                    ? { ...buildComp, component: componentWithSupplier }
+                                    : buildComp
+                                ))
+                                
+                                // Đóng popup và reset selection
+                                setSelectedComponent(null)
+                                setSelectedCategory(null)
+                                setSearchQuery('')
+                              }}
+                              style={{
+                                background: '#10b981',
+                                color: 'white',
+                                border: 'none',
+                                padding: '6px 12px',
+                                borderRadius: '4px',
+                                fontSize: '14px',
+                                fontWeight: '500',
+                                cursor: 'pointer',
+                                transition: 'background-color 0.2s'
+                              }}
+                              onMouseEnter={(e) => {
+                                e.currentTarget.style.backgroundColor = '#059669'
+                              }}
+                              onMouseLeave={(e) => {
+                                e.currentTarget.style.backgroundColor = '#10b981'
+                              }}
+                            >
+                              Chọn
+                            </button>
+                          </div>
+                        </div>
+                      </div>
+                    ))}
+                </div>
+              </div>
+            ) : (
+              <div style={{ textAlign: 'center', padding: '40px', color: 'rgba(255, 255, 255, 0.6)' }}>
+                <div style={{ marginBottom: '20px' }}>
+                  Không có thông tin giá từ nhà cung cấp
+                </div>
+                <button
+                  onClick={() => {
+                    // Lưu component không có supplier
+                    const componentWithoutSupplier = {
+                      ...selectedComponent,
+                      price: 'Liên hệ'
+                    }
+                    
+                    // Cập nhật build components
+                    setBuildComponents(prev => prev.map(buildComp => 
+                      buildComp.categoryId === componentWithoutSupplier.categoryId 
+                        ? { ...buildComp, component: componentWithoutSupplier }
+                        : buildComp
+                    ))
+                    
+                    // Đóng popup và reset selection
+                    setSelectedComponent(null)
+                    setSelectedCategory(null)
+                    setSearchQuery('')
+                  }}
+                  style={{
+                    background: '#10b981',
+                    color: 'white',
+                    border: 'none',
+                    padding: '10px 20px',
+                    borderRadius: '6px',
+                    fontSize: '16px',
+                    fontWeight: '500',
+                    cursor: 'pointer',
+                    transition: 'background-color 0.2s'
+                  }}
+                  onMouseEnter={(e) => {
+                    e.currentTarget.style.backgroundColor = '#059669'
+                  }}
+                  onMouseLeave={(e) => {
+                    e.currentTarget.style.backgroundColor = '#10b981'
+                  }}
+                >
+                  Chọn sản phẩm này
+                </button>
+              </div>
+            )}
+
+            {/* Specifications */}
+            <div style={{ marginTop: '24px' }}>
+              <h3 style={{ color: 'white', fontSize: '18px', fontWeight: '600', margin: '0 0 16px 0' }}>
+                Thông số kỹ thuật
+              </h3>
+              <div style={{
+                backgroundColor: 'rgba(255, 255, 255, 0.05)',
+                borderRadius: '8px',
+                padding: '16px',
+                border: '1px solid rgba(255, 255, 255, 0.1)'
+              }}>
+                <p style={{ color: 'rgba(255, 255, 255, 0.8)', fontSize: '14px', lineHeight: '1.6', margin: 0 }}>
+                  {selectedComponent.specs}
+                </p>
+              </div>
+            </div>
+
+            {/* Action Buttons */}
+            <div style={{ 
+              marginTop: '24px', 
+              display: 'flex', 
+              gap: '12px', 
+              justifyContent: 'flex-end' 
+            }}>
+              <button
+                onClick={() => setSelectedComponent(null)}
+                style={{
+                  background: 'rgba(255, 255, 255, 0.1)',
+                  color: 'white',
+                  border: '1px solid rgba(255, 255, 255, 0.2)',
+                  padding: '10px 20px',
+                  borderRadius: '6px',
+                  fontSize: '16px',
+                  fontWeight: '500',
+                  cursor: 'pointer',
+                  transition: 'all 0.2s'
+                }}
+                onMouseEnter={(e) => {
+                  e.currentTarget.style.backgroundColor = 'rgba(255, 255, 255, 0.2)'
+                }}
+                onMouseLeave={(e) => {
+                  e.currentTarget.style.backgroundColor = 'rgba(255, 255, 255, 0.1)'
+                }}
+              >
+                Hủy
+              </button>
+              {selectedComponent.productPrices && selectedComponent.productPrices.length > 0 && (
+                <button
+                  onClick={() => {
+                    // Lưu component với giá min-max (không chọn supplier cụ thể)
+                    const componentWithMinMaxPrice = {
+                      ...selectedComponent
+                    }
+                    
+                    // Cập nhật build components
+                    setBuildComponents(prev => prev.map(buildComp => 
+                      buildComp.categoryId === componentWithMinMaxPrice.categoryId 
+                        ? { ...buildComp, component: componentWithMinMaxPrice }
+                        : buildComp
+                    ))
+                    
+                    // Đóng popup và reset selection
+                    setSelectedComponent(null)
+                    setSelectedCategory(null)
+                    setSearchQuery('')
+                  }}
+                  style={{
+                    background: '#3b82f6',
+                    color: 'white',
+                    border: 'none',
+                    padding: '10px 20px',
+                    borderRadius: '6px',
+                    fontSize: '16px',
+                    fontWeight: '500',
+                    cursor: 'pointer',
+                    transition: 'background-color 0.2s'
+                  }}
+                  onMouseEnter={(e) => {
+                    e.currentTarget.style.backgroundColor = '#2563eb'
+                  }}
+                  onMouseLeave={(e) => {
+                    e.currentTarget.style.backgroundColor = '#3b82f6'
+                  }}
+                >
+                  Chọn sản phẩm này
+                </button>
+              )}
+            </div>
+          </div>
+        </div>
+      )}
     </div>
   )
 }

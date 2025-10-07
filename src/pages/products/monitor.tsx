@@ -1,12 +1,13 @@
 import { useEffect, useState } from 'react'
 import '../../Homepage.css'
 import { ApiService } from '../../services/api'
+import PriceRangeSlider from '../../components/PriceRangeSlider'
 
 interface MonitorItem {
   id: number
   name: string
   brand: string
-  price: number
+  price: string // Thay đổi từ number sang string để hiển thị min-max range
   image: string
   specs: {
     size: string
@@ -29,11 +30,22 @@ interface MonitorItem {
   rating: number
   reviews: number
   inStock: boolean
+  productPrices?: Array<{
+    id: number
+    supplier: {
+      id: number
+      name: string
+      website: string
+    }
+    price: number
+    supplierLink: string
+    updatedAt: string
+  }>
 }
 
 function MonitorPage() {
   const [selectedMonitor, setSelectedMonitor] = useState<MonitorItem | null>(null)
-  const [priceRange, setPriceRange] = useState<[number, number]>([100, 2000])
+  const [priceRange, setPriceRange] = useState<[number, number]>([500000, 50000000])
   const [searchTerm, setSearchTerm] = useState('')
   const [selectedSizes, setSelectedSizes] = useState<string[]>([])
   const [selectedResolutions, setSelectedResolutions] = useState<string[]>([])
@@ -74,16 +86,7 @@ function MonitorPage() {
       try {
         const products = await ApiService.getProductsByCategory(9)
 
-        interface MonitorApiProduct {
-          id?: number
-          name?: string
-          brand?: string
-          specs?: string
-          image_url1?: string
-          productPrices?: Array<{ price: number }>
-        }
-
-        const formatted: MonitorItem[] = (products as MonitorApiProduct[]).map((item) => {
+        const formatted: MonitorItem[] = (products || []).map((item: Record<string, unknown>) => {
           const specsString = String(item.specs || '')
           const sizeMatch = specsString.match(/(\d{2}(?:\.\d)?)\s*"/i)
           const resMatch = specsString.match(/(\d{3,4})\s*x\s*(\d{3,4})/i)
@@ -91,14 +94,41 @@ function MonitorPage() {
           const panelMatch = specsString.match(/(IPS|VA|TN|OLED|Mini LED|Nano IPS|Fast IPS)/i)
           const rtMatch = specsString.match(/(\d+(?:\.\d)?)\s*ms/i)
 
-          const prices = item.productPrices || []
-          const minPrice = prices.length ? Math.min(...prices.map(p => p.price)) : 0
+          // Lấy giá từ productPrices (tính min-max range)
+          const productPrices = item.productPrices as Array<{
+            id: number
+            supplier: {
+              id: number
+              name: string
+              website: string
+            }
+            price: number
+            supplierLink: string
+            updatedAt: string
+          }> || []
+          
+          // Tính min-max price range
+          let priceRange = 'Liên hệ'
+          if (productPrices.length > 0) {
+            const prices = productPrices.map(p => p.price)
+            const minPrice = Math.min(...prices)
+            const maxPrice = Math.max(...prices)
+            
+            if (minPrice === maxPrice) {
+              priceRange = `${minPrice.toLocaleString('vi-VN')} VND`
+            } else {
+              priceRange = `${minPrice.toLocaleString('vi-VN')} - ${maxPrice.toLocaleString('vi-VN')} VND`
+            }
+          }
+          
+          // Debug log để kiểm tra dữ liệu
+          console.log(`Monitor: ${item.name}, productPrices:`, productPrices, 'priceRange:', priceRange)
 
           return {
             id: Number(item.id) || 0,
             name: String(item.name) || 'Unknown Monitor',
             brand: String(item.brand) || 'Unknown',
-            price: minPrice,
+            price: priceRange,
             image: String(item.image_url1 || 'https://images.unsplash.com/photo-1591799264318-7e6ef8ddb7ea?w=300&h=200&fit=crop'),
             specs: {
               size: sizeMatch ? `${sizeMatch[1]}"` : '27"',
@@ -120,7 +150,18 @@ function MonitorPage() {
             features: ['Unknown'],
             rating: 4.0,
             reviews: 0,
-            inStock: true
+            inStock: true,
+            productPrices: productPrices.map(pp => ({
+              id: pp.id || 0,
+              supplier: {
+                id: pp.supplier?.id || 0,
+                name: pp.supplier?.name || 'Unknown Supplier',
+                website: pp.supplier?.website || ''
+              },
+              price: pp.price || 0,
+              supplierLink: pp.supplierLink || '',
+              updatedAt: pp.updatedAt || ''
+            }))
           }
         })
 
@@ -140,9 +181,16 @@ function MonitorPage() {
 
   // Filter logic
   const filteredMonitors = allMonitors.filter((monitorItem) => {
-    // Price filter - chỉ lọc nếu có giá > 0
-    if (monitorItem.price > 0 && (monitorItem.price < priceRange[0] || monitorItem.price > priceRange[1])) {
-      return false
+    // Price filter - parse min price từ price range string
+    if (monitorItem.price !== 'Liên hệ') {
+      // Lấy min price từ string (ví dụ: "19.900.000 - 20.990.000 VND" -> 19900000)
+      const minPriceMatch = monitorItem.price.match(/^([\d.,]+)/)
+      if (minPriceMatch) {
+        const minPrice = parseInt(minPriceMatch[1].replace(/[.,]/g, ''))
+        if (minPrice < priceRange[0] || minPrice > priceRange[1]) {
+          return false
+        }
+      }
     }
 
     // Search filter
@@ -373,21 +421,15 @@ function MonitorPage() {
             <div className="w-80 hidden md:block pr-6">
               <div className="rounded-lg border border-white/20 bg-white/10 p-4 space-y-6">
                 <div>
-                  <h3 className="text-base font-semibold mb-3 text-white">Price</h3>
-                  <div className="space-y-2">
-                    <div className="flex justify-between text-xs text-white/60">
-                      <span>$100</span>
-                      <span>$2000</span>
-                    </div>
-                    <input 
-                      type="range" 
-                      min="100" 
-                      max="2000" 
-                      value={priceRange[1]}
-                      onChange={(e) => setPriceRange([priceRange[0], Number(e.target.value)])}
-                      className="w-full" 
-                    />
-                  </div>
+                  <h3 className="text-base font-semibold mb-3 text-white">Price Range</h3>
+                  <PriceRangeSlider
+                    value={priceRange}
+                    onChange={setPriceRange}
+                    min={500000}
+                    max={50000000}
+                    step={100000}
+                    currency="VND"
+                  />
                 </div>
 
                 <div>
@@ -620,7 +662,7 @@ function MonitorPage() {
                         setSelectedHDR(null)
                         setSelectedGSync(null)
                         setSelectedFreeSync(null)
-                        setPriceRange([100, 2000])
+                        setPriceRange([500000, 50000000])
                       }}
                       className="px-4 py-2 bg-blue-500 text-white rounded hover:bg-blue-600"
                     >
@@ -636,7 +678,7 @@ function MonitorPage() {
                         <img src={monitorItem.image} alt={monitorItem.name} className="w-full h-48 object-cover rounded-lg mb-4" />
                         <div className="text-sm font-medium mb-2 line-clamp-2 text-white">{monitorItem.name}</div>
                         <div className="text-lg font-bold mb-3 text-white">
-                          {monitorItem.price > 0 ? `${monitorItem.price.toLocaleString('vi-VN')} VND` : 'Liên hệ'}
+                          {monitorItem.price}
                         </div>
                         <div className="space-y-1 text-xs text-white/60 mb-4">
                           <div className="flex justify-between"><span>Size:</span><span className="text-white">{monitorItem.specs.size}</span></div>
@@ -659,16 +701,16 @@ function MonitorPage() {
       {/* Product Detail Modal */}
       {selectedMonitor && (
         <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 p-4">
-          <div className="bg-white rounded-lg max-w-4xl w-full max-h-[90vh] overflow-y-auto">
+          <div className="bg-gray-900 border border-white/20 rounded-lg max-w-4xl w-full max-h-[90vh] overflow-y-auto">
             <div className="p-6">
               <div className="flex justify-between items-start mb-6">
                 <div>
-                  <h2 className="text-3xl font-bold text-gray-900">{selectedMonitor.name}</h2>
-                  <p className="text-lg text-gray-600">{selectedMonitor.brand}</p>
+                  <h2 className="text-3xl font-bold text-white">{selectedMonitor.name}</h2>
+                  <p className="text-lg text-white/70">{selectedMonitor.brand}</p>
                 </div>
                 <button
                   onClick={() => setSelectedMonitor(null)}
-                  className="text-gray-400 hover:text-gray-600"
+                  className="text-white/60 hover:text-white"
                 >
                   <svg className="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                     <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
@@ -686,27 +728,65 @@ function MonitorPage() {
                 </div>
                 
                 <div>
-                  <div className="text-3xl font-bold text-blue-600 mb-4">${selectedMonitor.price}</div>
+                  <div className="text-3xl font-bold text-blue-400 mb-4">{selectedMonitor.price}</div>
+                  
+                  {/* Hiển thị giá từ nhiều suppliers */}
+                  {selectedMonitor.productPrices && selectedMonitor.productPrices.length > 0 && (
+                    <div className="mb-6">
+                      <h3 className="text-lg font-semibold mb-3 text-white">Giá từ các nhà cung cấp</h3>
+                      <div className="space-y-2">
+                        {selectedMonitor.productPrices
+                          .sort((a, b) => a.price - b.price)
+                          .map((priceInfo, index) => (
+                            <div key={index} className="flex justify-between items-center p-3 bg-white/5 rounded-lg border border-white/10">
+                              <div className="flex-1">
+                                <div className="text-white font-medium">
+                                  {priceInfo.supplier.name}
+                                </div>
+                                <div className="text-white/60 text-sm">
+                                  ID: {priceInfo.supplier.id}
+                                </div>
+                              </div>
+                              <div className="text-right">
+                                <div className="text-green-400 font-bold">
+                                  {priceInfo.price.toLocaleString('vi-VN')} VND
+                                </div>
+                                {priceInfo.supplierLink && (
+                                  <a 
+                                    href={priceInfo.supplierLink} 
+                                    target="_blank" 
+                                    rel="noopener noreferrer"
+                                    className="text-blue-400 text-sm hover:text-blue-300"
+                                  >
+                                    Xem tại shop
+                                  </a>
+                                )}
+                              </div>
+                            </div>
+                          ))}
+                      </div>
+                    </div>
+                  )}
                   
                   <div className="mb-6">
-                    <h3 className="text-lg font-semibold mb-3">Specifications</h3>
+                    <h3 className="text-lg font-semibold mb-3 text-white">Specifications</h3>
                     <div className="space-y-2">
                       {Object.entries(selectedMonitor.specs).map(([key, value]) => (
                         <div key={key} className="flex justify-between">
-                          <span className="text-gray-600 capitalize">{key.replace(/([A-Z])/g, ' $1').trim()}:</span>
-                          <span className="font-medium">{value.toString()}</span>
+                          <span className="text-white/60 capitalize">{key.replace(/([A-Z])/g, ' $1').trim()}:</span>
+                          <span className="font-medium text-white">{value.toString()}</span>
                         </div>
                       ))}
                     </div>
                   </div>
                   
                   <div className="mb-6">
-                    <h3 className="text-lg font-semibold mb-3">Features</h3>
+                    <h3 className="text-lg font-semibold mb-3 text-white">Features</h3>
                     <div className="flex flex-wrap gap-2">
                       {selectedMonitor.features.map((feature, index) => (
                         <span
                           key={index}
-                          className="px-3 py-1 bg-blue-100 text-blue-800 text-sm rounded-full"
+                          className="px-3 py-1 bg-blue-500/20 text-blue-400 text-sm rounded-full"
                         >
                           {feature}
                         </span>
