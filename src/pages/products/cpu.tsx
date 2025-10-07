@@ -1,5 +1,4 @@
 import { useState, useEffect } from 'react'
-import { Link } from 'react-router-dom'
 import '../../Homepage.css'
 import { ApiService } from '../../services/api'
 import PriceRangeSlider from '../../components/PriceRangeSlider'
@@ -8,7 +7,7 @@ interface CPUItem {
   id: number
   name: string
   brand: string
-  price: number
+  price: string // Thay đổi từ number sang string để hiển thị min-max range
   image: string
   specs: {
     socketType: string
@@ -27,11 +26,22 @@ interface CPUItem {
   rating: number
   reviews: number
   inStock: boolean
+  productPrices?: Array<{
+    id: number
+    supplier: {
+      id: number
+      name: string
+      website: string
+    }
+    price: number
+    supplierLink: string
+    updatedAt: string
+  }>
 }
 
 function CPUPage() {
   const [selectedCPU, setSelectedCPU] = useState<CPUItem | null>(null)
-  const [priceRange, setPriceRange] = useState<[number, number]>([50, 2000])
+  const [priceRange, setPriceRange] = useState<[number, number]>([500000, 50000000])
   const [searchTerm, setSearchTerm] = useState('')
   const [selectedSocketTypes, setSelectedSocketTypes] = useState<string[]>([])
   const [selectedCores, setSelectedCores] = useState<string[]>([])
@@ -93,17 +103,41 @@ function CPUPage() {
         const cores = coresMatch ? parseInt(coresMatch[1]) : 0
         const threads = cores * 2 // AMD thường có 2 threads per core
         
-        // Lấy giá từ productPrices (lấy giá thấp nhất)
-        const productPrices = item.productPrices as Array<{price: number}> || []
-        const minPrice = productPrices.length > 0 
-          ? Math.min(...productPrices.map(p => p.price)) 
-          : 0
+        // Lấy giá từ productPrices (tính min-max range)
+        const productPrices = item.productPrices as Array<{
+          id: number
+          supplier: {
+            id: number
+            name: string
+            website: string
+          }
+          price: number
+          supplierLink: string
+          updatedAt: string
+        }> || []
+        
+        // Tính min-max price range
+        let priceRange = 'Liên hệ'
+        if (productPrices.length > 0) {
+          const prices = productPrices.map(p => p.price)
+          const minPrice = Math.min(...prices)
+          const maxPrice = Math.max(...prices)
+          
+          if (minPrice === maxPrice) {
+            priceRange = `${minPrice.toLocaleString('vi-VN')} VND`
+          } else {
+            priceRange = `${minPrice.toLocaleString('vi-VN')} - ${maxPrice.toLocaleString('vi-VN')} VND`
+          }
+        }
+        
+        // Debug log để kiểm tra dữ liệu
+        console.log(`CPU: ${item.name}, productPrices:`, productPrices, 'priceRange:', priceRange)
         
         return {
           id: Number(item.id) || 0,
           name: String(item.name) || 'Unknown CPU',
           brand: String(item.brand) || 'Unknown',
-          price: minPrice,
+          price: priceRange,
           image: String(item.image_url1 || item.imageUrl1 || 'https://images.unsplash.com/photo-1591799264318-7e6ef8ddb7ea?w=300&h=200&fit=crop'),
           specs: {
             socketType: String(item.socket) || 'Unknown',
@@ -121,7 +155,18 @@ function CPUPage() {
           features: ['Unknown'],
           rating: 4.0,
           reviews: 0,
-          inStock: true
+          inStock: true,
+          productPrices: productPrices.map(pp => ({
+            id: pp.id || 0,
+            supplier: {
+              id: pp.supplier?.id || 0,
+              name: pp.supplier?.name || 'Unknown Supplier',
+              website: pp.supplier?.website || ''
+            },
+            price: pp.price || 0,
+            supplierLink: pp.supplierLink || '',
+            updatedAt: pp.updatedAt || ''
+          }))
         }
       })
       
@@ -139,9 +184,16 @@ function CPUPage() {
 
   // Filter logic
   const filteredCPUs = allCPUs.filter((cpuItem) => {
-    // Price filter - chỉ filter nếu có giá > 0
-    if (cpuItem.price > 0 && (cpuItem.price < priceRange[0] || cpuItem.price > priceRange[1])) {
-      return false
+    // Price filter - parse min price từ price range string
+    if (cpuItem.price !== 'Liên hệ') {
+      // Lấy min price từ string (ví dụ: "19.900.000 - 20.990.000 VND" -> 19900000)
+      const minPriceMatch = cpuItem.price.match(/^([\d.,]+)/)
+      if (minPriceMatch) {
+        const minPrice = parseInt(minPriceMatch[1].replace(/[.,]/g, ''))
+        if (minPrice < priceRange[0] || minPrice > priceRange[1]) {
+          return false
+        }
+      }
     }
 
     // Search filter
@@ -369,10 +421,10 @@ function CPUPage() {
                   <PriceRangeSlider
                     value={priceRange}
                     onChange={setPriceRange}
-                    min={50}
-                    max={2000}
-                    step={10}
-                    currency="$"
+                    min={500000}
+                    max={50000000}
+                    step={100000}
+                    currency="VND"
                   />
                 </div>
 
@@ -576,7 +628,7 @@ function CPUPage() {
                         setSelectedManufacturers([])
                         setSelectedLithography([])
                         setSelectedMemoryTypes([])
-                        setPriceRange([50, 2000])
+                        setPriceRange([500000, 50000000])
                       }}
                       className="px-4 py-2 bg-blue-500 text-white rounded hover:bg-blue-600"
                     >
@@ -592,7 +644,7 @@ function CPUPage() {
                       <img src={cpuItem.image} alt={cpuItem.name} className="w-full h-48 object-cover rounded-lg mb-4" />
                       <div className="text-sm font-medium mb-2 line-clamp-2 text-white">{cpuItem.name}</div>
                       <div className="text-lg font-bold mb-3 text-white">
-                        {cpuItem.price > 0 ? `${cpuItem.price.toLocaleString('vi-VN')} VND` : 'Liên hệ'}
+                        {cpuItem.price}
                       </div>
                       <div className="space-y-1 text-xs text-white/60 mb-4">
                         <div className="flex justify-between"><span>Socket:</span><span className="text-white">{cpuItem.specs.socketType}</span></div>
@@ -643,8 +695,46 @@ function CPUPage() {
                 
                 <div>
                   <div className="text-3xl font-bold text-blue-400 mb-4">
-                    {selectedCPU.price > 0 ? `${selectedCPU.price.toLocaleString('vi-VN')} VND` : 'Liên hệ'}
+                    {selectedCPU.price}
                   </div>
+                  
+                  {/* Hiển thị giá từ nhiều suppliers */}
+                  {selectedCPU.productPrices && selectedCPU.productPrices.length > 0 && (
+                    <div className="mb-6">
+                      <h3 className="text-lg font-semibold mb-3 text-white">Giá từ các nhà cung cấp</h3>
+                      <div className="space-y-2 max-h-48 overflow-y-auto">
+                        {selectedCPU.productPrices
+                          .sort((a, b) => a.price - b.price)
+                          .map((priceInfo, index) => (
+                            <div key={index} className="flex justify-between items-center p-3 bg-white/5 rounded-lg border border-white/10">
+                              <div className="flex-1">
+                                <div className="text-white font-medium">
+                                  {priceInfo.supplier.name}
+                                </div>
+                                <div className="text-white/60 text-sm">
+                                  ID: {priceInfo.supplier.id}
+                                </div>
+                              </div>
+                              <div className="text-right">
+                                <div className="text-green-400 font-bold">
+                                  {priceInfo.price.toLocaleString('vi-VN')} VND
+                                </div>
+                                {priceInfo.supplierLink && (
+                                  <a 
+                                    href={priceInfo.supplierLink} 
+                                    target="_blank" 
+                                    rel="noopener noreferrer"
+                                    className="text-blue-400 text-sm hover:text-blue-300"
+                                  >
+                                    Xem tại shop
+                                  </a>
+                                )}
+                              </div>
+                            </div>
+                          ))}
+                      </div>
+                    </div>
+                  )}
                   
                   <div className="mb-6">
                     <h3 className="text-lg font-semibold mb-3 text-white">Specifications</h3>
