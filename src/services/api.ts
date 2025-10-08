@@ -790,14 +790,23 @@ export class ApiService {
   }
 
   static async getProductById(id: number): Promise<Record<string, unknown>> {
-    const response = await fetch(`${API_BASE_URL}/api/product/${id}`, {
-      method: 'GET',
-      headers: {
-        'Content-Type': 'application/json',
-      },
-    })
+    try {
+      const response = await fetch(`${API_BASE_URL}/api/product/${id}`, {
+        method: 'GET',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+      })
 
-    return this.handleResponse<Record<string, unknown>>(response)
+      if (!response.ok) {
+        throw new Error(`HTTP ${response.status}: ${response.statusText}`)
+      }
+
+      return await this.handleResponse<Record<string, unknown>>(response)
+    } catch (error) {
+      console.error('Error fetching product by ID:', error)
+      throw error
+    }
   }
 
   static async createProduct(product: Record<string, unknown>): Promise<Record<string, unknown>> {
