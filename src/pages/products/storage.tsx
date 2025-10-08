@@ -1,4 +1,5 @@
 import { useEffect, useState } from 'react'
+import { useNavigate } from 'react-router-dom'
 import '../../Homepage.css'
 import { ApiService } from '../../services/api'
 import PriceRangeSlider from '../../components/PriceRangeSlider'
@@ -41,6 +42,7 @@ interface StorageItem {
 }
 
 function StoragePage() {
+  const navigate = useNavigate()
   const [selectedStorage, setSelectedStorage] = useState<StorageItem | null>(null)
   const [priceRange, setPriceRange] = useState<[number, number]>([500000, 50000000])
   const [searchTerm, setSearchTerm] = useState('')
@@ -668,7 +670,7 @@ function StoragePage() {
               ) : (
                 <div className="product-grid">
                   {filteredStorages.map((storageItem) => (
-                    <div key={storageItem.id} className="rounded-lg border border-white/20 bg-white/10 hover:bg-white/20 transition cursor-pointer" onClick={() => setSelectedStorage(storageItem)}>
+                    <div key={storageItem.id} className="rounded-lg border border-white/20 bg-white/10 hover:bg-white/20 transition cursor-pointer" onClick={() => navigate(`/products/storage/${storageItem.id}`)}>
                       <div className="p-4">
                         <img src={storageItem.image} alt={storageItem.name} className="w-full h-48 object-cover rounded-lg mb-4" />
                         <div className="text-sm font-medium mb-2 line-clamp-2 text-white">{storageItem.name}</div>

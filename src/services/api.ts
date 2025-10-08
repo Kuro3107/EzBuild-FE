@@ -575,9 +575,9 @@ export class ApiService {
   }
 
   // Product APIs
-  static async getCPUs(): Promise<Record<string, unknown>[]> {
+  static async getAllProducts(): Promise<Record<string, unknown>[]> {
     try {
-      // Thử nhiều cách để lấy tất cả 28 CPU
+      // Thử nhiều cách để lấy tất cả products
       let allProducts: Record<string, unknown>[] = []
       
       // Thử 1: API bình thường
@@ -637,6 +637,18 @@ export class ApiService {
       console.log('=== KẾT QUẢ CUỐI CÙNG ===')
       console.log('Tổng số products từ API:', allProducts.length)
       
+      return allProducts
+    } catch (error) {
+      console.error('Error fetching products from backend:', error)
+      throw error
+    }
+  }
+
+  // Method để lấy tất cả CPU (tương thích ngược)
+  static async getCPUs(): Promise<Record<string, unknown>[]> {
+    try {
+      const allProducts = await this.getAllProducts()
+      
       // Filter chỉ lấy CPU (category_id = 1)
       const cpus = allProducts.filter(product => {
         const categoryId = product.category_id || (product.category as { id?: number })?.id
@@ -656,7 +668,7 @@ export class ApiService {
       
       return cpus
     } catch (error) {
-      console.error('Error fetching products from backend:', error)
+      console.error('Error fetching CPUs from backend:', error)
       throw error
     }
   }
@@ -778,14 +790,23 @@ export class ApiService {
   }
 
   static async getProductById(id: number): Promise<Record<string, unknown>> {
-    const response = await fetch(`${API_BASE_URL}/api/product/${id}`, {
-      method: 'GET',
-      headers: {
-        'Content-Type': 'application/json',
-      },
-    })
+    try {
+      const response = await fetch(`${API_BASE_URL}/api/product/${id}`, {
+        method: 'GET',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+      })
 
-    return this.handleResponse<Record<string, unknown>>(response)
+      if (!response.ok) {
+        throw new Error(`HTTP ${response.status}: ${response.statusText}`)
+      }
+
+      return await this.handleResponse<Record<string, unknown>>(response)
+    } catch (error) {
+      console.error('Error fetching product by ID:', error)
+      throw error
+    }
   }
 
   static async createProduct(product: Record<string, unknown>): Promise<Record<string, unknown>> {
