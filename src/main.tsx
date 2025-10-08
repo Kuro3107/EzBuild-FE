@@ -8,6 +8,7 @@ import AppShell from './components/AppShell'
 import SalesPage from './pages/sales/index.tsx'
 import CasePage from './pages/products/case.tsx'
 import CPUPage from './pages/products/cpu.tsx'
+import CPUDetailPage from './pages/products/cpu-detail.tsx'
 import MainboardPage from './pages/products/mainboard.tsx'
 import GPUPage from './pages/products/gpu.tsx'
 import RAMPage from './pages/products/ram.tsx'
@@ -43,6 +44,7 @@ createRoot(document.getElementById('root')!).render(
           <Route path="/pcbuilder" element={<PCBuilderPage />} />
           <Route path="/products/case" element={<CasePage />} />
           <Route path="/products/cpu" element={<CPUPage />} />
+          <Route path="/products/cpu/:id" element={<CPUDetailPage />} />
           <Route path="/products/mainboard" element={<MainboardPage />} />
           <Route path="/products/gpu" element={<GPUPage />} />
           <Route path="/products/ram" element={<RAMPage />} />

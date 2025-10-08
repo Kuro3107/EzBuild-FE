@@ -1,4 +1,5 @@
 import { useState, useEffect } from 'react'
+import { useNavigate } from 'react-router-dom'
 import '../../Homepage.css'
 import { ApiService } from '../../services/api'
 import PriceRangeSlider from '../../components/PriceRangeSlider'
@@ -40,7 +41,7 @@ interface CPUItem {
 }
 
 function CPUPage() {
-  const [selectedCPU, setSelectedCPU] = useState<CPUItem | null>(null)
+  const navigate = useNavigate()
   const [priceRange, setPriceRange] = useState<[number, number]>([500000, 50000000])
   const [searchTerm, setSearchTerm] = useState('')
   const [selectedSocketTypes, setSelectedSocketTypes] = useState<string[]>([])
@@ -393,10 +394,14 @@ function CPUPage() {
         <main className="main">
           {/* Breadcrumb + controls */}
           <div className="mb-4 flex flex-col gap-3 md:flex-row md:items-center md:justify-between">
-            <div className="flex items-center gap-2 text-sm text-white/70">
-              <span>Products</span>
-              <svg className="w-3 h-3" viewBox="0 0 20 20" fill="currentColor"><path fillRule="evenodd" d="M7.293 14.707a1 1 0 010-1.414L10.586 10 7.293 6.707a1 1 0 011.414-1.414l4 4a1 1 0 010 1.414l-4 4a1 1 0 01-1.414 0z" clipRule="evenodd"/></svg>
-              <span className="font-medium text-white">CPU</span>
+            <div className="flex items-center gap-2 text-sm">
+              <span className="px-3 py-1 text-white rounded-md border" style={{ backgroundColor: 'rgba(34, 197, 94, 0.3) !important', borderColor: 'rgba(34, 197, 94, 0.5) !important' }}>
+                📦 Products
+              </span>
+              <svg className="w-3 h-3 text-white/60" viewBox="0 0 20 20" fill="currentColor"><path fillRule="evenodd" d="M7.293 14.707a1 1 0 010-1.414L10.586 10 7.293 6.707a1 1 0 011.414-1.414l4 4a1 1 0 010 1.414l-4 4a1 1 0 01-1.414 0z" clipRule="evenodd"/></svg>
+              <span className="px-3 py-1 bg-blue-500/20 text-blue-300 font-medium rounded-md border border-blue-400/30">
+                🖥️ CPU
+              </span>
             </div>
             <div className="flex items-center gap-3">
               <select className="bg-white/10 hover:bg-white/20 text-white px-3 py-2 rounded-md text-sm border border-white/20">
@@ -630,16 +635,16 @@ function CPUPage() {
                         setSelectedMemoryTypes([])
                         setPriceRange([500000, 50000000])
                       }}
-                      className="px-4 py-2 bg-blue-500 text-white rounded hover:bg-blue-600"
+                      className="px-6 py-3 bg-gradient-to-r from-blue-600 to-blue-700 text-white font-semibold rounded-lg hover:from-blue-700 hover:to-blue-800 transition-all duration-200 shadow-lg hover:shadow-xl transform hover:-translate-y-0.5"
                     >
-                      Xóa tất cả bộ lọc
+                      🔍 Xóa tất cả bộ lọc
                     </button>
                   )}
                 </div>
               ) : (
                 <div className="product-grid">
                   {filteredCPUs.map((cpuItem) => (
-                  <div key={cpuItem.id} className="rounded-lg border border-white/20 bg-white/10 hover:bg-white/20 transition cursor-pointer" onClick={() => setSelectedCPU(cpuItem)}>
+                  <div key={cpuItem.id} className="rounded-lg border border-white/20 bg-white/10 hover:bg-white/20 transition cursor-pointer" onClick={() => navigate(`/products/cpu/${cpuItem.id}`)}>
                     <div className="p-4">
                       <img src={cpuItem.image} alt={cpuItem.name} className="w-full h-48 object-cover rounded-lg mb-4" />
                       <div className="text-sm font-medium mb-2 line-clamp-2 text-white">{cpuItem.name}</div>
@@ -663,126 +668,6 @@ function CPUPage() {
           </div>
         </main>
       </div>
-
-      {/* Product Detail Modal */}
-      {selectedCPU && (
-        <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 p-4">
-          <div className="bg-gray-900 border border-white/20 rounded-lg max-w-4xl w-full max-h-[90vh] overflow-y-auto">
-            <div className="p-6">
-              <div className="flex justify-between items-start mb-6">
-                <div>
-                  <h2 className="text-3xl font-bold text-white">{selectedCPU.name}</h2>
-                  <p className="text-lg text-white/70">{selectedCPU.brand}</p>
-                </div>
-                <button
-                  onClick={() => setSelectedCPU(null)}
-                  className="text-white/60 hover:text-white"
-                >
-                  <svg className="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
-                  </svg>
-                </button>
-              </div>
-              
-              <div className="grid grid-cols-1 lg:grid-cols-2 gap-8">
-                <div>
-                  <img
-                    src={selectedCPU.image}
-                    alt={selectedCPU.name}
-                    className="w-full h-96 object-cover rounded-lg"
-                  />
-                </div>
-                
-                <div>
-                  <div className="text-3xl font-bold text-blue-400 mb-4">
-                    {selectedCPU.price}
-                  </div>
-                  
-                  {/* Hiển thị giá từ nhiều suppliers */}
-                  {selectedCPU.productPrices && selectedCPU.productPrices.length > 0 && (
-                    <div className="mb-6">
-                      <h3 className="text-lg font-semibold mb-3 text-white">Giá từ các nhà cung cấp</h3>
-                      <div className="space-y-2 max-h-48 overflow-y-auto">
-                        {selectedCPU.productPrices
-                          .sort((a, b) => a.price - b.price)
-                          .map((priceInfo, index) => (
-                            <div key={index} className="flex justify-between items-center p-3 bg-white/5 rounded-lg border border-white/10">
-                              <div className="flex-1">
-                                <div className="text-white font-medium">
-                                  {priceInfo.supplier.name}
-                                </div>
-                                <div className="text-white/60 text-sm">
-                                  ID: {priceInfo.supplier.id}
-                                </div>
-                              </div>
-                              <div className="text-right">
-                                <div className="text-green-400 font-bold">
-                                  {priceInfo.price.toLocaleString('vi-VN')} VND
-                                </div>
-                                {priceInfo.supplierLink && (
-                                  <a 
-                                    href={priceInfo.supplierLink} 
-                                    target="_blank" 
-                                    rel="noopener noreferrer"
-                                    className="text-blue-400 text-sm hover:text-blue-300"
-                                  >
-                                    Xem tại shop
-                                  </a>
-                                )}
-                              </div>
-                            </div>
-                          ))}
-                      </div>
-                    </div>
-                  )}
-                  
-                  <div className="mb-6">
-                    <h3 className="text-lg font-semibold mb-3 text-white">Specifications</h3>
-                    <div className="space-y-2">
-                      {Object.entries(selectedCPU.specs).map(([key, value]) => (
-                        <div key={key} className="flex justify-between">
-                          <span className="text-white/70 capitalize">{key.replace(/([A-Z])/g, ' $1').trim()}:</span>
-                          <span className="font-medium text-white">{value.toString()}</span>
-                        </div>
-                      ))}
-                    </div>
-                  </div>
-                  
-                  <div className="mb-6">
-                    <h3 className="text-lg font-semibold mb-3 text-white">Features</h3>
-                    <div className="flex flex-wrap gap-2">
-                      {selectedCPU.features.map((feature, index) => (
-                        <span
-                          key={index}
-                          className="px-3 py-1 bg-blue-500/20 text-blue-300 text-sm rounded-full"
-                        >
-                          {feature}
-                        </span>
-                      ))}
-                    </div>
-                  </div>
-                  
-                  <div className="flex space-x-4">
-                    <button 
-                      className={`flex-1 px-6 py-3 rounded-lg font-semibold transition-colors ${
-                        selectedCPU.inStock 
-                          ? 'bg-blue-600 text-white hover:bg-blue-700' 
-                          : 'bg-gray-600 text-gray-400 cursor-not-allowed'
-                      }`}
-                      disabled={!selectedCPU.inStock}
-                    >
-                      {selectedCPU.inStock ? 'Add to Build' : 'Out of Stock'}
-                    </button>
-                    <button className="flex-1 border border-blue-400 text-blue-400 px-6 py-3 rounded-lg font-semibold hover:bg-blue-400/10 transition-colors">
-                      Compare
-                    </button>
-                  </div>
-                </div>
-              </div>
-            </div>
-          </div>
-        </div>
-      )}
 
       {/* Filter Popups */}
       <FilterPopup
