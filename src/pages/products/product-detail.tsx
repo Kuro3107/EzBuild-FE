@@ -50,20 +50,37 @@ function ProductDetailPage() {
   const navigate = useNavigate()
   const [product, setProduct] = useState<ProductItem | null>(null)
   const [loading, setLoading] = useState(true)
+  const [error, setError] = useState<string | null>(null)
+  const [retryCount, setRetryCount] = useState(0)
 
   const fetchProductDetail = useCallback(async (productId: number) => {
     setLoading(true)
+    setError(null)
     try {
-      // Lấy tất cả products từ API
-      const allProducts = await ApiService.getAllProducts() // Sử dụng method chung để lấy tất cả products
+      // Kiểm tra cache trước
+      const cacheKey = `product_${productId}`
+      const cachedProduct = localStorage.getItem(cacheKey)
       
-      if (allProducts.length === 0) {
-        setProduct(null)
-        return
+      if (cachedProduct) {
+        try {
+          const parsedProduct = JSON.parse(cachedProduct)
+          // Kiểm tra cache có cũ hơn 5 phút không
+          const cacheTime = parsedProduct.cacheTime || 0
+          const now = Date.now()
+          if (now - cacheTime < 5 * 60 * 1000) { // 5 phút
+            console.log('Using cached product data')
+            setProduct(parsedProduct.data)
+            setLoading(false)
+            return
+          }
+        } catch {
+          console.log('Invalid cache data, fetching fresh data')
+        }
       }
       
-      // Tìm product theo ID
-      const foundProduct = allProducts.find((item: Record<string, unknown>) => Number(item.id) === productId)
+      // Gọi API trực tiếp theo ID (nhanh hơn nhiều)
+      console.log('Fetching product by ID:', productId)
+      const foundProduct = await ApiService.getProductById(productId)
       
       if (!foundProduct) {
         setProduct(null)
@@ -131,19 +148,84 @@ function ProductDetailPage() {
       }
       
       setProduct(formattedProduct)
+      
+      // Lưu vào cache
+      try {
+        const cacheData = {
+          data: formattedProduct,
+          cacheTime: Date.now()
+        }
+        localStorage.setItem(cacheKey, JSON.stringify(cacheData))
+        console.log('Product data cached successfully')
+      } catch (e) {
+        console.log('Failed to cache product data:', e)
+      }
+      
     } catch (err) {
       console.error('Error fetching product detail:', err)
+      setError(err instanceof Error ? err.message : 'Có lỗi xảy ra khi tải sản phẩm')
       setProduct(null)
+      
+      // Auto retry nếu chưa retry quá 3 lần
+      if (retryCount < 3) {
+        setTimeout(() => {
+          setRetryCount(prev => prev + 1)
+          fetchProductDetail(productId)
+        }, 1000 * (retryCount + 1)) // Exponential backoff
+      }
     } finally {
       setLoading(false)
     }
-  }, [])
+  }, [retryCount])
 
   useEffect(() => {
     if (id) {
       fetchProductDetail(parseInt(id))
     }
   }, [id, fetchProductDetail])
+
+  // Preload related products khi component mount
+  useEffect(() => {
+    const preloadRelatedProducts = async () => {
+      try {
+        // Preload một số sản phẩm cùng category để cache sẵn
+        const allProducts = await ApiService.getAllProducts()
+        const currentProduct = allProducts.find(p => Number(p.id) === Number(id))
+        
+        if (currentProduct) {
+          const categoryId = Number(currentProduct.category_id) || Number((currentProduct.category as { id?: number })?.id) || 1
+          const relatedProducts = allProducts
+            .filter(p => {
+              const pCategoryId = Number(p.category_id) || Number((p.category as { id?: number })?.id) || 1
+              return pCategoryId === categoryId && Number(p.id) !== Number(id)
+            })
+            .slice(0, 3) // Chỉ preload 3 sản phẩm đầu tiên
+          
+          // Cache các sản phẩm liên quan
+          relatedProducts.forEach(product => {
+            const cacheKey = `product_${product.id}`
+            const cacheData = {
+              data: product,
+              cacheTime: Date.now()
+            }
+            try {
+              localStorage.setItem(cacheKey, JSON.stringify(cacheData))
+            } catch (e) {
+              console.log('Failed to cache related product:', e)
+            }
+          })
+          
+          console.log(`Preloaded ${relatedProducts.length} related products`)
+        }
+      } catch (error) {
+        console.log('Failed to preload related products:', error)
+      }
+    }
+
+    // Chỉ preload sau khi trang đã load xong
+    const timer = setTimeout(preloadRelatedProducts, 2000)
+    return () => clearTimeout(timer)
+  }, [id])
 
   // Hàm parse specs dựa trên category
   const parseSpecsByCategory = (product: Record<string, unknown>, categoryId: number): Record<string, string | number | boolean> => {
@@ -317,8 +399,65 @@ function ProductDetailPage() {
       <div className="page bg-grid bg-radial">
         <div className="layout">
           <main className="main">
-            <div className="flex justify-center items-center py-12">
-              <div className="text-lg text-white/70">Đang tải thông tin sản phẩm...</div>
+            {/* Breadcrumb skeleton */}
+            <div className="mb-6 flex items-center gap-2 text-sm">
+              <div className="h-4 w-16 bg-white/20 rounded animate-pulse"></div>
+              <div className="h-4 w-4 bg-white/20 rounded animate-pulse"></div>
+              <div className="h-4 w-20 bg-white/20 rounded animate-pulse"></div>
+              <div className="h-4 w-4 bg-white/20 rounded animate-pulse"></div>
+              <div className="h-6 w-32 bg-white/20 rounded animate-pulse"></div>
+            </div>
+
+            <div className="grid grid-cols-1 lg:grid-cols-2 gap-8">
+              {/* Image skeleton */}
+              <div className="space-y-4">
+                <div className="aspect-square rounded-lg bg-white/10 border border-white/20 animate-pulse"></div>
+                <div className="rounded-lg border border-white/20 bg-white/10 p-6">
+                  <div className="h-8 w-3/4 bg-white/20 rounded animate-pulse mb-2"></div>
+                  <div className="h-6 w-1/2 bg-white/20 rounded animate-pulse mb-4"></div>
+                  <div className="space-y-2">
+                    {[1, 2, 3, 4, 5].map((i) => (
+                      <div key={i} className="flex justify-between">
+                        <div className="h-4 w-20 bg-white/20 rounded animate-pulse"></div>
+                        <div className="h-4 w-16 bg-white/20 rounded animate-pulse"></div>
+                      </div>
+                    ))}
+                  </div>
+                </div>
+              </div>
+
+              {/* Price skeleton */}
+              <div className="space-y-6">
+                <div className="rounded-lg border border-white/20 bg-white/10 p-6">
+                  <div className="h-6 w-32 bg-white/20 rounded animate-pulse mb-4"></div>
+                  <div className="h-10 w-48 bg-white/20 rounded animate-pulse mb-2"></div>
+                  <div className="h-4 w-40 bg-white/20 rounded animate-pulse"></div>
+                </div>
+                
+                <div className="rounded-lg border border-white/20 bg-white/10 p-6">
+                  <div className="h-6 w-48 bg-white/20 rounded animate-pulse mb-4"></div>
+                  <div className="space-y-3">
+                    {[1, 2, 3].map((i) => (
+                      <div key={i} className="flex justify-between items-center p-4 bg-white/5 rounded-lg">
+                        <div className="flex-1">
+                          <div className="h-5 w-24 bg-white/20 rounded animate-pulse mb-1"></div>
+                          <div className="h-4 w-16 bg-white/20 rounded animate-pulse mb-1"></div>
+                          <div className="h-3 w-20 bg-white/20 rounded animate-pulse"></div>
+                        </div>
+                        <div className="text-right">
+                          <div className="h-6 w-20 bg-white/20 rounded animate-pulse mb-2"></div>
+                          <div className="h-8 w-24 bg-white/20 rounded animate-pulse"></div>
+                        </div>
+                      </div>
+                    ))}
+                  </div>
+                </div>
+
+                <div className="space-y-3">
+                  <div className="h-12 w-full bg-white/20 rounded-lg animate-pulse"></div>
+                  <div className="h-12 w-full bg-white/20 rounded-lg animate-pulse"></div>
+                </div>
+              </div>
             </div>
           </main>
         </div>
@@ -326,12 +465,47 @@ function ProductDetailPage() {
     )
   }
 
-  if (!product) {
+  if (error && !loading) {
     return (
       <div className="page bg-grid bg-radial">
         <div className="layout">
           <main className="main">
             <div className="text-center py-12">
+              <div className="text-6xl mb-4">⚠️</div>
+              <div className="text-lg text-red-400 mb-2">Lỗi tải sản phẩm</div>
+              <div className="text-sm text-white/70 mb-6">{error}</div>
+              <div className="space-x-4">
+                <button 
+                  onClick={() => {
+                    setRetryCount(0)
+                    setError(null)
+                    if (id) fetchProductDetail(parseInt(id))
+                  }}
+                  className="px-6 py-3 bg-gradient-to-r from-blue-600 to-blue-700 text-white font-semibold rounded-lg hover:from-blue-700 hover:to-blue-800 transition-all duration-200 shadow-lg hover:shadow-xl transform hover:-translate-y-0.5"
+                >
+                  🔄 Thử lại
+                </button>
+                <button 
+                  onClick={() => navigate('/products')}
+                  className="px-6 py-3 bg-gradient-to-r from-gray-600 to-gray-700 text-white font-semibold rounded-lg hover:from-gray-700 hover:to-gray-800 transition-all duration-200 shadow-lg hover:shadow-xl transform hover:-translate-y-0.5"
+                >
+                  ← Quay lại danh sách
+                </button>
+              </div>
+            </div>
+          </main>
+        </div>
+      </div>
+    )
+  }
+
+  if (!product && !loading) {
+    return (
+      <div className="page bg-grid bg-radial">
+        <div className="layout">
+          <main className="main">
+            <div className="text-center py-12">
+              <div className="text-6xl mb-4">🔍</div>
               <div className="text-lg text-white/70 mb-4">Không tìm thấy sản phẩm</div>
               <button 
                 onClick={() => navigate('/products')}
@@ -346,7 +520,7 @@ function ProductDetailPage() {
     )
   }
 
-  const categoryInfo = CATEGORY_INFO[product.categoryId] || { name: 'Unknown', icon: '📦', route: '/products' }
+  const categoryInfo = CATEGORY_INFO[product?.categoryId || 1] || { name: 'Unknown', icon: '📦', route: '/products' }
 
   return (
     <div className="page bg-grid bg-radial">
@@ -373,7 +547,7 @@ function ProductDetailPage() {
               <path fillRule="evenodd" d="M7.293 14.707a1 1 0 010-1.414L10.586 10 7.293 6.707a1 1 0 011.414-1.414l4 4a1 1 0 010 1.414l-4 4a1 1 0 01-1.414 0z" clipRule="evenodd"/>
             </svg>
             <span className="px-3 py-1 bg-blue-500/20 text-blue-300 font-medium rounded-md border border-blue-400/30">
-              {product.name}
+              {product?.name || 'Unknown Product'}
             </span>
           </div>
 
@@ -382,19 +556,19 @@ function ProductDetailPage() {
             <div className="space-y-4">
               <div className="aspect-square rounded-lg overflow-hidden bg-white/10 border border-white/20">
                 <img
-                  src={product.image}
-                  alt={product.name}
+                  src={product?.image || 'https://images.unsplash.com/photo-1591799264318-7e6ef8ddb7ea?w=300&h=200&fit=crop'}
+                  alt={product?.name || 'Unknown Product'}
                   className="w-full h-full object-cover"
                 />
               </div>
               
               {/* Thông tin cơ bản */}
               <div className="rounded-lg border border-white/20 bg-white/10 p-6">
-                <h1 className="text-2xl font-bold text-white mb-2">{product.name}</h1>
-                <p className="text-lg text-white/70 mb-4">{product.brand}</p>
+                <h1 className="text-2xl font-bold text-white mb-2">{product?.name || 'Unknown Product'}</h1>
+                <p className="text-lg text-white/70 mb-4">{product?.brand || 'Unknown Brand'}</p>
                 
                 <div className="space-y-2 text-sm">
-                  {Object.entries(product.specs).map(([key, value]) => (
+                  {Object.entries(product?.specs || {}).map(([key, value]) => (
                     <div key={key} className="flex justify-between">
                       <span className="text-white/70 capitalize">{key.replace(/([A-Z])/g, ' $1').trim()}:</span>
                       <span className="text-white">{String(value)}</span>
@@ -410,19 +584,19 @@ function ProductDetailPage() {
               <div className="rounded-lg border border-white/20 bg-white/10 p-6">
                 <h2 className="text-xl font-semibold text-white mb-4">Giá sản phẩm</h2>
                 <div className="text-3xl font-bold text-blue-400 mb-2">
-                  {product.price}
+                  {product?.price || 'Liên hệ'}
                 </div>
                 <p className="text-sm text-white/60">
-                  Giá từ {product.productPrices?.length || 0} nhà cung cấp
+                  Giá từ {product?.productPrices?.length || 0} nhà cung cấp
                 </p>
               </div>
 
               {/* Danh sách giá từ các supplier */}
-              {product.productPrices && product.productPrices.length > 0 && (
+              {product?.productPrices && product.productPrices.length > 0 && (
                 <div className="rounded-lg border border-white/20 bg-white/10 p-6">
                   <h3 className="text-lg font-semibold mb-4 text-white">Giá từ các nhà cung cấp</h3>
                   <div className="space-y-3 max-h-96 overflow-y-auto">
-                    {product.productPrices
+                    {product?.productPrices
                       .sort((a, b) => a.price - b.price)
                       .map((priceInfo, index) => (
                         <div key={index} className="flex justify-between items-center p-4 bg-white/5 rounded-lg border border-white/10 hover:bg-white/10 transition-colors">
@@ -462,13 +636,13 @@ function ProductDetailPage() {
               <div className="space-y-3">
                 <button 
                   className={`w-full px-6 py-4 rounded-lg font-bold text-lg transition-all duration-200 shadow-lg ${
-                    product.inStock 
+                    product?.inStock 
                       ? 'bg-gradient-to-r from-blue-600 to-blue-700 text-white hover:from-blue-700 hover:to-blue-800 hover:shadow-xl transform hover:-translate-y-0.5' 
                       : 'bg-gray-600 text-gray-400 cursor-not-allowed'
                   }`}
-                  disabled={!product.inStock}
+                  disabled={!product?.inStock}
                 >
-                  {product.inStock ? '🛒 Add to Build' : '❌ Out of Stock'}
+                  {product?.inStock ? '🛒 Add to Build' : '❌ Out of Stock'}
                 </button>
                 <button className="w-full border-2 border-orange-400 text-orange-400 bg-orange-400/10 px-6 py-4 rounded-lg font-bold text-lg hover:bg-orange-400 hover:text-white transition-all duration-200 shadow-lg hover:shadow-xl transform hover:-translate-y-0.5">
                   ⚖️ So sánh sản phẩm

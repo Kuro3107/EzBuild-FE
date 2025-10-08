@@ -1,4 +1,5 @@
 import { useEffect, useState } from 'react'
+import { useNavigate } from 'react-router-dom'
 import '../../Homepage.css'
 import { ApiService } from '../../services/api'
 import PriceRangeSlider from '../../components/PriceRangeSlider'
@@ -41,6 +42,7 @@ interface PSUItem {
 }
 
 function PSUPage() {
+  const navigate = useNavigate()
   const [selectedPSU, setSelectedPSU] = useState<PSUItem | null>(null)
   const [priceRange, setPriceRange] = useState<[number, number]>([500000, 50000000])
   const [searchTerm, setSearchTerm] = useState('')
@@ -631,7 +633,7 @@ function PSUPage() {
               ) : (
                 <div className="product-grid">
                   {filteredPSUs.map((psuItem) => (
-                    <div key={psuItem.id} className="rounded-lg border border-white/20 bg-white/10 hover:bg.white/20 transition cursor-pointer" onClick={() => setSelectedPSU(psuItem)}>
+                    <div key={psuItem.id} className="rounded-lg border border-white/20 bg-white/10 hover:bg-white/20 transition cursor-pointer" onClick={() => navigate(`/products/psu/${psuItem.id}`)}>
                       <div className="p-4">
                         <img src={psuItem.image} alt={psuItem.name} className="w-full h-48 object-cover rounded-lg mb-4" />
                         <div className="text-sm font-medium mb-2 line-clamp-2 text-white">{psuItem.name}</div>

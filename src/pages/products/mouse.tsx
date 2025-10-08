@@ -1,4 +1,5 @@
 import { useEffect, useState } from 'react'
+import { useNavigate } from 'react-router-dom'
 import '../../Homepage.css'
 import { ApiService } from '../../services/api'
 import PriceRangeSlider from '../../components/PriceRangeSlider'
@@ -42,6 +43,7 @@ interface MouseItem {
 }
 
 function MousePage() {
+  const navigate = useNavigate()
   const [selectedMouse, setSelectedMouse] = useState<MouseItem | null>(null)
   const [priceRange, setPriceRange] = useState<[number, number]>([500000, 50000000])
   const [searchTerm, setSearchTerm] = useState('')
@@ -600,7 +602,7 @@ function MousePage() {
               ) : (
                 <div className="product-grid">
                   {filteredMice.map((mouseItem) => (
-                    <div key={mouseItem.id} className="rounded-lg border border-white/20 bg-white/10 hover:bg-white/20 transition cursor-pointer" onClick={() => setSelectedMouse(mouseItem)}>
+                    <div key={mouseItem.id} className="rounded-lg border border-white/20 bg-white/10 hover:bg-white/20 transition cursor-pointer" onClick={() => navigate(`/products/mouse/${mouseItem.id}`)}>
                       <div className="p-4">
                         <img src={mouseItem.image} alt={mouseItem.name} className="w-full h-48 object-cover rounded-lg mb-4" />
                         <div className="text-sm font-medium mb-2 line-clamp-2 text-white">{mouseItem.name}</div>

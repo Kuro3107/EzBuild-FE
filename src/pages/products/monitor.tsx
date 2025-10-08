@@ -1,4 +1,5 @@
 import { useEffect, useState } from 'react'
+import { useNavigate } from 'react-router-dom'
 import '../../Homepage.css'
 import { ApiService } from '../../services/api'
 import PriceRangeSlider from '../../components/PriceRangeSlider'
@@ -44,6 +45,7 @@ interface MonitorItem {
 }
 
 function MonitorPage() {
+  const navigate = useNavigate()
   const [selectedMonitor, setSelectedMonitor] = useState<MonitorItem | null>(null)
   const [priceRange, setPriceRange] = useState<[number, number]>([500000, 50000000])
   const [searchTerm, setSearchTerm] = useState('')
@@ -673,7 +675,7 @@ function MonitorPage() {
               ) : (
                 <div className="product-grid">
                   {filteredMonitors.map((monitorItem) => (
-                    <div key={monitorItem.id} className="rounded-lg border border-white/20 bg-white/10 hover:bg-white/20 transition cursor-pointer" onClick={() => setSelectedMonitor(monitorItem)}>
+                    <div key={monitorItem.id} className="rounded-lg border border-white/20 bg-white/10 hover:bg-white/20 transition cursor-pointer" onClick={() => navigate(`/products/monitor/${monitorItem.id}`)}>
                       <div className="p-4">
                         <img src={monitorItem.image} alt={monitorItem.name} className="w-full h-48 object-cover rounded-lg mb-4" />
                         <div className="text-sm font-medium mb-2 line-clamp-2 text-white">{monitorItem.name}</div>

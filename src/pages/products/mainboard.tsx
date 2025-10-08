@@ -1,5 +1,5 @@
 import { useEffect, useState } from 'react'
-// Bỏ import Link - không sử dụng
+import { useNavigate } from 'react-router-dom'
 import '../../Homepage.css'
 import { ApiService } from '../../services/api'
 import PriceRangeSlider from '../../components/PriceRangeSlider'
@@ -44,6 +44,7 @@ interface MainboardItem {
 }
 
 function MainboardPage() {
+  const navigate = useNavigate()
   const [selectedMainboard, setSelectedMainboard] = useState<MainboardItem | null>(null)
   const [priceRange, setPriceRange] = useState<[number, number]>([500000, 50000000])
   const [searchTerm, setSearchTerm] = useState('')
@@ -677,7 +678,7 @@ function MainboardPage() {
               ) : (
                 <div className="product-grid">
                   {filteredMainboards.map((mainboardItem) => (
-                    <div key={mainboardItem.id} className="rounded-lg border border-white/20 bg-white/10 hover:bg-white/20 transition cursor-pointer" onClick={() => setSelectedMainboard(mainboardItem)}>
+                    <div key={mainboardItem.id} className="rounded-lg border border-white/20 bg-white/10 hover:bg-white/20 transition cursor-pointer" onClick={() => navigate(`/products/mainboard/${mainboardItem.id}`)}>
                       <div className="p-4">
                         <img src={mainboardItem.image} alt={mainboardItem.name} className="w-full h-48 object-cover rounded-lg mb-4" />
                         <div className="text-sm font-medium mb-2 line-clamp-2 text-white">{mainboardItem.name}</div>

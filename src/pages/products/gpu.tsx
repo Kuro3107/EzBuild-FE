@@ -1,4 +1,5 @@
 import { useEffect, useState } from 'react'
+import { useNavigate } from 'react-router-dom'
 import '../../Homepage.css'
 import { ApiService } from '../../services/api'
 import PriceRangeSlider from '../../components/PriceRangeSlider'
@@ -43,6 +44,7 @@ interface GPUItem {
 }
 
 function GPUPage() {
+  const navigate = useNavigate()
   const [selectedGPU, setSelectedGPU] = useState<GPUItem | null>(null)
   const [priceRange, setPriceRange] = useState<[number, number]>([500000, 50000000])
   const [searchTerm, setSearchTerm] = useState('')
@@ -692,7 +694,7 @@ function GPUPage() {
               ) : (
                 <div className="product-grid">
                   {filteredGPUs.map((gpuItem) => (
-                    <div key={gpuItem.id} className="rounded-lg border border-white/20 bg-white/10 hover:bg-white/20 transition cursor-pointer" onClick={() => setSelectedGPU(gpuItem)}>
+                    <div key={gpuItem.id} className="rounded-lg border border-white/20 bg-white/10 hover:bg-white/20 transition cursor-pointer" onClick={() => navigate(`/products/gpu/${gpuItem.id}`)}>
                       <div className="p-4">
                         <img src={gpuItem.image} alt={gpuItem.name} className="w-full h-48 object-cover rounded-lg mb-4" />
                         <div className="text-sm font-medium mb-2 line-clamp-2 text-white">{gpuItem.name}</div>

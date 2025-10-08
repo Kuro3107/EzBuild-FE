@@ -1,5 +1,5 @@
 import { useEffect, useState } from 'react'
-// Bỏ import Link - không sử dụng
+import { useNavigate } from 'react-router-dom'
 import { ApiService } from '../../services/api'
 import '../../Homepage.css'
 import PriceRangeSlider from '../../components/PriceRangeSlider'
@@ -42,6 +42,7 @@ interface CoolingItem {
 }
 
 function CoolingPage() {
+  const navigate = useNavigate()
   const [selectedCooling, setSelectedCooling] = useState<CoolingItem | null>(null)
   const [priceRange, setPriceRange] = useState<[number, number]>([500000, 50000000])
   const [searchTerm, setSearchTerm] = useState('')
@@ -227,7 +228,7 @@ function CoolingPage() {
               ) : (
                 <div className="product-grid">
                   {filteredCoolers.map((coolerItem) => (
-                    <div key={coolerItem.id} className="rounded-lg border border-white/20 bg-white/10 hover:bg-white/20 transition cursor-pointer" onClick={() => setSelectedCooling(coolerItem)}>
+                    <div key={coolerItem.id} className="rounded-lg border border-white/20 bg-white/10 hover:bg-white/20 transition cursor-pointer" onClick={() => navigate(`/products/cooling/${coolerItem.id}`)}>
                       <div className="p-4">
                         <img src={coolerItem.image} alt={coolerItem.name} className="w-full h-48 object-cover rounded-lg mb-4" />
                         <div className="text-sm font-medium mb-2 line-clamp-2 text-white">{coolerItem.name}</div>

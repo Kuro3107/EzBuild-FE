@@ -1,5 +1,5 @@
 import { useEffect, useState } from 'react'
-// Bỏ import Link - không sử dụng
+import { useNavigate } from 'react-router-dom'
 import '../../Homepage.css'
 import { ApiService } from '../../services/api'
 import PriceRangeSlider from '../../components/PriceRangeSlider'
@@ -45,6 +45,7 @@ interface CaseItem {
 }
 
 function CasePage() {
+  const navigate = useNavigate()
   const [selectedCase, setSelectedCase] = useState<CaseItem | null>(null)
   const [priceRange, setPriceRange] = useState<[number, number]>([500000, 50000000])
   const [searchTerm, setSearchTerm] = useState('')
@@ -743,7 +744,7 @@ function CasePage() {
               ) : (
                 <div className="product-grid">
                   {filteredCases.map((caseItem) => (
-                    <div key={caseItem.id} className="rounded-lg border border-white/20 bg-white/10 hover:bg-white/20 transition cursor-pointer" onClick={() => setSelectedCase(caseItem)}>
+                    <div key={caseItem.id} className="rounded-lg border border-white/20 bg-white/10 hover:bg-white/20 transition cursor-pointer" onClick={() => navigate(`/products/case/${caseItem.id}`)}>
                       <div className="p-4">
                         <img src={caseItem.image} alt={caseItem.name} className="w-full h-48 object-cover rounded-lg mb-4" />
                         <div className="text-sm font-medium mb-2 line-clamp-2 text-white">{caseItem.name}</div>
