@@ -999,6 +999,82 @@ export class ApiService {
     }
   }
 
+  // Sales APIs
+  static async getSales(): Promise<Record<string, unknown>[]> {
+    try {
+      console.log('Fetching sales data from API...')
+      
+      const response = await fetch(`${API_BASE_URL}/api/sales`, {
+        method: 'GET',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+      })
+
+      if (!response.ok) {
+        throw new Error(`HTTP ${response.status}: ${response.statusText}`)
+      }
+
+      const salesData = await this.handleResponse<Record<string, unknown>[]>(response)
+      console.log(`Found ${salesData.length} sales items from API`)
+      
+      return salesData
+    } catch (error) {
+      console.error('Error fetching sales data:', error)
+      throw error
+    }
+  }
+
+  static async getSalesByCategory(category: string): Promise<Record<string, unknown>[]> {
+    try {
+      console.log(`Fetching sales data for category: ${category}`)
+      
+      const response = await fetch(`${API_BASE_URL}/api/sales/category/${encodeURIComponent(category)}`, {
+        method: 'GET',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+      })
+
+      if (!response.ok) {
+        throw new Error(`HTTP ${response.status}: ${response.statusText}`)
+      }
+
+      const salesData = await this.handleResponse<Record<string, unknown>[]>(response)
+      console.log(`Found ${salesData.length} sales items for category ${category}`)
+      
+      return salesData
+    } catch (error) {
+      console.error(`Error fetching sales data for category ${category}:`, error)
+      throw error
+    }
+  }
+
+  static async refreshSales(): Promise<Record<string, unknown>[]> {
+    try {
+      console.log('Refreshing sales data...')
+      
+      const response = await fetch(`${API_BASE_URL}/api/sales/refresh`, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+      })
+
+      if (!response.ok) {
+        throw new Error(`HTTP ${response.status}: ${response.statusText}`)
+      }
+
+      const salesData = await this.handleResponse<Record<string, unknown>[]>(response)
+      console.log(`Refreshed ${salesData.length} sales items`)
+      
+      return salesData
+    } catch (error) {
+      console.error('Error refreshing sales data:', error)
+      throw error
+    }
+  }
+
   // Function để clear tất cả dữ liệu authentication
   static clearAuthData(): void {
     localStorage.removeItem('authToken')
