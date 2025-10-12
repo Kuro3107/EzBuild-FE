@@ -1,4 +1,4 @@
-import { useEffect, useMemo, useRef, useState } from 'react'
+import { useEffect, useMemo, useRef, useState, useCallback, memo } from 'react'
 import { Link } from 'react-router-dom'
 import '../../Homepage.css'
 import './index.css'
@@ -48,62 +48,156 @@ const categoryMap: { [key: number]: string } = {
   12: 'Headset/Speaker'
 }
 
+// Memoized product item component for better performance
+const ProductItem = memo(({ 
+  product, 
+  isSelected, 
+  onSelect 
+}: { 
+  product: CompareProduct; 
+  isSelected: boolean; 
+  onSelect: (id: number) => void;
+}) => (
+  <button
+    onClick={() => onSelect(product.id)}
+    className={isSelected ? 'is-active' : ''}
+  >
+    <div className="text-left">
+      <div className="font-medium">{product.name}</div>
+      <div className="text-xs text-white/60">{product.brand} - {product.category}</div>
+      {product.price > 0 && (
+        <div className="text-xs text-green-400 mt-1">
+          {product.price.toLocaleString('vi-VN')} VND
+        </div>
+      )}
+    </div>
+  </button>
+))
+
+ProductItem.displayName = 'ProductItem'
+
 function ComparePage() {
   const [query, setQuery] = useState('')
   const [selectedId, setSelectedId] = useState<number | null>(null)
   const [products, setProducts] = useState<CompareProduct[]>([])
   const [loading, setLoading] = useState(false)
+  const [error, setError] = useState<string | null>(null)
+  const [dataLoaded, setDataLoaded] = useState(false)
+  const [isInitialLoad, setIsInitialLoad] = useState(true)
 
   const [isProductsOpen, setIsProductsOpen] = useState(false)
   const productsBtnRef = useRef<HTMLAnchorElement | null>(null)
   const popoverRef = useRef<HTMLDivElement | null>(null)
 
-  // Fetch all products from API
-  useEffect(() => {
-    const fetchAllProducts = async () => {
-      setLoading(true)
-      try {
-        const allProducts: CompareProduct[] = []
-        
-        // Fetch products from each category
-        for (const categoryId of Object.keys(categoryMap).map(Number)) {
-          try {
-            const categoryProducts = await ApiService.getProductsByCategory(categoryId)
-            const formattedProducts = (categoryProducts as ApiProduct[]).map((item) => {
-              const productPrices = item.productPrices as Array<{ price: number }>
-              const minPrice = Array.isArray(productPrices) && productPrices.length > 0
-                ? Math.min(...productPrices.map(p => p.price))
-                : 0
+  // Memoized function to convert API product to CompareProduct
+  const convertApiProductToCompareProduct = useCallback((item: ApiProduct, categoryId: number): CompareProduct => {
+    const productPrices = item.productPrices as Array<{ price: number }>
+    const minPrice = Array.isArray(productPrices) && productPrices.length > 0
+      ? Math.min(...productPrices.map(p => p.price))
+      : 0
 
-              return {
-                id: Number(item.id) || 0,
-                name: String(item.name) || 'Unknown Product',
-                brand: String(item.brand) || 'Unknown',
-                model: String(item.model) || 'Unknown',
-                specs: String(item.specs) || 'No specifications available',
-                image: String(item.image_url1) || 'https://images.unsplash.com/photo-1591799264318-7e6ef8ddb7ea?w=300&h=200&fit=crop',
-                price: minPrice,
-                category: categoryMap[categoryId] || 'Unknown',
-                categoryId: categoryId
-              }
-            })
-            allProducts.push(...formattedProducts)
-          } catch (err) {
-            console.error(`Error fetching products for category ${categoryId}:`, err)
-          }
-        }
-        
-        setProducts(allProducts)
-      } catch (err) {
-        console.error('Error fetching products:', err)
-        setProducts([])
-      } finally {
-        setLoading(false)
+    return {
+      id: Number(item.id) || 0,
+      name: String(item.name) || 'Unknown Product',
+      brand: String(item.brand) || 'Unknown',
+      model: String(item.model) || 'Unknown',
+      specs: String(item.specs) || 'No specifications available',
+      image: String(item.image_url1) || 'https://images.unsplash.com/photo-1591799264318-7e6ef8ddb7ea?w=300&h=200&fit=crop',
+      price: minPrice,
+      category: categoryMap[categoryId] || 'Unknown',
+      categoryId: categoryId
+    }
+  }, [])
+
+  // Ultra-fast fetch with caching and lazy loading
+  const fetchAllProducts = useCallback(async () => {
+    // Check localStorage cache first
+    const cacheKey = 'compare_products_cache'
+    const cachedData = localStorage.getItem(cacheKey)
+    const cacheTimestamp = localStorage.getItem(`${cacheKey}_timestamp`)
+    
+    // Use cache if less than 5 minutes old
+    if (cachedData && cacheTimestamp) {
+      const cacheAge = Date.now() - parseInt(cacheTimestamp)
+      if (cacheAge < 5 * 60 * 1000) { // 5 minutes
+        console.log('🚀 Using cached products data (ultra fast!)')
+        const cachedProducts = JSON.parse(cachedData) as CompareProduct[]
+        setProducts(cachedProducts)
+        setDataLoaded(true)
+        setIsInitialLoad(false)
+        return
       }
     }
 
-    fetchAllProducts()
-  }, [])
+    setLoading(true)
+    setError(null)
+    
+    try {
+      console.log('⚡ Fetching fresh products data...')
+      const startTime = performance.now()
+      
+      // Single API call to get all products at once
+      const allApiProducts = await ApiService.getAllProducts()
+      
+      // Convert all products to CompareProduct format
+      const allProducts: CompareProduct[] = allApiProducts.map((item: Record<string, unknown>) => {
+        const apiItem = item as ApiProduct
+        const categoryId = Number(apiItem.category_id) || 0
+        return convertApiProductToCompareProduct(apiItem, categoryId)
+      })
+      
+      const endTime = performance.now()
+      console.log(`⚡ Loaded ${allProducts.length} products in ${(endTime - startTime).toFixed(2)}ms`)
+      
+      // Cache the data
+      localStorage.setItem(cacheKey, JSON.stringify(allProducts))
+      localStorage.setItem(`${cacheKey}_timestamp`, Date.now().toString())
+      
+      setProducts(allProducts)
+      setDataLoaded(true)
+    } catch (err) {
+      console.error('Error fetching products for compare:', err)
+      setError(err instanceof Error ? err.message : 'Có lỗi xảy ra khi tải dữ liệu sản phẩm')
+      setProducts([])
+    } finally {
+      setLoading(false)
+      setIsInitialLoad(false)
+    }
+  }, [convertApiProductToCompareProduct])
+
+  // LAZY LOADING: Only fetch data when user starts searching
+  const handleSearchChange = useCallback((value: string) => {
+    setQuery(value)
+    
+    // Load data only when user starts typing (lazy loading)
+    if (!dataLoaded && value.trim().length > 0) {
+      console.log('🚀 User started searching, loading data now...')
+      fetchAllProducts()
+    }
+  }, [dataLoaded, fetchAllProducts])
+
+  // Preload data in background after 2 seconds (non-blocking)
+  useEffect(() => {
+    const timer = setTimeout(() => {
+      if (!dataLoaded) {
+        console.log('🔄 Preloading data in background...')
+        fetchAllProducts()
+      }
+    }, 2000) // 2 seconds delay
+
+    return () => clearTimeout(timer)
+  }, [dataLoaded, fetchAllProducts])
+
+  // Ultra-fast debounced search query (reduced to 150ms for snappier feel)
+  const [debouncedQuery, setDebouncedQuery] = useState('')
+  
+  useEffect(() => {
+    const timer = setTimeout(() => {
+      setDebouncedQuery(query)
+    }, 150) // Reduced to 150ms for faster response
+
+    return () => clearTimeout(timer)
+  }, [query])
 
   useEffect(() => {
     if (!isProductsOpen) return
@@ -132,18 +226,43 @@ function ComparePage() {
     }
   }, [isProductsOpen])
 
+  // Ultra-optimized filtering with early termination and chunking
   const filtered = useMemo(() => {
-    const q = query.trim().toLowerCase()
+    const q = debouncedQuery.trim().toLowerCase()
     if (!q) return [] // Chỉ hiển thị kết quả khi có search query
-    return products.filter(p => 
-      p.name.toLowerCase().includes(q) || 
-      p.brand.toLowerCase().includes(q) || 
-      p.model.toLowerCase().includes(q) ||
-      p.category.toLowerCase().includes(q)
-    )
-  }, [query, products])
+    
+    // Early termination for very short queries
+    if (q.length < 2) return []
+    
+    // Pre-compile regex for better performance
+    const searchRegex = new RegExp(q, 'i')
+    const results: CompareProduct[] = []
+    
+    // Process in chunks for better performance
+    const chunkSize = 100
+    for (let i = 0; i < products.length && results.length < 50; i += chunkSize) {
+      const chunk = products.slice(i, i + chunkSize)
+      const chunkResults = chunk.filter(p => 
+        searchRegex.test(p.name) || 
+        searchRegex.test(p.brand) || 
+        searchRegex.test(p.model) ||
+        searchRegex.test(p.category)
+      )
+      results.push(...chunkResults)
+      
+      // Early termination if we have enough results
+      if (results.length >= 50) break
+    }
+    
+    return results.slice(0, 50) // Limit results to 50 for better performance
+  }, [debouncedQuery, products])
 
   const selected = useMemo(() => filtered.find(p => p.id === selectedId) || filtered[0] || null, [filtered, selectedId])
+
+  // Memoized callback for product selection
+  const handleProductSelect = useCallback((id: number) => {
+    setSelectedId(id)
+  }, [])
 
   const rows: ProductRow[] = useMemo(() => {
     if (!selected) return []
@@ -181,20 +300,73 @@ function ComparePage() {
             <div className="hero-actions">
               <input
                 value={query}
-                onChange={(e) => setQuery(e.target.value)}
-                placeholder="Tìm kiếm sản phẩm..."
+                onChange={(e) => handleSearchChange(e.target.value)}
+                placeholder={dataLoaded ? "Tìm kiếm sản phẩm..." : "Nhập để bắt đầu tìm kiếm..."}
                 className="compare-search"
               />
+              {!dataLoaded && (
+                <div className="text-xs text-white/50 mt-2">
+                  Dữ liệu sẽ được tải khi bạn bắt đầu tìm kiếm
+                </div>
+              )}
             </div>
           </section>
 
           {loading && (
             <div className="flex justify-center items-center py-12">
-              <div className="text-lg text-white/70">Đang tải dữ liệu sản phẩm...</div>
+              <div className="text-center">
+                <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-blue-400 mx-auto mb-4"></div>
+                <div className="text-lg text-white/70">
+                  {isInitialLoad ? 'Đang tải dữ liệu sản phẩm...' : 'Đang tìm kiếm...'}
+                </div>
+                <div className="text-sm text-white/50 mt-2">
+                  {isInitialLoad 
+                    ? 'Lần đầu sử dụng sẽ mất vài giây' 
+                    : `Tìm kiếm trong ${products.length} sản phẩm`
+                  }
+                </div>
+                {isInitialLoad && (
+                  <div className="mt-4 bg-blue-900/20 rounded-lg p-3 text-sm text-blue-300">
+                    💡 Lần sau sẽ nhanh hơn nhờ cache!
+                  </div>
+                )}
+              </div>
+            </div>
+          )}
+
+          {error && (
+            <div className="bg-red-900/20 border border-red-500/30 rounded-lg p-6 mb-6">
+              <div className="flex items-center">
+                <svg className="w-6 h-6 text-red-400 mr-3" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 8v4m0 4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
+                </svg>
+                <div>
+                  <h3 className="text-red-400 font-medium">Lỗi tải dữ liệu</h3>
+                  <p className="text-red-300 text-sm mt-1">{error}</p>
+                </div>
+              </div>
+              <div className="flex gap-2 mt-3">
+                <button 
+                  onClick={fetchAllProducts}
+                  className="px-4 py-2 bg-red-600 hover:bg-red-700 text-white rounded-md text-sm transition-colors"
+                >
+                  Thử lại
+                </button>
+                <button 
+                  onClick={() => {
+                    localStorage.removeItem('compare_products_cache')
+                    localStorage.removeItem('compare_products_cache_timestamp')
+                    fetchAllProducts()
+                  }}
+                  className="px-4 py-2 bg-gray-600 hover:bg-gray-700 text-white rounded-md text-sm transition-colors"
+                >
+                  Xóa cache & tải lại
+                </button>
+              </div>
             </div>
           )}
           
-          {!loading && (
+          {!loading && !error && (
             <>
               {query.trim() === '' ? (
                 <div className="text-center py-16">
@@ -205,29 +377,53 @@ function ComparePage() {
                   </div>
                   <h3 className="text-xl font-semibold text-white mb-2">Bắt đầu tìm kiếm sản phẩm</h3>
                   <p className="text-white/60 mb-4">Nhập tên sản phẩm, thương hiệu hoặc danh mục để bắt đầu so sánh</p>
-                  <div className="text-sm text-white/40">
+                  <div className="text-sm text-white/40 mb-4">
                     <p>Ví dụ: "Intel Core i5", "NVIDIA RTX", "ASUS", "CPU", "GPU"...</p>
+                  </div>
+                  <div className="bg-white/5 rounded-lg p-4 inline-block">
+                    <div className="text-sm text-white/60">
+                      {dataLoaded ? (
+                        <>
+                          <span className="text-blue-400 font-medium">{products.length}</span> sản phẩm có sẵn để so sánh
+                          <div className="text-xs text-green-400 mt-1">✅ Dữ liệu đã sẵn sàng</div>
+                        </>
+                      ) : (
+                        <>
+                          <span className="text-yellow-400 font-medium">~1000+</span> sản phẩm sẵn sàng
+                          <div className="text-xs text-yellow-400 mt-1">⏳ Nhập để tải dữ liệu</div>
+                        </>
+                      )}
+                    </div>
                   </div>
                 </div>
               ) : (
                 <>
-                  <div className="section-title">
-                    Kết quả tìm kiếm: "{query}" ({filtered.length} sản phẩm)
+                  <div className="section-title flex items-center justify-between">
+                    <div>
+                      Kết quả tìm kiếm: "{query}" ({filtered.length} sản phẩm)
+                    </div>
+                    {query !== debouncedQuery && (
+                      <div className="flex items-center text-sm text-white/50">
+                        <div className="animate-spin rounded-full h-4 w-4 border-b-2 border-blue-400 mr-2"></div>
+                        Đang tìm kiếm...
+                      </div>
+                    )}
                   </div>
                   <div className="compare-grid">
                     <div>
                       <div className="compare-list">
+                        {filtered.length > 50 && (
+                          <div className="px-3 py-2 bg-blue-900/20 border-b border-white/10 text-xs text-blue-300">
+                            Hiển thị 50/{filtered.length} kết quả đầu tiên. Hãy tìm kiếm cụ thể hơn để thu hẹp kết quả.
+                          </div>
+                        )}
                         {filtered.map(p => (
-                          <button
+                          <ProductItem
                             key={p.id}
-                            onClick={() => setSelectedId(p.id)}
-                            className={selected?.id === p.id ? 'is-active' : ''}
-                          >
-                            <div className="text-left">
-                              <div className="font-medium">{p.name}</div>
-                              <div className="text-xs text-white/60">{p.brand} - {p.category}</div>
-                            </div>
-                          </button>
+                            product={p}
+                            isSelected={selected?.id === p.id}
+                            onSelect={handleProductSelect}
+                          />
                         ))}
                         {filtered.length === 0 && (
                           <div className="px-3 py-8 text-center">
