@@ -1,4 +1,4 @@
-import { useCallback, useEffect, useMemo, useState } from 'react'
+﻿import { useCallback, useEffect, useMemo, useState } from 'react'
 import Joyride, { STATUS, EVENTS } from 'react-joyride'
 import type { CallBackProps } from 'react-joyride'
 import '../../Homepage.css'
@@ -106,18 +106,21 @@ const categoryMap: { [key: number]: string } = {
 
 // PC Build categories in order
 const buildCategories = [
-  { id: 1, name: 'CPU', icon: '🖥️', required: true },
-  { id: 4, name: 'Mainboard', icon: '🔧', required: true },
-  { id: 3, name: 'RAM', icon: '💾', required: true },
-  { id: 2, name: 'GPU', icon: '🎮', required: false },
-  { id: 5, name: 'Storage', icon: '💿', required: true },
-  { id: 6, name: 'PSU', icon: '⚡', required: true },
-  { id: 7, name: 'Case', icon: '📦', required: true },
-  { id: 8, name: 'Cooling', icon: '❄️', required: false },
-  { id: 9, name: 'Monitor', icon: '🖥️', required: false },
-  { id: 10, name: 'Keyboard', icon: '⌨️', required: false },
-  { id: 11, name: 'Mouse', icon: '🖱️', required: false },
-  { id: 12, name: 'Headset/Speaker', icon: '🎧', required: false }
+  // Nhóm 1: 4 linh kiện bắt buộc trên
+  { id: 1, name: 'CPU', icon: '🖥️', required: true, group: 'required-top' },
+  { id: 4, name: 'Mainboard', icon: '🔧', required: true, group: 'required-top' },
+  { id: 3, name: 'RAM', icon: '💾', required: true, group: 'required-top' },
+  { id: 2, name: 'GPU', icon: '🎮', required: true, group: 'required-top' },
+  // Nhóm 2: 4 linh kiện bắt buộc dưới
+  { id: 5, name: 'Storage', icon: '💿', required: true, group: 'required-bottom' },
+  { id: 6, name: 'PSU', icon: '⚡', required: true, group: 'required-bottom' },
+  { id: 7, name: 'Case', icon: '📦', required: true, group: 'required-bottom' },
+  { id: 8, name: 'Cooling', icon: '❄️', required: true, group: 'required-bottom' },
+  // Linh kiện tùy chọn
+  { id: 9, name: 'Monitor', icon: '🖥️', required: false, group: 'optional' },
+  { id: 10, name: 'Keyboard', icon: '⌨️', required: false, group: 'optional' },
+  { id: 11, name: 'Mouse', icon: '🖱️', required: false, group: 'optional' },
+  { id: 12, name: 'Headset/Speaker', icon: '🎧', required: false, group: 'optional' }
 ]
 
 function PCBuilderPage() {
@@ -139,14 +142,153 @@ function PCBuilderPage() {
   const [rawApiProducts, setRawApiProducts] = useState<ApiProduct[]>([])
   const [showPCSummary, setShowPCSummary] = useState(false)
   
-  // Joyride tour states
+  // Joyride tour states - Enhanced
   const [runTour, setRunTour] = useState(false)
   const [tourStepIndex, setTourStepIndex] = useState(0)
-  const [tourMode, setTourMode] = useState<'guided' | 'interactive'>('guided')
+  const [tourMode, setTourMode] = useState<'guided' | 'interactive' | 'auto' | 'sequential'>('auto')
   const [selectedComponentsCount, setSelectedComponentsCount] = useState(0)
   const [tourPaused, setTourPaused] = useState(false)
   const [tourWaitingForCompletion, setTourWaitingForCompletion] = useState(false)
   const [showCompletionPopup, setShowCompletionPopup] = useState(false)
+  const [hasSeenTour, setHasSeenTour] = useState(false)
+  const [tourProgress, setTourProgress] = useState(0)
+  const [showTourWelcome, setShowTourWelcome] = useState(true)
+  
+  // Sequential tour states for component-by-component guidance
+  const [currentComponentTour, setCurrentComponentTour] = useState<number | null>(null)
+  const [completedComponentTours, setCompletedComponentTours] = useState<Set<number>>(new Set())
+  const [sequentialTourActive, setSequentialTourActive] = useState(false)
+
+  // Component order for sequential tour (left to right, top to bottom)
+  const componentOrder = useMemo(() => [
+    { id: 1, name: 'CPU', icon: '🖥️', group: 'required-top', position: 1 },
+    { id: 4, name: 'Mainboard', icon: '🔧', group: 'required-top', position: 2 },
+    { id: 3, name: 'RAM', icon: '💾', group: 'required-top', position: 3 },
+    { id: 2, name: 'GPU', icon: '🎮', group: 'required-top', position: 4 },
+    { id: 5, name: 'Storage', icon: '💿', group: 'required-bottom', position: 5 },
+    { id: 6, name: 'PSU', icon: '⚡', group: 'required-bottom', position: 6 },
+    { id: 7, name: 'Case', icon: '📦', group: 'required-bottom', position: 7 },
+    { id: 8, name: 'Cooling', icon: '❄️', group: 'required-bottom', position: 8 }
+  ], [])
+
+  // Generate tour steps for specific component
+  const generateComponentTourSteps = useCallback((componentId: number) => {
+    const component = componentOrder.find(c => c.id === componentId)
+    if (!component) return []
+
+    const componentInfo = {
+      1: { title: 'CPU - Bộ xử lý', desc: 'Bộ não của PC, quyết định hiệu suất tổng thể', tips: ['Chọn socket phù hợp với mainboard', 'Xem xét TDP và khả năng tản nhiệt', 'Cân nhắc số core và thread cho nhu cầu sử dụng'] },
+      4: { title: 'Mainboard - Bo mạch chủ', desc: 'Kết nối tất cả linh kiện với nhau', tips: ['Tương thích socket với CPU', 'Hỗ trợ RAM type và tốc độ', 'Đủ slot PCIe cho GPU và storage'] },
+      3: { title: 'RAM - Bộ nhớ', desc: 'Lưu trữ dữ liệu tạm thời, tăng tốc độ xử lý', tips: ['Dung lượng 16GB+ cho gaming', 'Tốc độ DDR4/DDR5 phù hợp', 'Chọn 2 thanh cho dual channel'] },
+      2: { title: 'GPU - Card đồ họa', desc: 'Xử lý hình ảnh và video, quan trọng cho gaming', tips: ['Phù hợp với nhu cầu gaming/editing', 'Tương thích với PSU wattage', 'Kiểm tra kích thước case'] },
+      5: { title: 'Storage - Ổ lưu trữ', desc: 'Lưu trữ hệ điều hành và dữ liệu', tips: ['SSD NVMe cho tốc độ cao', 'Dung lượng 500GB+ cho hệ thống', 'Cân nhắc thêm HDD cho dữ liệu'] },
+      6: { title: 'PSU - Nguồn điện', desc: 'Cung cấp điện cho toàn bộ hệ thống', tips: ['Công suất đủ cho tất cả linh kiện', 'Chọn 80+ Gold/Bronze', 'Modular để dễ quản lý dây'] },
+      7: { title: 'Case - Vỏ máy', desc: 'Bảo vệ và làm mát các linh kiện', tips: ['Kích thước phù hợp với mainboard', 'Khả năng tản nhiệt tốt', 'Đủ không gian cho GPU dài'] },
+      8: { title: 'Cooling - Tản nhiệt', desc: 'Làm mát CPU và hệ thống', tips: ['Tương thích với socket CPU', 'Đủ khả năng tản nhiệt cho TDP', 'Cân nhắc AIO cho hiệu suất cao'] }
+    }
+
+    const info = componentInfo[componentId as keyof typeof componentInfo]
+    const currentPosition = component.position
+    const totalComponents = componentOrder.length
+
+    return [
+      {
+        target: `.pc-builder-category-card[data-category-id="${componentId}"]`,
+        content: (
+          <div>
+            <div style={{ 
+              display: 'flex', 
+              alignItems: 'center', 
+              gap: '12px', 
+              marginBottom: '16px',
+              padding: '12px',
+              background: `linear-gradient(135deg, ${getComponentColor(componentId)}, ${getComponentColor(componentId, true)})`,
+              borderRadius: '8px',
+              color: 'white'
+            }}>
+              <div style={{ fontSize: '28px' }}>{component.icon}</div>
+              <div>
+                <h3 style={{ margin: 0, fontSize: '18px', fontWeight: '700' }}>
+                  Bước {currentPosition}: {info.title}
+                </h3>
+                <p style={{ margin: '4px 0 0 0', fontSize: '14px', opacity: 0.9 }}>
+                  {info.desc}
+                </p>
+              </div>
+            </div>
+            
+            <div style={{ marginBottom: '16px' }}>
+              <div style={{ 
+                background: 'rgba(59, 130, 246, 0.1)', 
+                padding: '12px', 
+                borderRadius: '8px', 
+                border: '1px solid rgba(59, 130, 246, 0.3)',
+                marginBottom: '12px'
+              }}>
+                <p style={{ margin: '0 0 8px 0', fontSize: '14px', color: '#3b82f6', fontWeight: '600' }}>
+                  💡 <strong>Mẹo chọn {component.name}:</strong>
+                </p>
+                <ul style={{ margin: 0, paddingLeft: '20px', fontSize: '13px', lineHeight: '1.6' }}>
+                  {info.tips.map((tip, index) => (
+                    <li key={index}>{tip}</li>
+                  ))}
+                </ul>
+              </div>
+              
+              <div style={{ 
+                background: 'rgba(16, 185, 129, 0.1)', 
+                padding: '10px', 
+                borderRadius: '6px', 
+                border: '1px solid rgba(16, 185, 129, 0.3)',
+                textAlign: 'center'
+              }}>
+                <p style={{ margin: 0, fontSize: '13px', color: '#10b981', fontWeight: '600' }}>
+                  📍 Tiến độ: {currentPosition}/{totalComponents} linh kiện
+                </p>
+              </div>
+            </div>
+          </div>
+        ),
+        placement: 'top' as const,
+        disableOverlayClose: true,
+      }
+    ]
+  }, [componentOrder])
+
+  // Helper function to get component colors
+  const getComponentColor = (componentId: number, darker: boolean = false) => {
+    const colors = {
+      1: darker ? '#1d4ed8' : '#3b82f6', // CPU - Blue
+      4: darker ? '#059669' : '#10b981', // Mainboard - Green  
+      3: darker ? '#7c2d12' : '#f59e0b', // RAM - Orange
+      2: darker ? '#be185d' : '#ec4899', // GPU - Pink
+      5: darker ? '#c2410c' : '#f97316', // Storage - Orange
+      6: darker ? '#b91c1c' : '#ef4444', // PSU - Red
+      7: darker ? '#374151' : '#6b7280', // Case - Gray
+      8: darker ? '#0d9488' : '#14b8a6'  // Cooling - Teal
+    }
+    return colors[componentId as keyof typeof colors] || '#3b82f6'
+  }
+
+  // Auto-start tour for first-time users
+  useEffect(() => {
+    const hasSeenTourBefore = localStorage.getItem('ezbuild-tour-completed')
+    const isFirstVisit = !hasSeenTourBefore
+    
+    if (isFirstVisit) {
+      // Delay tour start to allow page to fully load
+      const timer = setTimeout(() => {
+        setTourMode('auto')
+        setRunTour(true)
+        setShowTourWelcome(true)
+      }, 1500)
+      
+      return () => clearTimeout(timer)
+    } else {
+      setHasSeenTour(true)
+      setShowTourWelcome(false)
+    }
+  }, [])
 
   // Calculate total price (moved up to be used in tour steps)
   const totalPrice = useMemo(() => {
@@ -165,16 +307,144 @@ function PCBuilderPage() {
     }, 0)
   }, [buildComponents])
 
-  // Tour steps configuration - Interactive mode
+  // Calculate PC specifications and compatibility
+  const pcSpecs = useMemo(() => {
+    const specs = {
+      totalTDP: 0,
+      totalRAM: 0,
+      totalStorage: 0,
+      cpuSocket: '',
+      ramType: '',
+      ramSpeed: 0,
+      gpuPower: 0,
+      psuWattage: 0,
+      caseSize: '',
+      coolingTDP: 0,
+      compatibilityIssues: [] as string[],
+      recommendations: [] as string[]
+    }
+
+    buildComponents.forEach(buildComp => {
+      if (!buildComp.component) return
+
+      const component = buildComp.component
+      const categoryId = buildComp.categoryId
+
+      // CPU specs
+      if (categoryId === 1) {
+        specs.totalTDP += component.tdpWatt || 0
+        specs.cpuSocket = component.socket || ''
+      }
+
+      // RAM specs
+      if (categoryId === 3) {
+        const ramCapacity = parseInt(component.capacity?.replace(/[^\d]/g, '') || '0')
+        specs.totalRAM += ramCapacity
+        specs.ramType = component.type || 'DDR4'
+        specs.ramSpeed = parseInt(component.specs?.match(/(\d+)MHz/)?.[1] || '3200')
+      }
+
+      // Storage specs
+      if (categoryId === 5) {
+        const storageCapacity = parseInt(component.capacity?.replace(/[^\d]/g, '') || '0')
+        specs.totalStorage += storageCapacity
+      }
+
+      // GPU specs
+      if (categoryId === 2) {
+        specs.gpuPower = component.tdpWatt || 0
+        specs.totalTDP += specs.gpuPower
+      }
+
+      // PSU specs
+      if (categoryId === 6) {
+        specs.psuWattage = parseInt(component.specs?.match(/(\d+)W/)?.[1] || '0')
+      }
+
+      // Case specs
+      if (categoryId === 7) {
+        specs.caseSize = component.size || ''
+      }
+
+      // Cooling specs
+      if (categoryId === 8) {
+        specs.coolingTDP = component.tdpWatt || 0
+      }
+    })
+
+    // Check compatibility and generate recommendations
+    if (specs.psuWattage > 0 && specs.totalTDP > 0) {
+      const recommendedPSU = Math.round(specs.totalTDP * 1.5) // 50% headroom
+      if (specs.psuWattage < recommendedPSU) {
+        specs.compatibilityIssues.push(`PSU ${specs.psuWattage}W có thể không đủ cho hệ thống ${specs.totalTDP}W. Khuyến nghị: ${recommendedPSU}W+`)
+      }
+    }
+
+    if (specs.coolingTDP > 0 && specs.totalTDP > 0) {
+      const cpuTDP = buildComponents.find(bc => bc.categoryId === 1)?.component?.tdpWatt || 0
+      if (specs.coolingTDP < cpuTDP) {
+        specs.compatibilityIssues.push(`Cooling ${specs.coolingTDP}W không đủ cho CPU ${cpuTDP}W. Khuyến nghị: ${cpuTDP}W+`)
+      }
+    }
+
+    if (specs.totalRAM < 16) {
+      specs.recommendations.push('RAM 16GB+ được khuyến nghị cho gaming và multitasking')
+    }
+
+    if (specs.totalStorage < 500) {
+      specs.recommendations.push('Storage 500GB+ được khuyến nghị cho hệ điều hành và ứng dụng')
+    }
+
+    return specs
+  }, [buildComponents])
+
+  // Enhanced Tour steps configuration - Professional Interactive mode
   const interactiveTourSteps = [
     {
       target: '.tour-welcome',
       content: (
         <div>
-          <h3 style={{ color: '#3b82f6', marginBottom: '12px' }}>🎉 Chào mừng đến với PC Builder!</h3>
-          <p style={{ marginBottom: '8px' }}>Tôi sẽ hướng dẫn bạn xây dựng PC từng bước.</p>
-          <p style={{ marginBottom: '8px' }}><strong>Chế độ tương tác:</strong> Bạn có thể chọn linh kiện trong khi tôi hướng dẫn!</p>
-          <p style={{ fontSize: '14px', color: '#666' }}>Hãy bắt đầu hành trình xây dựng PC của bạn!</p>
+          <div style={{ 
+            display: 'flex', 
+            alignItems: 'center', 
+            gap: '12px', 
+            marginBottom: '16px',
+            padding: '12px',
+            background: 'linear-gradient(135deg, #3b82f6, #1d4ed8)',
+            borderRadius: '8px',
+            color: 'white'
+          }}>
+            <div style={{ fontSize: '32px' }}>🚀</div>
+            <div>
+              <h3 style={{ margin: 0, fontSize: '18px', fontWeight: '700' }}>Chào mừng đến với EzBuild!</h3>
+              <p style={{ margin: '4px 0 0 0', fontSize: '14px', opacity: 0.9 }}>Trình xây dựng PC chuyên nghiệp</p>
+            </div>
+          </div>
+          
+          <div style={{ marginBottom: '16px' }}>
+            <p style={{ marginBottom: '8px', fontSize: '15px', lineHeight: '1.5' }}>
+              <strong>🎯 Hướng dẫn tương tác thông minh:</strong> Tôi sẽ dẫn dắt bạn từng bước một cách chuyên nghiệp!
+            </p>
+            <div style={{ 
+              background: 'rgba(16, 185, 129, 0.1)', 
+              padding: '12px', 
+              borderRadius: '8px', 
+              border: '1px solid rgba(16, 185, 129, 0.3)',
+              marginBottom: '12px'
+            }}>
+              <p style={{ margin: 0, fontSize: '14px', color: '#10b981', fontWeight: '600' }}>
+                ✨ <strong>Đặc điểm nổi bật:</strong>
+              </p>
+              <ul style={{ margin: '8px 0 0 0', paddingLeft: '20px', fontSize: '13px' }}>
+                <li>Chọn linh kiện trong khi được hướng dẫn</li>
+                <li>Thông tin giá cả và tương thích thông minh</li>
+                <li>Gợi ý sản phẩm phù hợp với ngân sách</li>
+              </ul>
+            </div>
+            <p style={{ fontSize: '14px', color: '#666', fontStyle: 'italic' }}>
+              Hãy bắt đầu hành trình xây dựng PC hoàn hảo của bạn! 💻
+            </p>
+          </div>
         </div>
       ),
       placement: 'center' as const,
@@ -184,19 +454,56 @@ function PCBuilderPage() {
       target: '.tour-categories',
       content: (
         <div>
-          <h3 style={{ color: '#3b82f6', marginBottom: '12px' }}>🔧 Bước 1: Chọn loại linh kiện</h3>
-          <p style={{ marginBottom: '8px' }}>Hãy bắt đầu với <strong>CPU</strong> - linh kiện quan trọng nhất!</p>
-          <p style={{ marginBottom: '8px' }}>Click vào "CPU" để xem các sản phẩm có sẵn.</p>
+          <div style={{ 
+            display: 'flex', 
+            alignItems: 'center', 
+            gap: '12px', 
+            marginBottom: '16px',
+            padding: '12px',
+            background: 'linear-gradient(135deg, #10b981, #059669)',
+            borderRadius: '8px',
+            color: 'white'
+          }}>
+            <div style={{ fontSize: '28px' }}>🔧</div>
+            <div>
+              <h3 style={{ margin: 0, fontSize: '18px', fontWeight: '700' }}>Bước 1: Chọn Linh Kiện</h3>
+              <p style={{ margin: '4px 0 0 0', fontSize: '14px', opacity: 0.9 }}>Bắt đầu với CPU - Bộ não của PC</p>
+            </div>
+          </div>
+          
+          <div style={{ marginBottom: '16px' }}>
+            <p style={{ marginBottom: '12px', fontSize: '15px', lineHeight: '1.5' }}>
+              <strong>🎯 Chiến lược xây dựng PC:</strong> CPU là nền tảng, quyết định hiệu suất tổng thể!
+            </p>
+            
+            <div style={{ 
+              background: 'rgba(59, 130, 246, 0.1)', 
+              padding: '12px', 
+              borderRadius: '8px', 
+              border: '1px solid rgba(59, 130, 246, 0.3)',
+              marginBottom: '12px'
+            }}>
+              <p style={{ margin: '0 0 8px 0', fontSize: '14px', color: '#3b82f6', fontWeight: '600' }}>
+                📋 <strong>Quy trình được đề xuất:</strong>
+              </p>
+              <ol style={{ margin: 0, paddingLeft: '20px', fontSize: '13px', lineHeight: '1.6' }}>
+                <li><strong>CPU</strong> → Chọn socket phù hợp</li>
+                <li><strong>Mainboard</strong> → Tương thích với CPU</li>
+                <li><strong>RAM</strong> → Dung lượng và tốc độ</li>
+                <li><strong>Storage</strong> → SSD cho tốc độ</li>
+              </ol>
+            </div>
+            
           <div style={{ 
             background: 'rgba(16, 185, 129, 0.1)', 
-            padding: '8px', 
+              padding: '10px', 
             borderRadius: '6px', 
-            marginBottom: '8px',
             border: '1px solid rgba(16, 185, 129, 0.3)'
           }}>
-            <p style={{ margin: 0, fontSize: '13px', color: '#10b981' }}>
-              💡 <strong>Mẹo:</strong> Bạn có thể chọn bất kỳ sản phẩm nào ngay bây giờ!
+              <p style={{ margin: 0, fontSize: '13px', color: '#10b981', fontWeight: '600' }}>
+                💡 <strong>Mẹo chuyên nghiệp:</strong> Click "CPU" để xem sản phẩm và chọn ngay trong tour này!
             </p>
+            </div>
           </div>
         </div>
       ),
@@ -207,21 +514,62 @@ function PCBuilderPage() {
       target: '.tour-products',
       content: (
         <div>
-          <h3 style={{ color: '#3b82f6', marginBottom: '12px' }}>📦 Bước 2: Chọn sản phẩm cụ thể</h3>
-          <p style={{ marginBottom: '8px' }}>Bây giờ hãy chọn một sản phẩm CPU từ danh sách này!</p>
-          <p style={{ marginBottom: '8px' }}>Click vào bất kỳ sản phẩm nào để xem chi tiết và giá.</p>
           <div style={{ 
-            background: 'rgba(245, 158, 11, 0.1)', 
-            padding: '8px', 
-            borderRadius: '6px', 
-            marginBottom: '8px',
-            border: '1px solid rgba(245, 158, 11, 0.3)'
+            display: 'flex', 
+            alignItems: 'center', 
+            gap: '12px', 
+            marginBottom: '16px',
+            padding: '12px',
+            background: 'linear-gradient(135deg, #f59e0b, #d97706)',
+            borderRadius: '8px',
+            color: 'white'
           }}>
-            <p style={{ margin: 0, fontSize: '13px', color: '#f59e0b' }}>
-              ⏸️ <strong>Tour sẽ dừng:</strong> Sau bước này, bạn sẽ tự do chọn linh kiện!
+            <div style={{ fontSize: '28px' }}>📦</div>
+            <div>
+              <h3 style={{ margin: 0, fontSize: '18px', fontWeight: '700' }}>Bước 2: Chọn Sản Phẩm</h3>
+              <p style={{ margin: '4px 0 0 0', fontSize: '14px', opacity: 0.9 }}>Danh sách CPU chuyên nghiệp</p>
+            </div>
+          </div>
+          
+          <div style={{ marginBottom: '16px' }}>
+            <p style={{ marginBottom: '12px', fontSize: '15px', lineHeight: '1.5' }}>
+              <strong>🎯 Lựa chọn thông minh:</strong> Mỗi sản phẩm đều có thông tin chi tiết về giá cả và thông số!
+            </p>
+            
+            <div style={{ 
+              background: 'rgba(59, 130, 246, 0.1)', 
+              padding: '12px', 
+              borderRadius: '8px', 
+              border: '1px solid rgba(59, 130, 246, 0.3)',
+              marginBottom: '12px'
+            }}>
+              <p style={{ margin: '0 0 8px 0', fontSize: '14px', color: '#3b82f6', fontWeight: '600' }}>
+                📊 <strong>Thông tin sản phẩm:</strong>
+              </p>
+              <ul style={{ margin: 0, paddingLeft: '20px', fontSize: '13px', lineHeight: '1.6' }}>
+                <li><strong>Giá cả:</strong> Hiển thị khoảng giá từ nhiều nhà cung cấp</li>
+                <li><strong>Socket:</strong> Tương thích với mainboard</li>
+                <li><strong>TDP:</strong> Công suất tiêu thụ điện</li>
+                <li><strong>Specs:</strong> Thông số kỹ thuật chi tiết</li>
+              </ul>
+            </div>
+            
+            <div style={{ 
+              background: 'rgba(16, 185, 129, 0.1)', 
+              padding: '10px', 
+            borderRadius: '6px', 
+              border: '1px solid rgba(16, 185, 129, 0.3)',
+              marginBottom: '12px'
+          }}>
+              <p style={{ margin: 0, fontSize: '13px', color: '#10b981', fontWeight: '600' }}>
+                ✨ <strong>Tương tác tự do:</strong> Sau bước này, bạn có thể chọn bất kỳ linh kiện nào!
             </p>
           </div>
-          <p style={{ fontSize: '14px', color: '#666' }}>Hãy chọn CPU đầu tiên của bạn!</p>
+            
+            <p style={{ fontSize: '14px', color: '#666', fontStyle: 'italic', textAlign: 'center' }}>
+              Hãy click vào CPU đầu tiên để bắt đầu xây dựng PC! 🚀
+            </p>
+          </div>
         </div>
       ),
       placement: 'top' as const,
@@ -231,37 +579,270 @@ function PCBuilderPage() {
       target: '.tour-build-summary',
       content: (
         <div>
-          <h3 style={{ color: '#10b981', marginBottom: '12px' }}>🎉 Chúc mừng! Build đã hoàn thành!</h3>
-          <p style={{ marginBottom: '8px' }}>Bạn đã chọn đủ <strong>6/6</strong> linh kiện bắt buộc!</p>
+          <div style={{ 
+            display: 'flex', 
+            alignItems: 'center', 
+            gap: '12px', 
+            marginBottom: '16px',
+            padding: '12px',
+            background: 'linear-gradient(135deg, #10b981, #059669)',
+            borderRadius: '8px',
+            color: 'white'
+          }}>
+            <div style={{ fontSize: '32px' }}>🎉</div>
+            <div>
+              <h3 style={{ margin: 0, fontSize: '18px', fontWeight: '700' }}>Build Hoàn Thành!</h3>
+              <p style={{ margin: '4px 0 0 0', fontSize: '14px', opacity: 0.9 }}>Chúc mừng bạn đã tạo thành công PC</p>
+            </div>
+          </div>
           
+          <div style={{ marginBottom: '16px' }}>
           <div style={{ 
             background: 'rgba(16, 185, 129, 0.1)', 
-            padding: '12px', 
+              padding: '16px', 
             borderRadius: '8px', 
-            marginBottom: '12px',
-            border: '1px solid rgba(16, 185, 129, 0.3)'
-          }}>
-            <p style={{ margin: '0 0 8px 0', fontSize: '14px', color: '#10b981', fontWeight: '600' }}>
-              📊 Tổng giá trị Build: <strong>{totalPrice.toLocaleString('vi-VN')} VND</strong>
-            </p>
-            <p style={{ margin: 0, fontSize: '13px', color: '#10b981' }}>
-              🎯 Build của bạn đã sẵn sàng để sử dụng!
+              border: '1px solid rgba(16, 185, 129, 0.3)',
+              marginBottom: '16px'
+            }}>
+              <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '8px' }}>
+                <span style={{ fontSize: '14px', color: '#10b981', fontWeight: '600' }}>📊 Tiến độ Build:</span>
+                <span style={{ fontSize: '16px', color: '#10b981', fontWeight: '700' }}>8/8 linh kiện</span>
+              </div>
+              <div style={{ 
+                background: 'rgba(255,255,255,0.2)', 
+                height: '8px', 
+                borderRadius: '4px',
+                overflow: 'hidden'
+              }}>
+                <div style={{ 
+                  background: 'linear-gradient(90deg, #10b981, #34d399)', 
+                  height: '100%', 
+                  width: '100%',
+                  transition: 'width 0.3s ease'
+                }}></div>
+              </div>
+              <p style={{ margin: '12px 0 0 0', fontSize: '16px', color: '#10b981', fontWeight: '700', textAlign: 'center' }}>
+                💰 Tổng giá trị: <strong>{totalPrice.toLocaleString('vi-VN')} VND</strong>
             </p>
           </div>
           
-          <p style={{ marginBottom: '8px' }}>Bây giờ bạn có thể:</p>
-          <ul style={{ paddingLeft: '20px', marginBottom: '8px', fontSize: '13px' }}>
+            <div style={{ 
+              background: 'rgba(59, 130, 246, 0.1)', 
+              padding: '12px', 
+              borderRadius: '8px', 
+              border: '1px solid rgba(59, 130, 246, 0.3)',
+              marginBottom: '12px'
+            }}>
+              <p style={{ margin: '0 0 8px 0', fontSize: '14px', color: '#3b82f6', fontWeight: '600' }}>
+                🚀 <strong>Bước tiếp theo:</strong>
+              </p>
+              <ul style={{ margin: 0, paddingLeft: '20px', fontSize: '13px', lineHeight: '1.6' }}>
             <li>Xem thông số PC hoàn chỉnh</li>
-            <li>Thêm linh kiện tùy chọn (GPU, Cooling, Monitor...)</li>
+                <li>Thêm linh kiện tùy chọn (Monitor, Keyboard...)</li>
             <li>Lưu build để tham khảo sau</li>
+                <li>Chia sẻ build với bạn bè</li>
           </ul>
-          <p style={{ fontSize: '14px', color: '#666' }}>Hãy click nút "Xem thông số PC" để xem chi tiết!</p>
+            </div>
+            
+            <p style={{ fontSize: '14px', color: '#666', fontStyle: 'italic', textAlign: 'center' }}>
+              Bạn đã thành thạo PC Builder! Hãy click "Xem thông số PC" để hoàn thành! 🎯
+            </p>
+          </div>
         </div>
       ),
       placement: 'left' as const,
       disableOverlayClose: false,
     }
   ]
+
+  // Tour steps configuration - Final steps (compatibility and checkout)
+  const finalTourSteps = useMemo(() => [
+    {
+      target: '.tour-build-summary',
+      content: (
+        <div>
+          <div style={{ 
+            display: 'flex', 
+            alignItems: 'center', 
+            gap: '12px', 
+            marginBottom: '16px',
+            padding: '12px',
+            background: 'linear-gradient(135deg, #10b981, #059669)',
+            borderRadius: '8px',
+            color: 'white'
+          }}>
+            <div style={{ fontSize: '32px' }}>🎉</div>
+            <div>
+              <h3 style={{ margin: 0, fontSize: '18px', fontWeight: '700' }}>Build Hoàn Thành!</h3>
+              <p style={{ margin: '4px 0 0 0', fontSize: '14px', opacity: 0.9 }}>Tất cả 8 linh kiện đã được chọn</p>
+            </div>
+          </div>
+          
+          <div style={{ marginBottom: '16px' }}>
+            <div style={{ 
+              background: 'rgba(16, 185, 129, 0.1)', 
+              padding: '16px', 
+              borderRadius: '8px', 
+              border: '1px solid rgba(16, 185, 129, 0.3)',
+              marginBottom: '16px'
+            }}>
+              <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '8px' }}>
+                <span style={{ fontSize: '14px', color: '#10b981', fontWeight: '600' }}>📊 Tiến độ Build:</span>
+                <span style={{ fontSize: '16px', color: '#10b981', fontWeight: '700' }}>8/8 linh kiện</span>
+              </div>
+              <div style={{ 
+                background: 'rgba(255,255,255,0.2)', 
+                height: '8px', 
+                borderRadius: '4px',
+                overflow: 'hidden'
+              }}>
+                <div style={{ 
+                  background: 'linear-gradient(90deg, #10b981, #34d399)', 
+                  height: '100%', 
+                  width: '100%',
+                  transition: 'width 0.3s ease'
+                }}></div>
+              </div>
+              <p style={{ margin: '12px 0 0 0', fontSize: '16px', color: '#10b981', fontWeight: '700', textAlign: 'center' }}>
+                💰 Tổng giá trị: <strong>{totalPrice.toLocaleString('vi-VN')} VND</strong>
+              </p>
+            </div>
+            
+            <p style={{ marginBottom: '12px', fontSize: '15px', lineHeight: '1.5' }}>
+              <strong>🎯 Bước tiếp theo:</strong> Hãy kiểm tra tương thích và tiến hành thanh toán!
+            </p>
+          </div>
+        </div>
+      ),
+      placement: 'left' as const,
+      disableOverlayClose: false,
+    },
+    {
+      target: '.tour-compatibility',
+      content: (
+        <div>
+          <div style={{ 
+            display: 'flex', 
+            alignItems: 'center', 
+            gap: '12px', 
+            marginBottom: '16px',
+            padding: '12px',
+            background: 'linear-gradient(135deg, #f59e0b, #d97706)',
+            borderRadius: '8px',
+            color: 'white'
+          }}>
+            <div style={{ fontSize: '28px' }}>🔍</div>
+            <div>
+              <h3 style={{ margin: 0, fontSize: '18px', fontWeight: '700' }}>Kiểm Tra Tương Thích</h3>
+              <p style={{ margin: '4px 0 0 0', fontSize: '14px', opacity: 0.9 }}>Đảm bảo tất cả linh kiện hoạt động tốt cùng nhau</p>
+            </div>
+          </div>
+          
+          <div style={{ marginBottom: '16px' }}>
+            <div style={{ 
+              background: 'rgba(59, 130, 246, 0.1)', 
+              padding: '12px', 
+              borderRadius: '8px', 
+              border: '1px solid rgba(59, 130, 246, 0.3)',
+              marginBottom: '12px'
+            }}>
+              <p style={{ margin: '0 0 8px 0', fontSize: '14px', color: '#3b82f6', fontWeight: '600' }}>
+                🔧 <strong>Kiểm tra tương thích:</strong>
+              </p>
+              <ul style={{ margin: 0, paddingLeft: '20px', fontSize: '13px', lineHeight: '1.6' }}>
+                <li>Socket CPU với Mainboard</li>
+                <li>RAM type và tốc độ</li>
+                <li>PSU đủ công suất</li>
+                <li>Kích thước GPU với Case</li>
+                <li>Tương thích Cooling với CPU</li>
+              </ul>
+            </div>
+            
+            <div style={{ 
+              background: 'rgba(16, 185, 129, 0.1)', 
+              padding: '10px', 
+              borderRadius: '6px', 
+              border: '1px solid rgba(16, 185, 129, 0.3)',
+              textAlign: 'center'
+            }}>
+              <p style={{ margin: 0, fontSize: '13px', color: '#10b981', fontWeight: '600' }}>
+                ✅ Click "Kiểm tra tương thích" để xem chi tiết!
+              </p>
+            </div>
+          </div>
+        </div>
+      ),
+      placement: 'top' as const,
+      disableOverlayClose: false,
+    },
+    {
+      target: '.tour-checkout',
+      content: (
+        <div>
+          <div style={{ 
+            display: 'flex', 
+            alignItems: 'center', 
+            gap: '12px', 
+            marginBottom: '16px',
+            padding: '12px',
+            background: 'linear-gradient(135deg, #ec4899, #be185d)',
+            borderRadius: '8px',
+            color: 'white'
+          }}>
+            <div style={{ fontSize: '28px' }}>💳</div>
+            <div>
+              <h3 style={{ margin: 0, fontSize: '18px', fontWeight: '700' }}>Thanh Toán</h3>
+              <p style={{ margin: '4px 0 0 0', fontSize: '14px', opacity: 0.9 }}>Hoàn tất đơn hàng và nhận PC của bạn</p>
+            </div>
+          </div>
+          
+          <div style={{ marginBottom: '16px' }}>
+            <div style={{ 
+              background: 'rgba(59, 130, 246, 0.1)', 
+              padding: '12px', 
+              borderRadius: '8px', 
+              border: '1px solid rgba(59, 130, 246, 0.3)',
+              marginBottom: '12px'
+            }}>
+              <p style={{ margin: '0 0 8px 0', fontSize: '14px', color: '#3b82f6', fontWeight: '600' }}>
+                💰 <strong>Tổng đơn hàng:</strong>
+              </p>
+              <p style={{ margin: '0 0 8px 0', fontSize: '16px', color: '#10b981', fontWeight: '700' }}>
+                {totalPrice.toLocaleString('vi-VN')} VND
+              </p>
+              <p style={{ margin: 0, fontSize: '12px', color: 'rgba(255,255,255,0.7)' }}>
+                * Giá có thể thay đổi theo thời gian thực
+              </p>
+            </div>
+            
+            <div style={{ 
+              background: 'rgba(16, 185, 129, 0.1)', 
+              padding: '12px', 
+              borderRadius: '8px', 
+              border: '1px solid rgba(16, 185, 129, 0.3)',
+              marginBottom: '12px'
+            }}>
+              <p style={{ margin: '0 0 8px 0', fontSize: '14px', color: '#10b981', fontWeight: '600' }}>
+                🚀 <strong>Dịch vụ kèm theo:</strong>
+              </p>
+              <ul style={{ margin: 0, paddingLeft: '20px', fontSize: '13px', lineHeight: '1.6' }}>
+                <li>Lắp ráp miễn phí</li>
+                <li>Bảo hành từng linh kiện</li>
+                <li>Hỗ trợ kỹ thuật 24/7</li>
+                <li>Giao hàng tận nơi</li>
+              </ul>
+            </div>
+            
+            <p style={{ fontSize: '14px', color: '#666', fontStyle: 'italic', textAlign: 'center' }}>
+              🎉 Chúc mừng! Bạn đã hoàn thành xây dựng PC hoàn hảo! 
+            </p>
+          </div>
+        </div>
+      ),
+      placement: 'top' as const,
+      disableOverlayClose: false,
+    }
+  ], [totalPrice])
 
   // Tour steps configuration - Build completion
   const buildCompleteTourSteps = useMemo(() => [
@@ -369,7 +950,7 @@ function PCBuilderPage() {
     }
   }, [buildCompleteTourSteps])
 
-  // Calculate selected components count
+  // Calculate selected components count and handle sequential tour
   useEffect(() => {
     const requiredCategories = buildCategories.filter(cat => cat.required)
     const count = requiredCategories.filter(cat => {
@@ -379,8 +960,42 @@ function PCBuilderPage() {
     
     setSelectedComponentsCount(count)
     
+    // Sequential tour logic - auto advance to next component
+    if (sequentialTourActive && currentComponentTour) {
+      const currentComp = buildComponents.find(bc => bc.categoryId === currentComponentTour)
+      if (currentComp?.component) {
+        // Component selected, mark as completed and move to next
+        const newCompleted = new Set([...completedComponentTours, currentComponentTour])
+        setCompletedComponentTours(newCompleted)
+        
+        // Find next component in order
+        const nextComponent = componentOrder.find(comp => 
+          comp.position === componentOrder.find(c => c.id === currentComponentTour)!.position + 1
+        )
+        
+        if (nextComponent) {
+          // Move to next component
+          setTimeout(() => {
+            setCurrentComponentTour(nextComponent.id)
+            setSelectedCategory(nextComponent.id)
+            setRunTour(true)
+            setTourStepIndex(0)
+          }, 1000)
+        } else {
+          // All components completed, show final steps
+          setSequentialTourActive(false)
+          setCurrentComponentTour(null)
+          setTimeout(() => {
+            setTourMode('guided')
+            setRunTour(true)
+            setTourStepIndex(0)
+          }, 1000)
+        }
+      }
+    }
+    
     // Auto-advance tour when build is complete
-    if (count === 6 && tourWaitingForCompletion) {
+    if (count === 8 && tourWaitingForCompletion) {
       // Show completion popup first
       setShowCompletionPopup(true)
       
@@ -392,28 +1007,52 @@ function PCBuilderPage() {
         setTourWaitingForCompletion(false)
       }, 3000) // Wait 3 seconds to let user see the completion popup
     }
-  }, [buildComponents, runTour, tourMode, tourWaitingForCompletion, addPCSummaryStep])
+  }, [buildComponents, runTour, tourMode, tourWaitingForCompletion, addPCSummaryStep, sequentialTourActive, currentComponentTour, componentOrder, completedComponentTours])
 
   // Handle tour callbacks
   const handleJoyrideCallback = (data: CallBackProps) => {
-    const { status, type, action } = data
+    const { status, type, action, index } = data
+    
+    // Update tour progress
+    const progress = Math.round(((index + 1) / getCurrentTourSteps().length) * 100)
+    setTourProgress(progress)
     
     if (([STATUS.FINISHED, STATUS.SKIPPED] as string[]).includes(status)) {
+      // Save tour completion state
+      localStorage.setItem('ezbuild-tour-completed', 'true')
+      localStorage.setItem('ezbuild-tour-completion-date', new Date().toISOString())
+      
       setRunTour(false)
       setTourStepIndex(0)
       setTourMode('guided')
       setTourPaused(false)
       setTourWaitingForCompletion(false)
+      setShowTourWelcome(false)
+      
+      // Show completion notification for first-time users
+      if (!hasSeenTour && status === STATUS.FINISHED) {
+        console.log('🎉 Tour completed successfully!')
+      }
     } else if (type === EVENTS.STEP_AFTER || type === EVENTS.TARGET_NOT_FOUND) {
       const newIndex = data.index + (action === 'prev' ? -1 : 1)
       setTourStepIndex(newIndex)
       
-      // Nếu đang ở bước 2 (index 1) và người dùng nhấn Next
-      if (newIndex === 2 && action === 'next' && tourMode === 'interactive') {
-        // Dừng tour và chờ người dùng hoàn thành build
+      // Enhanced step transitions
+      if (newIndex === 2 && action === 'next' && (tourMode === 'interactive' || tourMode === 'auto')) {
+        // Pause tour for user interaction
         setRunTour(false)
+        setTourPaused(true)
         setTourWaitingForCompletion(true)
-        setTourPaused(false)
+        
+        console.log('💡 Tour paused - you can now select components freely!')
+      }
+      
+      // Auto-advance logic for auto mode
+      if (tourMode === 'auto' && action === 'next' && newIndex === 0) {
+        // Auto-select CPU category for demo
+        setTimeout(() => {
+          setSelectedCategory(1) // CPU
+        }, 500)
       }
     }
   }
@@ -468,10 +1107,12 @@ function PCBuilderPage() {
 
   // Get current tour steps based on mode and completion status
   const getCurrentTourSteps = () => {
-    if (tourMode === 'interactive') {
+    if (tourMode === 'sequential' && currentComponentTour) {
+      return generateComponentTourSteps(currentComponentTour)
+    } else if (tourMode === 'guided' && selectedComponentsCount === 8) {
+      return finalTourSteps
+    } else if (tourMode === 'interactive') {
       return interactiveTourSteps
-    } else if (selectedComponentsCount === 6 && tourMode === 'guided') {
-      return buildCompleteTourSteps
     }
     return interactiveTourSteps
   }
@@ -828,8 +1469,107 @@ function PCBuilderPage() {
                   <span style={{ fontSize: '20px' }}>🔧</span>
                   Linh kiện bắt buộc
                 </h3>
+                
+                {/* Top Row - 4 linh kiện trên */}
+                <div className="pc-builder-category-tabs" style={{ marginBottom: '12px' }}>
+                  {buildCategories.filter(cat => cat.group === 'required-top').map((category) => {
+                    const buildComp = buildComponents.find(bc => bc.categoryId === category.id)
+                    const isSelected = selectedCategory === category.id
+                    const hasComponent = !!buildComp?.component
+                    
+                    return (
+                      <button
+                        key={category.id}
+                        onClick={() => setSelectedCategory(category.id)}
+                        className={`pc-builder-category-card ${isSelected ? 'pc-builder-category-selected' : ''}`}
+                        data-category-id={category.id}
+                        style={{
+                          display: 'flex',
+                          alignItems: 'center',
+                          gap: '8px',
+                          padding: '12px 16px',
+                          background: isSelected 
+                            ? 'rgba(59, 130, 246, 0.2)' 
+                            : hasComponent 
+                              ? 'rgba(16, 185, 129, 0.2)'
+                              : 'rgba(255,255,255,0.05)',
+                          border: isSelected 
+                            ? '1px solid rgba(59, 130, 246, 0.5)' 
+                            : hasComponent
+                              ? '1px solid rgba(16, 185, 129, 0.3)'
+                              : '1px solid rgba(255,255,255,0.1)',
+                          borderRadius: '8px',
+                          color: 'white',
+                          fontSize: '14px',
+                          fontWeight: '500',
+                          cursor: 'pointer',
+                          transition: 'all 0.2s ease'
+                        }}
+                        onMouseEnter={(e) => {
+                          if (!isSelected) {
+                            e.currentTarget.style.background = hasComponent 
+                              ? 'rgba(16, 185, 129, 0.3)'
+                              : 'rgba(255,255,255,0.08)'
+                          }
+                        }}
+                        onMouseLeave={(e) => {
+                          if (!isSelected) {
+                            e.currentTarget.style.background = hasComponent 
+                              ? 'rgba(16, 185, 129, 0.2)'
+                              : 'rgba(255,255,255,0.05)'
+                          }
+                        }}
+                      >
+                        <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', gap: '2px' }}>
+                          <span style={{ fontSize: '18px' }}>{category.icon}</span>
+                          {categoryProductCounts[category.id] && (
+                            <span style={{ 
+                              fontSize: '10px', 
+                              color: '#3b82f6', 
+                              fontWeight: '600',
+                              background: 'rgba(59, 130, 246, 0.1)',
+                              padding: '1px 4px',
+                              borderRadius: '3px',
+                              minWidth: '16px',
+                              textAlign: 'center'
+                            }}>
+                              {categoryProductCounts[category.id]}
+                            </span>
+                          )}
+                        </div>
+                        <span>{category.name}</span>
+                        {hasComponent && (
+                          <span style={{ 
+                            background: '#10b981', 
+                            color: 'white', 
+                            fontSize: '8px', 
+                            padding: '2px 4px', 
+                            borderRadius: '3px',
+                            fontWeight: '500'
+                          }}>
+                            ✓
+                          </span>
+                        )}
+                        {loadedCategories.has(category.id) && !hasComponent && (
+                          <span style={{ 
+                            background: 'rgba(59, 130, 246, 0.3)', 
+                            color: 'white', 
+                            fontSize: '8px', 
+                            padding: '2px 4px', 
+                            borderRadius: '3px',
+                            fontWeight: '500'
+                          }}>
+                            📦
+                          </span>
+                        )}
+                      </button>
+                    )
+                  })}
+                </div>
+                
+                {/* Bottom Row - 4 linh kiện dưới */}
                 <div className="pc-builder-category-tabs">
-                  {buildCategories.filter(cat => cat.required).map((category) => {
+                  {buildCategories.filter(cat => cat.group === 'required-bottom').map((category) => {
                   const buildComp = buildComponents.find(bc => bc.categoryId === category.id)
                     const isSelected = selectedCategory === category.id
                     const hasComponent = !!buildComp?.component
@@ -839,6 +1579,7 @@ function PCBuilderPage() {
                       key={category.id}
                         onClick={() => setSelectedCategory(category.id)}
                         className={`pc-builder-category-card ${isSelected ? 'pc-builder-category-selected' : ''}`}
+                        data-category-id={category.id}
                       style={{
                           display: 'flex',
                           alignItems: 'center',
@@ -939,7 +1680,7 @@ function PCBuilderPage() {
                   Linh kiện tùy chọn
                 </h3>
                 <div className="pc-builder-category-tabs">
-                  {buildCategories.filter(cat => !cat.required).map((category) => {
+                  {buildCategories.filter(cat => cat.group === 'optional').map((category) => {
                     const buildComp = buildComponents.find(bc => bc.categoryId === category.id)
                     const isSelected = selectedCategory === category.id
                     const hasComponent = !!buildComp?.component
@@ -1306,11 +2047,51 @@ function PCBuilderPage() {
               <div>
               <div className="tour-build-summary pc-builder-build-summary" style={{
                 position: 'sticky',
-                top: '20px'
+                top: '5px'
               }}>
-                <h3 style={{ color: 'white', fontSize: '18px', fontWeight: '600', marginBottom: '16px' }}>
+                <div style={{ marginBottom: '16px' }}>
+                  <h3 style={{ color: 'white', fontSize: '18px', fontWeight: '600', margin: '0 0 8px 0' }}>
                     Build của bạn
                 </h3>
+                  
+                  {/* Build Progress Bar */}
+                  <div style={{
+                    background: 'rgba(255,255,255,0.1)',
+                    borderRadius: '6px',
+                    padding: '8px 12px',
+                    marginBottom: '12px'
+                  }}>
+                    <div style={{
+                      display: 'flex',
+                      justifyContent: 'space-between',
+                      alignItems: 'center',
+                      marginBottom: '6px'
+                    }}>
+                      <span style={{ color: 'rgba(255,255,255,0.8)', fontSize: '12px', fontWeight: '500' }}>
+                        📦 Tiến độ Build
+                      </span>
+                      <span style={{ color: '#10b981', fontSize: '12px', fontWeight: '600' }}>
+                        {buildComponents.filter(bc => bc.component).length}/8 linh kiện
+                      </span>
+                    </div>
+                    <div style={{
+                      width: '100%',
+                      height: '6px',
+                      background: 'rgba(255,255,255,0.1)',
+                      borderRadius: '3px',
+                      overflow: 'hidden'
+                    }}>
+                      <div style={{
+                        width: `${(buildComponents.filter(bc => bc.component).length / 8) * 100}%`,
+                        height: '100%',
+                        background: 'linear-gradient(90deg, #10b981, #34d399)',
+                        borderRadius: '3px',
+                        transition: 'width 0.3s ease'
+                      }}></div>
+                    </div>
+                  </div>
+                </div>
+                
                 
                 <div style={{ marginBottom: '16px' }}>
                   {buildComponents.map((buildComp) => {
@@ -1320,7 +2101,7 @@ function PCBuilderPage() {
                       <div key={buildComp.categoryId} style={{ 
                         display: 'flex', 
                         justifyContent: 'space-between', 
-                        alignItems: 'center',
+                        alignItems: 'flex-start',
                           padding: '12px 0',
                         borderBottom: '1px solid rgba(255,255,255,0.1)'
                       }}>
@@ -1334,9 +2115,67 @@ function PCBuilderPage() {
                             <div style={{ color: 'white', fontSize: '13px', fontWeight: '600', marginBottom: '2px' }}>
                               {buildComp.component.name}
                             </div>
-                            <div style={{ color: 'rgba(255,255,255,0.6)', fontSize: '12px' }}>
+                            <div style={{ color: 'rgba(255,255,255,0.6)', fontSize: '12px', marginBottom: '4px' }}>
                               {buildComp.component.brand} - {buildComp.component.model}
                             </div>
+                            
+                            {/* Component-specific recommendations - Simplified */}
+                            {(() => {
+                              const component = buildComp.component
+                              const categoryId = buildComp.categoryId
+                              let keyRecommendation = ''
+                              
+                              // CPU recommendations
+                              if (categoryId === 1 && component.tdpWatt && component.tdpWatt > 100) {
+                                keyRecommendation = 'CPU hiệu suất cao - cần cooling mạnh'
+                              }
+                              // RAM recommendations
+                              else if (categoryId === 3) {
+                                const ramCapacity = parseInt(component.capacity?.replace(/[^\d]/g, '') || '0')
+                                if (ramCapacity < 16) {
+                                  keyRecommendation = 'RAM 16GB+ khuyến nghị cho gaming'
+                                }
+                              }
+                              // GPU recommendations
+                              else if (categoryId === 2 && component.tdpWatt && component.tdpWatt > 200) {
+                                keyRecommendation = 'GPU mạnh - cần PSU công suất cao'
+                              }
+                              // PSU recommendations
+                              else if (categoryId === 6) {
+                                const psuWattage = parseInt(component.specs?.match(/(\d+)W/)?.[1] || '0')
+                                if (psuWattage > 0 && pcSpecs.totalTDP > 0) {
+                                  const efficiency = Math.round((psuWattage / (pcSpecs.totalTDP * 1.5)) * 100)
+                                  if (efficiency < 80) {
+                                    keyRecommendation = 'PSU có thể thiếu - cân nhắc nâng cấp'
+                                  }
+                                }
+                              }
+                              // Storage recommendations
+                              else if (categoryId === 5) {
+                                const storageCapacity = parseInt(component.capacity?.replace(/[^\d]/g, '') || '0')
+                                if (storageCapacity < 500) {
+                                  keyRecommendation = 'Storage nhỏ - cân nhắc thêm ổ lớn hơn'
+                                }
+                              }
+                              
+                              return keyRecommendation ? (
+                                <div style={{
+                                  background: 'rgba(59, 130, 246, 0.1)',
+                                  border: '1px solid rgba(59, 130, 246, 0.3)',
+                                  borderRadius: '4px',
+                                  padding: '4px 6px',
+                                  marginTop: '4px'
+                                }}>
+                                  <div style={{
+                                    color: 'rgba(255,255,255,0.7)',
+                                    fontSize: '10px',
+                                    lineHeight: '1.3'
+                                  }}>
+                                    💡 {keyRecommendation}
+                                  </div>
+                                </div>
+                              ) : null
+                            })()}
                           </div>
                           <div style={{ textAlign: 'right', marginLeft: '12px' }}>
                             <div style={{ color: '#3b82f6', fontSize: '14px', fontWeight: '600', marginBottom: '4px' }}>
@@ -1378,6 +2217,78 @@ function PCBuilderPage() {
                 
                   {buildComponents.some(bc => bc.component) && (
                     <>
+                {/* Build Status Summary */}
+                <div style={{
+                  background: pcSpecs.compatibilityIssues.length === 0 
+                    ? 'rgba(16, 185, 129, 0.1)' 
+                    : 'rgba(239, 68, 68, 0.1)',
+                  border: pcSpecs.compatibilityIssues.length === 0 
+                    ? '1px solid rgba(16, 185, 129, 0.3)' 
+                    : '1px solid rgba(239, 68, 68, 0.3)',
+                  borderRadius: '12px',
+                  padding: '16px',
+                  marginBottom: '16px'
+                }}>
+                  <div style={{
+                    display: 'flex',
+                    alignItems: 'center',
+                    gap: '12px',
+                    marginBottom: '12px'
+                  }}>
+                    <div style={{
+                      fontSize: '24px',
+                      color: pcSpecs.compatibilityIssues.length === 0 ? '#10b981' : '#ef4444'
+                    }}>
+                      {pcSpecs.compatibilityIssues.length === 0 ? '✅' : '⚠️'}
+                    </div>
+                    <div>
+                      <h4 style={{
+                        color: pcSpecs.compatibilityIssues.length === 0 ? '#10b981' : '#ef4444',
+                        fontSize: '16px',
+                        fontWeight: '600',
+                        margin: '0 0 4px 0'
+                      }}>
+                        {pcSpecs.compatibilityIssues.length === 0 
+                          ? 'Build Tương Thích' 
+                          : 'Cần Kiểm Tra Tương Thích'}
+                      </h4>
+                      <p style={{
+                        color: 'rgba(255,255,255,0.7)',
+                        fontSize: '12px',
+                        margin: 0
+                      }}>
+                        {buildComponents.filter(bc => bc.component).length}/8 linh kiện đã chọn
+                      </p>
+                    </div>
+                  </div>
+                  
+                  {pcSpecs.compatibilityIssues.length === 0 && (
+                    <div style={{
+                      background: 'rgba(16, 185, 129, 0.1)',
+                      borderRadius: '8px',
+                      padding: '12px',
+                      border: '1px solid rgba(16, 185, 129, 0.3)'
+                    }}>
+                      <p style={{
+                        color: '#10b981',
+                        fontSize: '14px',
+                        fontWeight: '600',
+                        margin: '0 0 8px 0'
+                      }}>
+                        🎉 Build của bạn đã sẵn sàng!
+                      </p>
+                      <p style={{
+                        color: 'rgba(255,255,255,0.8)',
+                        fontSize: '12px',
+                        margin: 0,
+                        lineHeight: '1.4'
+                      }}>
+                        Tất cả linh kiện tương thích tốt với nhau. Bạn có thể tiến hành thanh toán!
+                      </p>
+                    </div>
+                  )}
+                </div>
+
                 <div style={{ 
                   display: 'flex', 
                   justifyContent: 'space-between', 
@@ -1431,9 +2342,10 @@ function PCBuilderPage() {
                 )}
                 
                 <button
+                  className="tour-compatibility"
                   style={{
                     width: '100%',
-                    background: '#1e3a8a',
+                    background: '#059669',
                     border: 'none',
                     borderRadius: '8px',
                     padding: '12px',
@@ -1445,13 +2357,38 @@ function PCBuilderPage() {
                     transition: 'background 0.2s ease'
                   }}
                   onMouseEnter={(e) => {
+                    e.currentTarget.style.background = '#10b981'
+                  }}
+                  onMouseLeave={(e) => {
+                    e.currentTarget.style.background = '#059669'
+                  }}
+                >
+                        🔍 Kiểm tra tương thích
+                </button>
+                
+                <button
+                  className="tour-checkout"
+                  style={{
+                    width: '100%',
+                    background: '#1e3a8a',
+                    border: 'none',
+                    borderRadius: '8px',
+                    padding: '12px',
+                    color: 'white',
+                          fontSize: '14px',
+                    fontWeight: '600',
+                    cursor: 'pointer',
+                    marginTop: '8px',
+                    transition: 'background 0.2s ease'
+                  }}
+                  onMouseEnter={(e) => {
                     e.currentTarget.style.background = '#3b82f6'
                   }}
                   onMouseLeave={(e) => {
                     e.currentTarget.style.background = '#1e3a8a'
                   }}
                 >
-                        💾 Lưu Build
+                        💳 Thanh toán
                 </button>
                     </>
                   )}
@@ -2421,7 +3358,7 @@ function PCBuilderPage() {
                 fontSize: '14px',
                 fontWeight: '600'
               }}>
-                {selectedComponentsCount}/6
+                {selectedComponentsCount}/8
               </span>
             </div>
             
@@ -2498,6 +3435,24 @@ function PCBuilderPage() {
                 marginBottom: '6px'
               }}>
                 Bước hiện tại: {tourStepIndex + 1}/{tourMode === 'guided' ? buildCompleteTourSteps.length : interactiveTourSteps.length}
+              </div>
+              
+              {/* Progress bar */}
+              <div style={{
+                width: '100%',
+                height: '4px',
+                background: 'rgba(255,255,255,0.1)',
+                borderRadius: '2px',
+                marginBottom: '8px',
+                overflow: 'hidden'
+              }}>
+                <div style={{
+                  width: `${tourProgress}%`,
+                  height: '100%',
+                  background: 'linear-gradient(90deg, #3b82f6, #10b981)',
+                  borderRadius: '2px',
+                  transition: 'width 0.3s ease'
+                }}></div>
               </div>
               <div style={{
                 color: 'rgba(255,255,255,0.8)',
@@ -2594,6 +3549,213 @@ function PCBuilderPage() {
                 Tắt hướng dẫn
               </button>
             )}
+          </div>
+        </div>
+      )}
+
+      {/* Professional Welcome Modal for First-Time Users */}
+      {showTourWelcome && !hasSeenTour && (
+        <div style={{
+          position: 'fixed',
+          top: 0,
+          left: 0,
+          right: 0,
+          bottom: 0,
+          background: 'rgba(0, 0, 0, 0.8)',
+          zIndex: 10000,
+          display: 'flex',
+          alignItems: 'center',
+          justifyContent: 'center',
+          padding: '20px'
+        }}>
+          <div style={{
+            background: 'linear-gradient(135deg, #1f2937 0%, #374151 100%)',
+            borderRadius: '20px',
+            padding: '32px',
+            maxWidth: '500px',
+            width: '100%',
+            border: '1px solid rgba(59, 130, 246, 0.3)',
+            boxShadow: '0 20px 40px rgba(0, 0, 0, 0.5)',
+            backdropFilter: 'blur(10px)',
+            position: 'relative'
+          }}>
+            {/* Close button */}
+            <button
+              onClick={() => {
+                setShowTourWelcome(false)
+                localStorage.setItem('ezbuild-tour-completed', 'true')
+              }}
+              style={{
+                position: 'absolute',
+                top: '16px',
+                right: '16px',
+                background: 'rgba(255,255,255,0.1)',
+                border: 'none',
+                borderRadius: '50%',
+                width: '32px',
+                height: '32px',
+                color: 'rgba(255,255,255,0.6)',
+                cursor: 'pointer',
+                display: 'flex',
+                alignItems: 'center',
+                justifyContent: 'center',
+                fontSize: '16px'
+              }}
+            >
+              ✕
+            </button>
+
+            {/* Header */}
+            <div style={{
+              textAlign: 'center',
+              marginBottom: '24px'
+            }}>
+              <div style={{
+                fontSize: '64px',
+                marginBottom: '16px',
+                animation: 'bounce 2s infinite'
+              }}>
+                🚀
+              </div>
+              <h1 style={{
+                color: '#3b82f6',
+                fontSize: '28px',
+                fontWeight: '700',
+                margin: '0 0 8px 0',
+                background: 'linear-gradient(135deg, #3b82f6, #1d4ed8)',
+                WebkitBackgroundClip: 'text',
+                WebkitTextFillColor: 'transparent'
+              }}>
+                Chào mừng đến với EzBuild!
+              </h1>
+              <p style={{
+                color: 'rgba(255,255,255,0.8)',
+                fontSize: '16px',
+                margin: 0
+              }}>
+                Trình xây dựng PC chuyên nghiệp và thông minh
+              </p>
+            </div>
+
+            {/* Features */}
+            <div style={{
+              marginBottom: '24px'
+            }}>
+              <h3 style={{
+                color: 'white',
+                fontSize: '18px',
+                fontWeight: '600',
+                margin: '0 0 16px 0',
+                textAlign: 'center'
+              }}>
+                ✨ Tính năng nổi bật
+              </h3>
+              <div style={{
+                display: 'grid',
+                gridTemplateColumns: '1fr 1fr',
+                gap: '12px'
+              }}>
+                {[
+                  { icon: '🎯', title: 'Hướng dẫn thông minh', desc: 'Tự động dẫn dắt từng bước' },
+                  { icon: '💰', title: 'So sánh giá cả', desc: 'Từ nhiều nhà cung cấp' },
+                  { icon: '🔧', title: 'Kiểm tra tương thích', desc: 'Đảm bảo linh kiện phù hợp' },
+                  { icon: '📊', title: 'Thông số chi tiết', desc: 'Hiển thị đầy đủ thông tin' }
+                ].map((feature, index) => (
+                  <div key={index} style={{
+                    background: 'rgba(255,255,255,0.05)',
+                    borderRadius: '12px',
+                    padding: '16px',
+                    border: '1px solid rgba(255,255,255,0.1)',
+                    textAlign: 'center'
+                  }}>
+                    <div style={{ fontSize: '24px', marginBottom: '8px' }}>{feature.icon}</div>
+                    <h4 style={{
+                      color: 'white',
+                      fontSize: '14px',
+                      fontWeight: '600',
+                      margin: '0 0 4px 0'
+                    }}>
+                      {feature.title}
+                    </h4>
+                    <p style={{
+                      color: 'rgba(255,255,255,0.6)',
+                      fontSize: '12px',
+                      margin: 0,
+                      lineHeight: '1.4'
+                    }}>
+                      {feature.desc}
+                    </p>
+                  </div>
+                ))}
+              </div>
+            </div>
+
+            {/* Action buttons */}
+            <div style={{
+              display: 'flex',
+              gap: '12px',
+              justifyContent: 'center'
+            }}>
+              <button
+                onClick={() => {
+                  setShowTourWelcome(false)
+                  setTourMode('sequential')
+                  setSequentialTourActive(true)
+                  setCurrentComponentTour(1) // Start with CPU
+                  setSelectedCategory(1)
+                  setRunTour(true)
+                  setTourStepIndex(0)
+                }}
+                style={{
+                  background: 'linear-gradient(135deg, #3b82f6, #1d4ed8)',
+                  color: 'white',
+                  border: 'none',
+                  padding: '14px 28px',
+                  borderRadius: '12px',
+                  fontSize: '16px',
+                  fontWeight: '600',
+                  cursor: 'pointer',
+                  transition: 'all 0.2s ease',
+                  flex: 1
+                }}
+                onMouseEnter={(e) => {
+                  e.currentTarget.style.transform = 'translateY(-2px)'
+                  e.currentTarget.style.boxShadow = '0 8px 20px rgba(59, 130, 246, 0.4)'
+                }}
+                onMouseLeave={(e) => {
+                  e.currentTarget.style.transform = 'translateY(0)'
+                  e.currentTarget.style.boxShadow = 'none'
+                }}
+              >
+                🎯 Hướng dẫn từng linh kiện
+              </button>
+              <button
+                onClick={() => {
+                  setShowTourWelcome(false)
+                  localStorage.setItem('ezbuild-tour-completed', 'true')
+                }}
+                style={{
+                  background: 'rgba(255,255,255,0.1)',
+                  color: 'rgba(255,255,255,0.8)',
+                  border: '1px solid rgba(255,255,255,0.2)',
+                  padding: '14px 28px',
+                  borderRadius: '12px',
+                  fontSize: '16px',
+                  fontWeight: '600',
+                  cursor: 'pointer',
+                  transition: 'all 0.2s ease',
+                  flex: 1
+                }}
+                onMouseEnter={(e) => {
+                  e.currentTarget.style.backgroundColor = 'rgba(255,255,255,0.2)'
+                }}
+                onMouseLeave={(e) => {
+                  e.currentTarget.style.backgroundColor = 'rgba(255,255,255,0.1)'
+                }}
+              >
+                🚀 Khám phá tự do
+              </button>
+            </div>
           </div>
         </div>
       )}
