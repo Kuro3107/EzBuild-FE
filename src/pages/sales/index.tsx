@@ -1,5 +1,5 @@
-import { useState } from 'react'
-import { Link } from 'react-router-dom'
+import { useState, useEffect, useCallback } from 'react'
+import ApiService from '../../services/api'
 import '../../Homepage.css'
 
 interface SalesItem {
@@ -28,330 +28,148 @@ interface SalesItem {
   dealType: string
 }
 
+interface ApiSalesItem {
+  id: number
+  name: string
+  category?: {
+    id: number
+    name: string
+  }
+  price: number
+  originalPrice?: number
+  image?: string
+  brand?: string
+  model?: string
+  specifications?: string
+  retailer?: string
+  availability?: string
+  shipping?: string
+  warranty?: string
+  condition?: string
+  features?: string[]
+  rating?: number
+  reviews?: number
+  inStock?: boolean
+  description?: string
+  createdAt?: string
+  dealType?: string
+  productPrices?: Array<{
+    id: number
+    price: number
+    supplier: string
+    url?: string
+    availability?: string
+  }>
+}
+
 function SalesPage() {
   const [selectedBuild, setSelectedBuild] = useState<SalesItem | null>(null)
   const [selectedCategories, setSelectedCategories] = useState<string[]>([])
   const [isRefreshing, setIsRefreshing] = useState(false)
+  const [allDeals, setAllDeals] = useState<SalesItem[]>([])
+  const [loading, setLoading] = useState(true)
+  const [error, setError] = useState<string | null>(null)
   
   // Popup states
   const [showFilterPopup, setShowFilterPopup] = useState(false)
+
+  // Function to convert API data to SalesItem format
+  const convertApiDataToSalesItem = (apiItem: ApiSalesItem): SalesItem => {
+    // Lấy giá tốt nhất từ productPrices nếu có
+    let bestPrice = apiItem.price
+    let bestRetailer = apiItem.retailer || 'Unknown'
+    
+    if (apiItem.productPrices && apiItem.productPrices.length > 0) {
+      const lowestPriceItem = apiItem.productPrices.reduce((min, current) => 
+        current.price < min.price ? current : min
+      )
+      bestPrice = lowestPriceItem.price
+      bestRetailer = lowestPriceItem.supplier
+    }
+
+    return {
+      id: apiItem.id,
+      title: apiItem.name,
+      category: apiItem.category?.name || 'Other',
+      price: bestPrice,
+      originalPrice: apiItem.originalPrice,
+      image: apiItem.image || 'https://images.unsplash.com/photo-1591799264318-7e6ef8ddb7ea?w=300&h=200&fit=crop',
+      specs: {
+        brand: apiItem.brand || 'Unknown',
+        model: apiItem.model || 'Unknown',
+        specifications: apiItem.specifications || 'Không có thông tin chi tiết',
+        retailer: bestRetailer,
+        availability: apiItem.availability || 'In Stock',
+        shipping: apiItem.shipping || 'Free Shipping',
+        warranty: apiItem.warranty || '1 Year',
+        condition: apiItem.condition || 'New'
+      },
+      features: apiItem.features || [],
+      rating: apiItem.rating || 4.0,
+      reviews: apiItem.reviews || 0,
+      inStock: apiItem.inStock !== undefined ? apiItem.inStock : true,
+      description: apiItem.description || `${apiItem.name} - Sản phẩm chất lượng cao với giá tốt nhất thị trường.`,
+      datePosted: apiItem.createdAt ? new Date(apiItem.createdAt).toLocaleDateString('vi-VN') : new Date().toLocaleDateString('vi-VN'),
+      dealType: apiItem.dealType || 'Sale'
+    }
+  }
+
+  // Load sales data from API
+  const loadSalesData = useCallback(async () => {
+    try {
+      setLoading(true)
+      setError(null)
+      
+      console.log('Loading sales data from API...')
+      const apiData = await ApiService.getSales()
+      
+      // Convert API data to SalesItem format with proper type casting
+      const convertedData = apiData.map((item: Record<string, unknown>) => 
+        convertApiDataToSalesItem(item as unknown as ApiSalesItem)
+      )
+      
+      console.log(`Loaded ${convertedData.length} sales items from API`)
+      setAllDeals(convertedData)
+    } catch (err) {
+      console.error('Error loading sales data:', err)
+      setError(err instanceof Error ? err.message : 'Có lỗi xảy ra khi tải dữ liệu sales')
+      
+      // Fallback to empty array on error
+      setAllDeals([])
+    } finally {
+      setLoading(false)
+    }
+  }, [])
+
+  // Load data on component mount
+  useEffect(() => {
+    loadSalesData()
+  }, [loadSalesData])
 
   // Refresh function
   const handleRefresh = async () => {
     setIsRefreshing(true)
     
-    // Simulate API call delay
-    await new Promise(resolve => setTimeout(resolve, 1500))
-    
-    // In a real app, this would fetch new data from API
-    // For now, we'll just show the refresh animation
-    console.log('Refreshing sales data...')
-    
-    setIsRefreshing(false)
+    try {
+      console.log('Refreshing sales data...')
+      const apiData = await ApiService.refreshSales()
+      
+      // Convert API data to SalesItem format with proper type casting
+      const convertedData = apiData.map((item: Record<string, unknown>) => 
+        convertApiDataToSalesItem(item as unknown as ApiSalesItem)
+      )
+      
+      console.log(`Refreshed ${convertedData.length} sales items`)
+      setAllDeals(convertedData)
+      setError(null)
+    } catch (err) {
+      console.error('Error refreshing sales data:', err)
+      setError(err instanceof Error ? err.message : 'Có lỗi xảy ra khi làm mới dữ liệu')
+    } finally {
+      setIsRefreshing(false)
+    }
   }
 
-  const allDeals = [
-    {
-      id: 1,
-      title: 'ONIX LUMI Arc B580 12GB GDDR6 PCI Express 4.0 x8 ATX - White GPU',
-      category: 'GPU',
-      price: 250.00,
-      originalPrice: 350.00,
-      image: 'https://images.unsplash.com/photo-1591799264318-7e6ef8ddb7ea?w=300&h=200&fit=crop',
-      specs: {
-        brand: 'ONIX',
-        model: 'LUMI Arc B580',
-        specifications: '12GB GDDR6, PCI Express 4.0 x8, ATX Form Factor',
-        retailer: 'Newegg',
-        availability: 'In Stock',
-        shipping: 'Free Shipping',
-        warranty: '3 Years',
-        condition: 'New'
-      },
-      features: ['Ray Tracing', '12GB VRAM', 'PCIe 4.0', 'White Design'],
-      rating: 4.2,
-      reviews: 89,
-      inStock: true,
-      description: 'ONIX LUMI Arc B580 GPU với 12GB VRAM, hỗ trợ Ray Tracing và thiết kế màu trắng đẹp mắt.',
-      datePosted: '21/9/2025',
-      dealType: 'Sale'
-    },
-    {
-      id: 2,
-      title: 'MSI SPATIUM M480 PRO NVMe PCIe 4.0 1TB',
-      category: 'Storage',
-      price: 65.00,
-      originalPrice: 89.99,
-      image: 'https://images.unsplash.com/photo-1591799264318-7e6ef8ddb7ea?w=300&h=200&fit=crop',
-      specs: {
-        brand: 'MSI',
-        model: 'SPATIUM M480 PRO',
-        specifications: '1TB NVMe PCIe 4.0, 7000MB/s Read, 6500MB/s Write',
-        retailer: 'Amazon',
-        availability: 'In Stock',
-        shipping: 'Prime Shipping',
-        warranty: '5 Years',
-        condition: 'New'
-      },
-      features: ['PCIe 4.0', 'High Speed', '1TB Capacity', '5 Year Warranty'],
-      rating: 4.6,
-      reviews: 234,
-      inStock: true,
-      description: 'SSD NVMe PCIe 4.0 tốc độ cao với khả năng đọc 7000MB/s và ghi 6500MB/s.',
-      datePosted: '21/9/2025',
-      dealType: 'Flash Sale'
-    },
-    {
-      id: 3,
-      title: 'NZXT H5 Flow RGB (2024) Tempered Glass ATX Mid-Tower Computer Case - White',
-      category: 'Case',
-      price: 59.99,
-      originalPrice: 119.99,
-      image: 'https://images.unsplash.com/photo-1591799264318-7e6ef8ddb7ea?w=300&h=200&fit=crop',
-      specs: {
-        brand: 'NZXT',
-        model: 'H5 Flow RGB',
-        specifications: 'ATX Mid-Tower, Tempered Glass, RGB Fans, White',
-        retailer: 'microcenter.com',
-        availability: 'In Stock',
-        shipping: 'Store Pickup',
-        warranty: '2 Years',
-        condition: 'New'
-      },
-      features: ['RGB Lighting', 'Tempered Glass', 'Good Airflow', 'Cable Management'],
-      rating: 4.7,
-      reviews: 156,
-      inStock: true,
-      description: 'Case NZXT H5 Flow RGB với thiết kế đẹp, tản nhiệt tốt và đèn RGB tích hợp.',
-      datePosted: '21/9/2025',
-      dealType: 'Clearance'
-    },
-    {
-      id: 4,
-      title: 'NZXT H7 Flow (2024) Tempered Glass ATX Mid-Tower Computer Case',
-      category: 'Case',
-      price: 59.99,
-      originalPrice: 129.99,
-      image: 'https://images.unsplash.com/photo-1591799264318-7e6ef8ddb7ea?w=300&h=200&fit=crop',
-      specs: {
-        brand: 'NZXT',
-        model: 'H7 Flow',
-        specifications: 'ATX Mid-Tower, Tempered Glass, Mesh Front Panel',
-        retailer: 'microcenter.com',
-        availability: 'Limited Stock',
-        shipping: 'Store Pickup',
-        warranty: '2 Years',
-        condition: 'New'
-      },
-      features: ['Mesh Front Panel', 'Tempered Glass', 'Excellent Airflow', 'Spacious Interior'],
-      rating: 4.8,
-      reviews: 203,
-      inStock: true,
-      description: 'Case NZXT H7 Flow với thiết kế mesh front panel tối ưu cho tản nhiệt.',
-      datePosted: '21/9/2025',
-      dealType: 'Clearance'
-    },
-    {
-      id: 5,
-      title: 'CORSAIR MP600 PRO XT 2TB Gen4 PCIe x4 NVMe M.2 2GB DRAM SSD WITH HEATSINK - 7100/6800 R/W SPEEDS',
-      category: 'Storage',
-      price: 100.99,
-      originalPrice: 149.99,
-      image: 'https://images.unsplash.com/photo-1591799264318-7e6ef8ddb7ea?w=300&h=200&fit=crop',
-      specs: {
-        brand: 'Corsair',
-        model: 'MP600 PRO XT',
-        specifications: '2TB Gen4 PCIe x4 NVMe M.2, 7100MB/s Read, 6800MB/s Write, Heatsink',
-        retailer: 'Newegg',
-        availability: 'In Stock',
-        shipping: 'Free Shipping',
-        warranty: '5 Years',
-        condition: 'New'
-      },
-      features: ['2TB Capacity', 'Gen4 PCIe', 'Built-in Heatsink', 'High Performance'],
-      rating: 4.9,
-      reviews: 178,
-      inStock: true,
-      description: 'SSD Corsair MP600 PRO XT 2TB với hiệu năng cao và tản nhiệt tích hợp.',
-      datePosted: '21/9/2025',
-      dealType: 'Sale'
-    },
-    {
-      id: 6,
-      title: 'AMD Ryzen 7 7700X 8-Core 16-Thread Desktop Processor',
-      category: 'CPU',
-      price: 299.99,
-      originalPrice: 399.99,
-      image: 'https://images.unsplash.com/photo-1591799264318-7e6ef8ddb7ea?w=300&h=200&fit=crop',
-      specs: {
-        brand: 'AMD',
-        model: 'Ryzen 7 7700X',
-        specifications: '8-Core 16-Thread, 4.5GHz Base, 5.4GHz Boost, AM5 Socket',
-        retailer: 'Amazon',
-        availability: 'In Stock',
-        shipping: 'Prime Shipping',
-        warranty: '3 Years',
-        condition: 'New'
-      },
-      features: ['8-Core 16-Thread', '5.4GHz Boost', 'AM5 Socket', 'Unlocked'],
-      rating: 4.7,
-      reviews: 312,
-      inStock: true,
-      description: 'CPU AMD Ryzen 7 7700X với 8 nhân 16 luồng, hiệu năng gaming và productivity cao.',
-      datePosted: '20/9/2025',
-      dealType: 'Price Drop'
-    },
-    {
-      id: 7,
-      title: 'ASUS ROG Strix B650E-F Gaming WiFi Motherboard',
-      category: 'Motherboard',
-      price: 199.99,
-      originalPrice: 249.99,
-      image: 'https://images.unsplash.com/photo-1591799264318-7e6ef8ddb7ea?w=300&h=200&fit=crop',
-      specs: {
-        brand: 'ASUS',
-        model: 'ROG Strix B650E-F',
-        specifications: 'AM5 Socket, DDR5, PCIe 5.0, WiFi 6E, Bluetooth 5.2',
-        retailer: 'Newegg',
-        availability: 'In Stock',
-        shipping: 'Free Shipping',
-        warranty: '3 Years',
-        condition: 'New'
-      },
-      features: ['AM5 Socket', 'DDR5 Support', 'PCIe 5.0', 'WiFi 6E'],
-      rating: 4.6,
-      reviews: 189,
-      inStock: true,
-      description: 'Motherboard ASUS ROG Strix B650E-F với socket AM5 và hỗ trợ DDR5.',
-      datePosted: '20/9/2025',
-      dealType: 'Sale'
-    },
-    {
-      id: 8,
-      title: 'Corsair Vengeance LPX 32GB (2x16GB) DDR4-3200 Memory Kit',
-      category: 'RAM',
-      price: 79.99,
-      originalPrice: 109.99,
-      image: 'https://images.unsplash.com/photo-1591799264318-7e6ef8ddb7ea?w=300&h=200&fit=crop',
-      specs: {
-        brand: 'Corsair',
-        model: 'Vengeance LPX',
-        specifications: '32GB (2x16GB) DDR4-3200, CL16, Low Profile',
-        retailer: 'Newegg',
-        availability: 'In Stock',
-        shipping: 'Free Shipping',
-        warranty: 'Lifetime',
-        condition: 'New'
-      },
-      features: ['32GB Capacity', 'DDR4-3200', 'Low Profile', 'Lifetime Warranty'],
-      rating: 4.5,
-      reviews: 267,
-      inStock: true,
-      description: 'RAM Corsair Vengeance LPX 32GB DDR4-3200 với thiết kế low profile và bảo hành trọn đời.',
-      datePosted: '19/9/2025',
-      dealType: 'Flash Sale'
-    },
-    {
-      id: 9,
-      title: 'Noctua NH-D15 Chromax Black CPU Cooler',
-      category: 'CPU Cooler',
-      price: 99.95,
-      originalPrice: 119.95,
-      image: 'https://images.unsplash.com/photo-1591799264318-7e6ef8ddb7ea?w=300&h=200&fit=crop',
-      specs: {
-        brand: 'Noctua',
-        model: 'NH-D15 Chromax Black',
-        specifications: 'Dual Tower, 140mm Fans, 6 Heat Pipes, Chromax Black',
-        retailer: 'Amazon',
-        availability: 'In Stock',
-        shipping: 'Prime Shipping',
-        warranty: '6 Years',
-        condition: 'New'
-      },
-      features: ['Dual Tower Design', '140mm Fans', '6 Heat Pipes', 'Chromax Black'],
-      rating: 4.9,
-      reviews: 445,
-      inStock: true,
-      description: 'CPU Cooler Noctua NH-D15 Chromax Black với thiết kế dual tower và tản nhiệt hiệu quả.',
-      datePosted: '19/9/2025',
-      dealType: 'Sale'
-    },
-    {
-      id: 10,
-      title: 'Corsair RM850x 850W 80+ Gold Fully Modular PSU',
-      category: 'Power Supply',
-      price: 129.99,
-      originalPrice: 159.99,
-      image: 'https://images.unsplash.com/photo-1591799264318-7e6ef8ddb7ea?w=300&h=200&fit=crop',
-      specs: {
-        brand: 'Corsair',
-        model: 'RM850x',
-        specifications: '850W, 80+ Gold, Fully Modular, Zero RPM Mode',
-        retailer: 'Best Buy',
-        availability: 'In Stock',
-        shipping: 'Free Shipping',
-        warranty: '10 Years',
-        condition: 'New'
-      },
-      features: ['850W Power', '80+ Gold', 'Fully Modular', 'Zero RPM Mode'],
-      rating: 4.8,
-      reviews: 234,
-      inStock: true,
-      description: 'PSU Corsair RM850x 850W với hiệu suất 80+ Gold và thiết kế fully modular.',
-      datePosted: '18/9/2025',
-      dealType: 'Price Drop'
-    },
-    {
-      id: 11,
-      title: 'Corsair LL120 RGB 120mm PWM Fan (3-Pack)',
-      category: 'Case Fan',
-      price: 89.99,
-      originalPrice: 119.99,
-      image: 'https://images.unsplash.com/photo-1591799264318-7e6ef8ddb7ea?w=300&h=200&fit=crop',
-      specs: {
-        brand: 'Corsair',
-        model: 'LL120 RGB',
-        specifications: '120mm PWM, RGB Lighting, 16 LEDs, iCUE Compatible',
-        retailer: 'Newegg',
-        availability: 'In Stock',
-        shipping: 'Free Shipping',
-        warranty: '2 Years',
-        condition: 'New'
-      },
-      features: ['120mm PWM', 'RGB Lighting', '16 LEDs', 'iCUE Compatible'],
-      rating: 4.4,
-      reviews: 178,
-      inStock: true,
-      description: 'Case Fan Corsair LL120 RGB 3-pack với đèn RGB và tương thích iCUE.',
-      datePosted: '18/9/2025',
-      dealType: 'Sale'
-    },
-    {
-      id: 12,
-      title: 'ASUS TUF Gaming VG27AQ 27" 1440p 165Hz Monitor',
-      category: 'Monitor',
-      price: 249.99,
-      originalPrice: 329.99,
-      image: 'https://images.unsplash.com/photo-1591799264318-7e6ef8ddb7ea?w=300&h=200&fit=crop',
-      specs: {
-        brand: 'ASUS',
-        model: 'TUF Gaming VG27AQ',
-        specifications: '27" 1440p, 165Hz, 1ms, G-Sync Compatible, HDR10',
-        retailer: 'Amazon',
-        availability: 'In Stock',
-        shipping: 'Prime Shipping',
-        warranty: '3 Years',
-        condition: 'New'
-      },
-      features: ['27" 1440p', '165Hz', '1ms Response', 'G-Sync Compatible'],
-      rating: 4.7,
-      reviews: 567,
-      inStock: true,
-      description: 'Monitor ASUS TUF Gaming VG27AQ 27" với độ phân giải 1440p và tần số quét 165Hz.',
-      datePosted: '17/9/2025',
-      dealType: 'Clearance'
-    }
-  ]
 
   // Filter logic
   const filteredDeals = allDeals.filter((dealItem) => {
@@ -419,9 +237,62 @@ function SalesPage() {
             </div>
           </div>
 
+          {/* Loading State */}
+          {loading && (
+            <div className="flex items-center justify-center py-12">
+              <div className="text-center">
+                <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-blue-600 mx-auto mb-4"></div>
+                <p className="text-gray-600">Đang tải dữ liệu sales...</p>
+              </div>
+            </div>
+          )}
+
+          {/* Error State */}
+          {error && (
+            <div className="bg-red-50 border border-red-200 rounded-lg p-4 mb-6">
+              <div className="flex items-center">
+                <svg className="w-5 h-5 text-red-500 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 8v4m0 4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
+                </svg>
+                <p className="text-red-700 font-medium">Lỗi: {error}</p>
+              </div>
+              <button 
+                onClick={loadSalesData}
+                className="mt-2 text-red-600 hover:text-red-800 underline text-sm"
+              >
+                Thử lại
+              </button>
+            </div>
+          )}
+
+          {/* Empty State */}
+          {!loading && !error && filteredDeals.length === 0 && (
+            <div className="text-center py-12">
+              <svg className="mx-auto h-12 w-12 text-gray-400 mb-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M20 13V6a2 2 0 00-2-2H6a2 2 0 00-2 2v7m16 0v5a2 2 0 01-2 2H6a2 2 0 01-2-2v-5m16 0h-2.586a1 1 0 00-.707.293l-2.414 2.414a1 1 0 01-.707.293h-3.172a1 1 0 01-.707-.293l-2.414-2.414A1 1 0 006.586 13H4" />
+              </svg>
+              <h3 className="text-lg font-medium text-gray-900 mb-2">Không có deals nào</h3>
+              <p className="text-gray-600 mb-4">
+                {selectedCategories.length > 0 
+                  ? `Không tìm thấy deals nào cho danh mục ${selectedCategories.join(', ')}`
+                  : 'Hiện tại không có deals nào. Hãy thử lại sau.'
+                }
+              </p>
+              {selectedCategories.length > 0 && (
+                <button 
+                  onClick={() => setSelectedCategories([])}
+                  className="text-blue-600 hover:text-blue-800 underline"
+                >
+                  Xóa bộ lọc
+                </button>
+              )}
+            </div>
+          )}
+
           {/* Deals List */}
-          <div className="space-y-3">
-            {filteredDeals.map((dealItem) => (
+          {!loading && !error && filteredDeals.length > 0 && (
+            <div className="space-y-3">
+              {filteredDeals.map((dealItem) => (
               <div key={dealItem.id} className="bg-white border border-gray-200 rounded-lg p-4 hover:bg-blue-50 hover:border-blue-300 transition cursor-pointer shadow-sm" onClick={() => setSelectedBuild(dealItem)}>
                 <div className="flex items-center gap-4">
                   {/* Category Icon */}
@@ -481,7 +352,8 @@ function SalesPage() {
                 </div>
               </div>
             ))}
-          </div>
+            </div>
+          )}
         </main>
       </div>
 
