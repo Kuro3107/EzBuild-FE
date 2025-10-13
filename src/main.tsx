@@ -69,6 +69,20 @@ createRoot(document.getElementById('root')!).render(
             </ProtectedRoute>
           } />
         </Route>
+        
+        {/* Staff routes - KHÔNG dùng AppShell */}
+        <Route path="/staff" element={
+          <ProtectedRoute requiredRole="Staff">
+            <StaffPage />
+          </ProtectedRoute>
+        } />
+        
+        {/* Admin routes - KHÔNG dùng AppShell */}
+        <Route path="/admin" element={
+          <ProtectedRoute requiredRole="Admin">
+            <AdminPage />
+          </ProtectedRoute>
+        } />
       </Routes>
     </Router>
   </StrictMode>,
