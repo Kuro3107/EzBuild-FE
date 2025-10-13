@@ -32,7 +32,7 @@ function AppShell() {
     { key: 'sales', label: 'Sales', link: '/sales' },
     { key: 'compare', label: 'Compare', link: '/compare' },
     { key: 'gallery', label: 'PC Part Gallery' },
-    { key: 'builds', label: 'Completed Builds' },
+    { key: 'builds', label: 'My Builds', link: '/builds' },
     { key: 'updates', label: 'Updates' },
     { key: 'setup', label: 'Setup Builder' },
     ...(ApiService.isStaff() && !ApiService.isAdmin() ? [{ key: 'staff', label: 'Staff Panel', link: '/staff' }] : []),

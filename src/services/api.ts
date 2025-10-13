@@ -1075,6 +1075,114 @@ export class ApiService {
     }
   }
 
+  // Builds APIs
+  static async createBuild(params: { userId: number | string; name: string; totalPrice: number; createdAt?: string; items?: Array<{ productPriceId: number; quantity?: number }> }): Promise<Record<string, unknown>> {
+    const token = localStorage.getItem('authToken')
+    // Preferred payload per Swagger DTO
+    const payload: Record<string, unknown> = {
+      userId: typeof params.userId === 'string' ? parseInt(params.userId, 10) : params.userId,
+      name: params.name,
+      totalPrice: params.totalPrice,
+      ...(params.items && params.items.length > 0 ? {
+        items: params.items.map((it) => ({
+          productPriceId: it.productPriceId,
+          quantity: it.quantity ?? 1
+        }))
+      } : {})
+    }
+
+    // Try single-POST per Swagger
+    try {
+      const response = await fetch(`${API_BASE_URL}/api/build`, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          'Accept': 'application/json',
+          ...(token ? { 'Authorization': `Bearer ${token}` } : {})
+        },
+        body: JSON.stringify(payload)
+      })
+      if (!response.ok) throw await response.json().catch(async () => ({ message: await response.text().catch(() => 'Unknown error'), status: response.status }))
+      return await response.json()
+    } catch (err: any) {
+      const message = (err?.message || '').toString()
+      const status = Number(err?.status || 0)
+      const unsupported = message.includes('Content-Type') || status === 415 || message.toLowerCase().includes('not supported')
+
+      // Fallback: create build first, then create items one by one (works with current backend)
+      const fallbackResponse = await fetch(`${API_BASE_URL}/api/build`, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          ...(token ? { 'Authorization': `Bearer ${token}` } : {})
+        },
+        body: JSON.stringify({
+          user: { id: typeof params.userId === 'string' ? parseInt(params.userId, 10) : params.userId },
+          name: params.name,
+          totalPrice: params.totalPrice
+        })
+      })
+
+      if (!fallbackResponse.ok) {
+        // If fallback also fails, propagate error
+        const text = await fallbackResponse.text().catch(() => '')
+        throw { message: text || message || 'Create build failed', status: fallbackResponse.status }
+      }
+
+      const build = await fallbackResponse.json()
+      const buildId = Number(build?.id)
+      if (unsupported && params.items && params.items.length > 0 && Number.isFinite(buildId)) {
+        for (const it of params.items) {
+          await this.createBuildItem({ buildId, productPriceId: it.productPriceId, quantity: it.quantity ?? 1 })
+        }
+      }
+
+      return build
+    }
+  }
+
+  static async createBuildItem(params: { buildId: number; productPriceId: number; quantity?: number }): Promise<Record<string, unknown>> {
+    const token = localStorage.getItem('authToken')
+    const payload = {
+      build: { id: params.buildId },
+      productPrice: { id: params.productPriceId },
+      quantity: params.quantity ?? 1
+    }
+
+    const response = await fetch(`${API_BASE_URL}/api/build-item`, {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+        ...(token ? { 'Authorization': `Bearer ${token}` } : {})
+      },
+      body: JSON.stringify(payload)
+    })
+
+    return this.handleResponse<Record<string, unknown>>(response)
+  }
+
+  static async getBuilds(): Promise<Array<Record<string, unknown>>> {
+    const token = localStorage.getItem('authToken')
+    const response = await fetch(`${API_BASE_URL}/api/build`, {
+      method: 'GET',
+      headers: {
+        'Content-Type': 'application/json',
+        ...(token ? { 'Authorization': `Bearer ${token}` } : {})
+      }
+    })
+    return this.handleResponse<Array<Record<string, unknown>>>(response)
+  }
+
+  static async getBuildsByUser(userId: number | string): Promise<Array<Record<string, unknown>>> {
+    const all = await this.getBuilds()
+    const uid = typeof userId === 'string' ? parseInt(userId, 10) : userId
+    return all.filter((b) => {
+      const u = (b as Record<string, unknown>).user as Record<string, unknown> | undefined
+      const idVal = (u?.id as number) ?? (b as Record<string, unknown>).user_id as number | undefined
+      return Number(idVal) === Number(uid)
+    })
+  }
+
   // Function để clear tất cả dữ liệu authentication
   static clearAuthData(): void {
     localStorage.removeItem('authToken')

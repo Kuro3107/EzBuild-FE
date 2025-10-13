@@ -26,6 +26,7 @@ import ComparePage from './pages/compare/compare.tsx'
 import StaffPage from './pages/staff/index.tsx'
 import AdminPage from './pages/admin/index.tsx'
 import CustomerProfilePage from './pages/customer/index.tsx'
+import CustomerBuildsPage from './pages/customer/builds.tsx'
 import PCBuilderPage from './pages/pcbuilder/index.tsx'
 import OAuth2RedirectHandler from "./pages/login&register/OAuth2RedirectHandler"  
 
@@ -56,6 +57,17 @@ createRoot(document.getElementById('root')!).render(
           <Route path="/products/mouse" element={<MousePage />} />
           <Route path="/products/keyboard" element={<KeyboardPage />} />
           <Route path="/customer" element={<CustomerProfilePage />} />
+          <Route path="/builds" element={<CustomerBuildsPage />} />
+          <Route path="/staff" element={
+            <ProtectedRoute requiredRole="Staff">
+              <StaffPage />
+            </ProtectedRoute>
+          } />
+          <Route path="/admin" element={
+            <ProtectedRoute requiredRole="Admin">
+              <AdminPage />
+            </ProtectedRoute>
+          } />
         </Route>
         
         {/* Staff routes - KHÔNG dùng AppShell */}
