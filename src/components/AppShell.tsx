@@ -1,6 +1,7 @@
 import { Link, Outlet, useNavigate } from 'react-router-dom'
 import { useEffect, useRef, useState } from 'react'
 import { ApiService } from '../services/api'
+import ChatBubble from './ChatBubble'
 
 function AppShell() {
   const [isProductsOpen, setIsProductsOpen] = useState(false)
@@ -218,6 +219,9 @@ function AppShell() {
           <Outlet />
         </main>
       </div>
+
+      {/* Chat Bubble - ở góc phải */}
+      <ChatBubble />
     </div>
   )
 }

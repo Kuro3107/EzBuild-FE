@@ -56,17 +56,21 @@ createRoot(document.getElementById('root')!).render(
           <Route path="/products/mouse" element={<MousePage />} />
           <Route path="/products/keyboard" element={<KeyboardPage />} />
           <Route path="/customer" element={<CustomerProfilePage />} />
-          <Route path="/staff" element={
-            <ProtectedRoute requiredRole="Staff">
-              <StaffPage />
-            </ProtectedRoute>
-          } />
-          <Route path="/admin" element={
-            <ProtectedRoute requiredRole="Admin">
-              <AdminPage />
-            </ProtectedRoute>
-          } />
         </Route>
+        
+        {/* Staff routes - KHÔNG dùng AppShell */}
+        <Route path="/staff" element={
+          <ProtectedRoute requiredRole="Staff">
+            <StaffPage />
+          </ProtectedRoute>
+        } />
+        
+        {/* Admin routes - KHÔNG dùng AppShell */}
+        <Route path="/admin" element={
+          <ProtectedRoute requiredRole="Admin">
+            <AdminPage />
+          </ProtectedRoute>
+        } />
       </Routes>
     </Router>
   </StrictMode>,
