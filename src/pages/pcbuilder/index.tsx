@@ -1,4 +1,6 @@
 ﻿import { useCallback, useEffect, useMemo, useState } from 'react'
+import { useNavigate } from 'react-router-dom'
+import { ApiService } from '../../services/api'
 import Joyride, { STATUS, EVENTS } from 'react-joyride'
 import type { CallBackProps } from 'react-joyride'
 import '../../Homepage.css'
@@ -124,6 +126,7 @@ const buildCategories = [
 ]
 
 function PCBuilderPage() {
+  const navigate = useNavigate()
   const [buildComponents, setBuildComponents] = useState<BuildComponent[]>(
     buildCategories.map(cat => ({
       category: cat.name,
@@ -141,6 +144,59 @@ function PCBuilderPage() {
   const [productDetails, setProductDetails] = useState<{ [key: number]: PCComponent }>({})
   const [rawApiProducts, setRawApiProducts] = useState<ApiProduct[]>([])
   const [showPCSummary, setShowPCSummary] = useState(false)
+  // Helper: build payload and save to database
+  const handleSaveBuild = useCallback(async () => {
+    const currentUser = ApiService.getCurrentUser()
+    if (!currentUser?.id && !currentUser?.userId) {
+      alert('Bạn cần đăng nhập để lưu build')
+      try {
+        navigate('/login', { state: { from: '/pcbuilder' } } as unknown as any)
+      } catch (_) {}
+      return
+    }
+    const mandatoryIds = [1,4,3,2,5,6,7,8]
+    const selectedMandatory = buildComponents.filter(b => mandatoryIds.includes(b.categoryId) && b.component)
+    if (selectedMandatory.length < mandatoryIds.length) {
+      alert('Bạn cần chọn đủ 8 linh kiện bắt buộc trước khi lưu build')
+      return
+    }
+
+    try {
+      const name = prompt('Đặt tên cho build của bạn', 'My PC Build') || 'My PC Build'
+      const computedTotalPrice = buildComponents.reduce((total, buildComp) => {
+        const priceStr = buildComp.component?.price
+        if (priceStr && priceStr !== 'Liên hệ' && priceStr !== 'Đang tải...') {
+          const minPriceMatch = priceStr.match(/^[\d.,]+/)
+          if (minPriceMatch) {
+            const minPrice = parseInt(minPriceMatch[0].replace(/[.,]/g, ''))
+            return total + minPrice
+          }
+        }
+        return total
+      }, 0)
+      const items: Array<{ productPriceId: number; quantity: number }> = []
+      for (const bc of selectedMandatory) {
+        const pp = bc.component?.selectedSupplier || (bc.component?.productPrices && bc.component.productPrices[0])
+        const id = pp?.id
+        if (typeof id === 'number') {
+          items.push({ productPriceId: id, quantity: 1 })
+        }
+      }
+
+      await ApiService.createBuild({
+        userId: String(currentUser?.id || currentUser?.userId || ''),
+        name,
+        totalPrice: computedTotalPrice,
+        items
+      })
+
+      alert('Đã lưu build thành công!')
+      navigate('/builds')
+    } catch (e) {
+      console.error('Save build error:', e)
+      alert('Không thể lưu build. Vui lòng thử lại!')
+    }
+  }, [buildComponents, navigate])
   
   // Joyride tour states - Enhanced
   const [runTour, setRunTour] = useState(false)
@@ -272,6 +328,64 @@ function PCBuilderPage() {
 
   // Auto-start tour for first-time users
   useEffect(() => {
+    // Apply build from Customer builds if exists
+    try {
+      const raw = localStorage.getItem('ezbuild-selected-build')
+      if (raw) {
+        const parsed = JSON.parse(raw) as { id?: number; name?: string; items?: Array<{ productPriceId?: number; quantity?: number; productName?: string; category_id?: number; product_id?: number; price?: number }> }
+        console.log('Applying saved build:', parsed)
+
+        if (parsed.items && parsed.items.length) {
+          // Fetch product details for each item to build full PCComponent
+          ;(async () => {
+            const itemComponents = await Promise.all(
+              parsed.items!.map(async (it) => {
+                try {
+                  const prodId = it.product_id
+                  const prod = prodId ? await ApiService.getProductById(prodId) : undefined
+                  const anyProd = (prod || {}) as Record<string, unknown>
+                  const category = (anyProd.category as Record<string, unknown>) || {}
+                  const categoryId = Number(category.id || it.category_id || 0)
+                  const name = String(anyProd.name || it.productName || `Sản phẩm #${it.productPriceId || ''}`)
+                  const priceNum = typeof it.price === 'number' ? it.price : 0
+                  const priceStr = priceNum > 0 ? `${priceNum.toLocaleString('vi-VN')} VND` : 'Liên hệ'
+                  const imageUrl = String(anyProd.imageUrl1 || '')
+                  const component: PCComponent = {
+                    id: Number(anyProd.id || 0),
+                    name,
+                    brand: String(anyProd.brand || ''),
+                    model: String(anyProd.model || ''),
+                    specs: String(anyProd.specs || ''),
+                    image: imageUrl,
+                    price: priceStr,
+                    category: String(category.name || ''),
+                    categoryId: categoryId || 0,
+                    productPrices: []
+                  }
+                  return { categoryId, component }
+                } catch (e) {
+                  return { categoryId: it.category_id || 0, component: undefined as unknown as PCComponent }
+                }
+              })
+            )
+
+            setBuildComponents((prev) => {
+              const next = [...prev]
+              itemComponents.forEach(({ categoryId, component }) => {
+                if (!categoryId || !component) return
+                const idx = next.findIndex(s => s.categoryId === categoryId)
+                if (idx >= 0) {
+                  next[idx] = { ...next[idx], component }
+                }
+              })
+              return next
+            })
+          })()
+        }
+        localStorage.removeItem('ezbuild-selected-build')
+      }
+    } catch (_) {}
+
     const hasSeenTourBefore = localStorage.getItem('ezbuild-tour-completed')
     const isFirstVisit = !hasSeenTourBefore
     
@@ -2387,8 +2501,9 @@ function PCBuilderPage() {
                   onMouseLeave={(e) => {
                     e.currentTarget.style.background = '#1e3a8a'
                   }}
+                  onClick={handleSaveBuild}
                 >
-                        💳 Thanh toán
+                        💾 Lưu Build
                 </button>
                     </>
                   )}
@@ -3094,10 +3209,7 @@ function PCBuilderPage() {
                 Đóng
               </button>
               <button
-                onClick={() => {
-                  // TODO: Implement save/export functionality
-                  alert('Tính năng lưu build sẽ được thêm sau!')
-                }}
+                onClick={handleSaveBuild}
                 style={{
                   background: 'linear-gradient(135deg, #3b82f6, #1d4ed8)',
                   color: 'white',
