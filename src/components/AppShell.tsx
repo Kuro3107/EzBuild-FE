@@ -101,9 +101,9 @@ function AppShell() {
   }
 
   return (
-    <div style={{ minHeight: '100vh', background: 'linear-gradient(135deg, #1e3a8a 0%, #000000 100%)', color: 'white' }}>
+    <div className="app-shell-container">
       {currentUser ? (
-        <header style={{ position: 'fixed', top: 0, right: 0, zIndex: 1000, background: 'transparent', padding: '8px 16px', border: 'none', width: 'auto' }}>
+        <header className="app-header">
           <div className="relative">
             <button
               onClick={() => setIsUserMenuOpen(!isUserMenuOpen)}
@@ -147,7 +147,7 @@ function AppShell() {
           </div>
         </header>
       ) : (
-        <header style={{ position: 'fixed', top: 0, right: 0, zIndex: 1000, background: 'transparent', padding: '8px 16px', border: 'none', width: 'auto' }}>
+        <header className="app-header">
           <Link to="/login" className="flex items-center gap-2 bg-white/95 backdrop-blur-sm border border-black/10 rounded-2xl px-4 py-2 shadow-lg hover:shadow-xl transition-all duration-200">
             <svg className="w-5 h-5 text-gray-600" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M11 16l-4-4m0 0l4-4m-4 4h14m-5 4v1a3 3 0 01-3 3H6a3 3 0 01-3-3V7a3 3 0 013-3h7a3 3 0 013 3v1" /></svg>
             <span className="text-sm font-medium text-gray-800">Sign In</span>
@@ -155,8 +155,8 @@ function AppShell() {
         </header>
       )}
 
-      <div style={{ display: 'flex', minHeight: '100vh' }}>
-        <aside style={{ width: '256px', background: '#000000', borderRight: '1px solid #333333', position: 'fixed', height: '100vh', left: 0, top: 0, zIndex: 100, display: window.innerWidth >= 768 ? 'block' : 'none' }}>
+      <div className="app-layout-container">
+        <aside className="app-sidebar">
           <Link to="/" style={{ padding: '16px', borderBottom: '1px solid #333333', display: 'flex', alignItems: 'center', gap: '8px', textDecoration: 'none' }}>
             <div style={{ width: '24px', height: '24px', borderRadius: '6px', background: '#1e3a8a' }} />
             <span style={{ fontWeight: '600', fontSize: '16px', color: 'white' }}>EzBuild</span>
@@ -215,12 +215,12 @@ function AppShell() {
           </div>
         </aside>
 
-        <main style={{ marginLeft: window.innerWidth >= 768 ? '256px' : '0', background: 'linear-gradient(135deg, #1e3a8a 0%, #000000 100%)', flex: 1, minHeight: '100vh', overflowX: 'hidden', width: '100%' }}>
+        <main className="app-main-content">
           <Outlet />
         </main>
       </div>
 
-      {/* Chat Bubble - ở góc phải */}
+      {/* Chat Bubble - Fixed ở góc phải dưới (như CellphoneS) */}
       <ChatBubble />
     </div>
   )

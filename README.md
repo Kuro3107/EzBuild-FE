@@ -1,11 +1,65 @@
-# React + TypeScript + Vite
+# EzBuild - PC Builder với AI Assistant
 
-This template provides a minimal setup to get React working in Vite with HMR and some ESLint rules.
+Ứng dụng web PC Builder được xây dựng với React, TypeScript, Vite và tích hợp AI Assistant sử dụng Google Gemini API.
 
-Currently, two official plugins are available:
+## Tính năng chính
 
-- [@vitejs/plugin-react](https://github.com/vitejs/vite-plugin-react/blob/main/packages/plugin-react) uses [Babel](https://babeljs.io/) for Fast Refresh
-- [@vitejs/plugin-react-swc](https://github.com/vitejs/vite-plugin-react/blob/main/packages/plugin-react-swc) uses [SWC](https://swc.rs/) for Fast Refresh
+- 🖥️ **PC Builder**: Tư vấn và build cấu hình PC phù hợp
+- 🤖 **AI Assistant**: Chatbox AI sử dụng Google Gemini để tư vấn linh kiện PC
+- 👥 **Quản lý người dùng**: Hệ thống đăng nhập, phân quyền (Customer/Staff/Admin)
+- 🛒 **Quản lý sản phẩm**: Danh mục linh kiện PC đầy đủ
+- 📊 **So sánh sản phẩm**: Tính năng so sánh linh kiện
+- 💬 **Chat AI**: Tư vấn real-time với AI Assistant
+
+## Công nghệ sử dụng
+
+- **Frontend**: React 19, TypeScript, Vite
+- **UI Framework**: Tailwind CSS, Ant Design
+- **AI Service**: Google Gemini API
+- **State Management**: React Hooks
+- **Routing**: React Router DOM
+
+## Cài đặt và chạy ứng dụng
+
+### 1. Clone repository
+```bash
+git clone <repository-url>
+cd EzBuild-FE
+```
+
+### 2. Cài đặt dependencies
+```bash
+npm install
+```
+
+### 3. Cấu hình Gemini AI API
+- Tạo file `.env` từ `.env.example`
+- Lấy API key từ [Google AI Studio](https://aistudio.google.com/app/apikey)
+- Cập nhật `VITE_GOOGLE_API_KEY` trong file `.env`
+
+### 4. Chạy ứng dụng
+```bash
+npm run dev
+```
+
+## Sử dụng AI Chatbox
+
+### Tính năng AI Assistant
+- **Vị trí**: Chat bubble ở góc phải màn hình
+- **Chức năng**: Tư vấn về linh kiện PC, build cấu hình, so sánh sản phẩm
+- **Hoạt động**: 
+  - Online: Sử dụng Gemini API khi có API key
+  - Offline: Sử dụng câu trả lời mẫu khi không có API key
+
+### Các chủ đề AI có thể tư vấn
+- CPU (Intel, AMD)
+- GPU (NVIDIA, AMD)
+- RAM (DDR4, DDR5)
+- Mainboard
+- Storage (SSD, HDD)
+- PSU (Power Supply)
+- Case, Cooling
+- Build PC cho gaming, văn phòng, content creation
 
 ## Expanding the ESLint configuration
 
