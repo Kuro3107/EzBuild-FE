@@ -276,7 +276,7 @@ function StaffPage() {
         </main>
       </div>
 
-      {/* Chat Bubble */}
+      {/* Chat Bubble - Fixed ở góc phải dưới */}
       <ChatBubble />
     </div>
   )

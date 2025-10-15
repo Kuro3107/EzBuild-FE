@@ -13,7 +13,10 @@ body {
   background-attachment: fixed;
   overflow-x: hidden;
   max-width: 100vw;
+  width: 100%;
   position: relative;
+  margin: 0;
+  padding: 0;
 }
 
 /* Animated background particles */
@@ -46,6 +49,9 @@ body::before {
 html {
   overflow-x: hidden;
   max-width: 100vw;
+  width: 100%;
+  margin: 0;
+  padding: 0;
 }
 
 /* Layout wrappers */
@@ -62,6 +68,9 @@ html {
   max-width: 100vw;
   overflow-x: hidden;
   position: relative;
+  margin: 0;
+  padding: 0;
+  box-sizing: border-box;
 }
 
 /* Enhanced grid pattern for PC Builder */
@@ -91,10 +100,12 @@ html {
   width: 100%;
 }
 
-/* Sidebar */
+/* Sidebar - Updated for scrolling */
 .sidebar {
-  @apply w-64 shrink-0 border-r border-white/20 pt-6 pb-8 px-4 hidden md:block min-h-dvh;
+  @apply w-64 shrink-0 border-r border-white/20 pt-6 pb-8 px-4 hidden md:block;
   background: #000000;
+  height: auto;
+  position: relative;
 }
 .sidebar-group {
   @apply text-xs uppercase tracking-wider text-white/50 mt-6 mb-2 px-2;
@@ -109,6 +120,7 @@ html {
   max-width: calc(100vw - 256px);
   overflow-x: hidden;
   box-sizing: border-box;
+  width: 100%;
 }
 
 /* PC Builder responsive styles */
@@ -268,11 +280,14 @@ html {
   .main {
     max-width: 100vw;
     margin-left: 0 !important;
+    padding-left: 16px !important;
+    padding-right: 16px !important;
+    width: 100% !important;
   }
 }
 
-/* Header styles */
-header {
+/* Header styles (scope only app header to avoid global fixed positioning) */
+.app-header-global-fix {
   @apply fixed top-0 right-0 z-50 p-4;
 }
 
@@ -739,5 +754,89 @@ header {
   transform: translateY(-2px);
   box-shadow: 0 8px 20px rgba(255, 255, 255, 0.1);
 }
+
+/* App Shell Layout Fixes */
+.app-shell-container {
+  min-height: 100vh;
+  background: #000000; /* remove blue band on top */
+  color: white;
+  width: 100%;
+  max-width: 100vw;
+  overflow-x: hidden;
+  position: relative;
+}
+
+/* App Layout - Dashboard scrolls with content */
+.app-layout-container {
+  display: flex;
+  min-height: 100vh;
+  width: 100%;
+}
+
+.app-sidebar {
+  width: 256px;
+  background: #000000;
+  border-right: 1px solid #333333;
+  flex-shrink: 0;
+  display: block;
+  position: relative;
+  height: auto;
+}
+
+.app-main-content {
+  flex: 1;
+  background: linear-gradient(135deg, #1e3a8a 0%, #000000 100%);
+  min-height: 100vh;
+  overflow-x: hidden;
+  width: 100%;
+  box-sizing: border-box;
+  padding-top: 80px;
+}
+
+@media (max-width: 768px) {
+  .app-sidebar {
+    display: none;
+  }
+  
+  .app-main-content {
+    width: 100%;
+    max-width: 100vw;
+    padding-top: 0;
+  }
+}
+
+/* App Header */
+.app-header {
+  position: fixed;
+  top: 0;
+  right: 0;
+  z-index: 1000;
+  background: transparent;
+  padding: 8px 16px;
+  border: none;
+  width: auto;
+}
+
+@media (max-width: 768px) {
+  .app-header {
+    position: relative;
+    padding: 16px;
+    background: rgba(0, 0, 0, 0.1);
+  }
+}
+
+/* Homepage specific layout fixes */
+.homepage-container {
+  min-height: 100vh;
+  color: white;
+  overflow-x: hidden;
+  width: 100%;
+  max-width: 100vw;
+  position: relative;
+  box-sizing: border-box;
+}
+
+/* Chat Bubble - Fixed at bottom right (like CellphoneS) */
+/* Using Tailwind classes: fixed bottom-6 right-6 z-50 */
 
 

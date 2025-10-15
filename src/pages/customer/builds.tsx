@@ -97,13 +97,27 @@ function CustomerBuildsPage() {
           </nav>
         </aside>
         <main className="main">
-          <div className="max-w-6xl mx-auto">
-            <div className="mb-8">
-              <h1 className="text-3xl font-bold text-white mb-2">Build đã lưu</h1>
-              <p className="text-gray-400">Xem lại các cấu hình bạn đã lưu để mua sau</p>
+          <div className="w-full px-6 md:px-8 lg:px-10 pt-2">
+            {/* Banner / Header */}
+            <div className="relative overflow-hidden rounded-2xl mb-8 border border-white/10 bg-white/5">
+              <div className="relative px-6 py-6 flex items-center justify-between gap-4">
+                <div>
+                  <h1 className="text-3xl font-bold text-white mb-1">Build đã lưu</h1>
+                  <p className="text-white/70">Xem lại các cấu hình bạn đã lưu để mua sau</p>
+                </div>
+                <div className="flex items-center gap-3">
+                  <div className="px-3 py-1.5 rounded-lg bg-white/10 border border-white/10 text-sm text-white/90">{totalBuilds} build</div>
+                  <Link to="/pcbuilder" className="px-4 py-2 rounded-lg bg-blue-600 hover:bg-blue-700 text-white text-sm">Tạo build mới</Link>
+                </div>
+              </div>
             </div>
+
             {isLoading ? (
-              <div className="text-center text-gray-300">Đang tải...</div>
+              <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+                {Array.from({ length: 6 }).map((_, i) => (
+                  <div key={i} className="rounded-2xl p-6 border border-white/10 bg-white/5 animate-pulse h-48" />
+                ))}
+              </div>
             ) : error ? (
               <div className="text-center text-red-400">{error}</div>
             ) : builds.length === 0 ? (
@@ -113,35 +127,46 @@ function CustomerBuildsPage() {
             ) : (
               <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
                 {builds.map((b) => (
-                  <div key={b.id} className="bg-white/10 border border-white/20 rounded-2xl p-6">
-                    <div className="flex items-start justify-between">
-                      <div>
-                        <div className="text-white font-semibold text-lg">{b.name || `Build #${b.id}`}</div>
-                        <div className="text-gray-400 text-sm">{(() => { const anyB = b as unknown as Record<string, unknown>; const d = b.createdAt || (anyB.created_at as string | undefined); return d ? new Date(d).toLocaleString() : '-' })()}</div>
-                      </div>
-                      <div className="text-blue-400 font-bold">
+                  <div
+                    key={b.id}
+                    className="relative rounded-2xl p-6 border border-white/10 bg-white/5 backdrop-blur-xl transition-all duration-200 hover:bg-white/10 hover:border-white/20 hover:shadow-2xl hover:shadow-black/40"
+                  >
+                    {/* Price badge */}
+                    <div className="absolute -top-3 -right-3">
+                      <div className="px-3 py-1.5 rounded-xl bg-blue-600 text-white text-sm font-semibold shadow-lg">
                         {(() => { const anyB = b as unknown as Record<string, unknown>; const v = (typeof b.totalPrice === 'number' ? b.totalPrice : Number(anyB.total_price || 0)); return v.toLocaleString('vi-VN') })()} VND
                       </div>
                     </div>
-                    <div className="mt-4 text-gray-300 text-sm">
+
+                    {/* Header */}
+                    <div className="flex items-start justify-between gap-4">
+                      <div>
+                        <div className="text-white font-semibold text-lg">{b.name || `Build #${b.id}`}</div>
+                        <div className="text-gray-400 text-xs mt-1">{(() => { const anyB = b as unknown as Record<string, unknown>; const d = b.createdAt || (anyB.created_at as string | undefined); return d ? new Date(d).toLocaleString('vi-VN') : '-' })()}</div>
+                      </div>
+                    </div>
+
+                    {/* Items */}
+                    <div className="mt-4 text-gray-300 text-sm divide-y divide-white/10">
                       {(b.items || []).slice(0, 4).map((it, idx) => {
                         const name = it.product_name || it.productPrice?.product?.name || `Item ${idx + 1}`
                         const price = Number(it.price ?? it.productPrice?.price ?? 0)
                         return (
-                          <div key={idx} className="flex items-center justify-between py-1">
-                            <span>{name}</span>
-                            <span className="text-gray-400">{price > 0 ? `${price.toLocaleString('vi-VN')} VND` : ''} x{it.quantity || 1}</span>
+                          <div key={idx} className="flex items-center justify-between py-1.5">
+                            <span className="truncate pr-2">{name}</span>
+                            <span className="text-white/60 whitespace-nowrap">{price > 0 ? `${price.toLocaleString('vi-VN')} VND` : ''} ×{it.quantity || 1}</span>
                           </div>
                         )
                       })}
                       {(b.items || []).length > 4 && (
-                        <div className="text-gray-400">+ {(b.items || []).length - 4} linh kiện khác</div>
+                        <div className="text-gray-400 pt-1">+ {(b.items || []).length - 4} linh kiện khác</div>
                       )}
                     </div>
-                    <div className="mt-4 flex gap-3">
+
+                    {/* Actions */}
+                    <div className="mt-5 flex gap-3">
                       <button
                         onClick={() => {
-                          // Save mapping into localStorage for PCBuilder to consume
                           const mapped = (b.items || []).map((it) => {
                             const anyIt = it as unknown as Record<string, unknown>
                             const nestedProduct = (it.productPrice?.product as unknown as Record<string, unknown>) || {}
@@ -162,7 +187,7 @@ function CustomerBuildsPage() {
                       >
                         Xem
                       </button>
-                      <button className="px-4 py-2 border border-gray-600 text-white rounded-lg hover:bg-gray-800 text-sm" style={{ color: '#fff' }}>Chia sẻ</button>
+                      <button className="px-4 py-2 border border-white/20 text-white rounded-lg hover:bg-white/10 text-sm" style={{ color: '#fff' }}>Chia sẻ</button>
                     </div>
                   </div>
                 ))}
