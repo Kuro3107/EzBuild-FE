@@ -1,21 +1,16 @@
-import { Link, Outlet, useNavigate } from 'react-router-dom'
-import { useEffect, useRef, useState } from 'react'
+import { Link, Outlet, useLocation } from 'react-router-dom'
+import { useState } from 'react'
 import { ApiService } from '../services/api'
 import ChatBubble from './ChatBubble'
 
 function AppShell() {
-  const [isProductsOpen, setIsProductsOpen] = useState(false)
-  const [isUserMenuOpen, setIsUserMenuOpen] = useState(false)
-  const [currentUser, setCurrentUser] = useState<Record<string, unknown> | null>(null)
   const [isProductsMenuOpen, setIsProductsMenuOpen] = useState(false)
-  const productsBtnRef = useRef<HTMLAnchorElement | null>(null)
-  const popoverRef = useRef<HTMLDivElement | null>(null)
-  const userMenuRef = useRef<HTMLDivElement | null>(null)
-  const navigate = useNavigate()
+  const location = useLocation()
 
   const menuItems = [
-    { key: 'home', label: 'PC Builder', link: '/pcbuilder' },
-    { key: 'products', label: 'Products', children: [
+    { key: 'home', label: 'Home', link: '/', icon: '🏠' },
+    { key: 'pcbuilder', label: 'PC Builder', link: '/pcbuilder', icon: '🔧' },
+    { key: 'products', label: 'Products', icon: '📦', children: [
       { key: 'case', label: 'Case', link: '/products/case' },
       { key: 'cpu', label: 'CPU', link: '/products/cpu' },
       { key: 'mainboard', label: 'Mainboard', link: '/products/mainboard' },
@@ -29,198 +24,120 @@ function AppShell() {
       { key: 'mouse', label: 'Mouse', link: '/products/mouse' },
       { key: 'keyboard', label: 'Keyboard', link: '/products/keyboard' },
     ]},
-    { key: 'sales', label: 'Sales', link: '/sales' },
-    { key: 'compare', label: 'Compare', link: '/compare' },
-    { key: 'gallery', label: 'PC Part Gallery' },
-    { key: 'builds', label: 'My Builds', link: '/builds' },
-    { key: 'updates', label: 'Updates' },
-    { key: 'setup', label: 'Setup Builder' },
-    ...(ApiService.isStaff() && !ApiService.isAdmin() ? [{ key: 'staff', label: 'Staff Panel', link: '/staff' }] : []),
-    ...(ApiService.isAdmin() ? [{ key: 'admin', label: 'Admin Panel', link: '/admin' }] : []),
+    { key: 'sales', label: 'Sales', link: '/sales', icon: '💰' },
+    { key: 'compare', label: 'Compare', link: '/compare', icon: '⚖️' },
+    { key: 'builds', label: 'My Builds', link: '/builds', icon: '📋' },
+    { key: 'profile', label: 'Profile', link: '/profile', icon: '👤' },
+    ...(ApiService.isStaff() && !ApiService.isAdmin() ? [{ key: 'staff', label: 'Staff Panel', link: '/staff', icon: '👨‍💼' }] : []),
+    ...(ApiService.isAdmin() ? [{ key: 'admin', label: 'Admin Panel', link: '/admin', icon: '👑' }] : []),
   ]
 
-  useEffect(() => {
-    ApiService.checkAndClearOldData()
-    const user = ApiService.getCurrentUser()
-    if (user) setCurrentUser(user)
-    else setCurrentUser(null)
-  }, [])
 
-  useEffect(() => {
-    if (!isProductsOpen) return
-    function handleClickOutside(event: MouseEvent) {
-      const target = event.target as Node
-      if (
-        popoverRef.current &&
-        !popoverRef.current.contains(target) &&
-        productsBtnRef.current &&
-        !productsBtnRef.current.contains(target)
-      ) {
-        setIsProductsOpen(false)
-      }
+  // Helper function to check if current path matches menu item
+  const isActiveRoute = (item: { link?: string; children?: { link: string }[] }) => {
+    if (item.link) {
+      return location.pathname === item.link
     }
-    function handleEscape(event: KeyboardEvent) {
-      if (event.key === 'Escape') setIsProductsOpen(false)
+    if (item.children) {
+      return item.children.some((child) => location.pathname === child.link)
     }
-    document.addEventListener('mousedown', handleClickOutside)
-    document.addEventListener('keydown', handleEscape)
-    return () => {
-      document.removeEventListener('mousedown', handleClickOutside)
-      document.removeEventListener('keydown', handleEscape)
-    }
-  }, [isProductsOpen])
-
-  useEffect(() => {
-    if (!isUserMenuOpen) return
-    function handleClickOutside(event: MouseEvent) {
-      const target = event.target as Node
-      if (userMenuRef.current && !userMenuRef.current.contains(target)) {
-        setIsUserMenuOpen(false)
-      }
-    }
-    function handleEscape(event: KeyboardEvent) {
-      if (event.key === 'Escape') setIsUserMenuOpen(false)
-    }
-    document.addEventListener('mousedown', handleClickOutside)
-    document.addEventListener('keydown', handleEscape)
-    return () => {
-      document.removeEventListener('mousedown', handleClickOutside)
-      document.removeEventListener('keydown', handleEscape)
-    }
-  }, [isUserMenuOpen])
-
-  const handleLogout = () => {
-    const confirmLogout = window.confirm('Bạn có chắc chắn muốn đăng xuất?')
-    if (confirmLogout) {
-      ApiService.clearAuthData()
-      setCurrentUser(null)
-      setIsUserMenuOpen(false)
-      navigate('/login')
-      alert('Đăng xuất thành công!')
-    }
+    return false
   }
 
+
+
   return (
-    <div className="app-shell-container">
-      {currentUser ? (
-        <header className="app-header">
-          <div className="relative">
-            <button
-              onClick={() => setIsUserMenuOpen(!isUserMenuOpen)}
-              className="flex items-center gap-3 bg-white/95 backdrop-blur-sm border border-black/10 rounded-2xl px-4 py-2 shadow-lg hover:shadow-xl transition-all duration-200"
-            >
-              <div className="w-8 h-8 bg-gradient-to-br from-blue-500 to-blue-700 rounded-full flex items-center justify-center !text-white text-sm font-semibold shadow-md">
-                {(currentUser.email as string || 'U').charAt(0).toUpperCase()}
-              </div>
-              <span className="text-sm font-medium !text-white max-w-32 truncate hidden sm:block">
-                {currentUser.fullname as string || (currentUser.email as string) || 'User'}
-              </span>
-              <svg className={`w-4 h-4 text-gray-600 transition-transform duration-200 ${isUserMenuOpen ? 'rotate-180' : ''}`} fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 9l-7 7-7-7" />
-              </svg>
-            </button>
-            {isUserMenuOpen && (
-              <div ref={userMenuRef} className="absolute top-full right-0 mt-3 w-72 bg-gray-900 rounded-2xl shadow-2xl py-4 z-50 border border-gray-700">
-                <div className="px-6 py-4 border-b border-gray-700">
-                  <div className="flex items-center gap-4">
-                    <div className="w-12 h-12 rounded-full bg-gradient-to-br from-blue-500 to-blue-700 flex items-center justify-center !text-white text-lg font-bold shadow-lg">
-                      {(currentUser.email as string || 'U').charAt(0).toUpperCase()}
-                    </div>
-                    <div className="flex-1 min-w-0">
-                      <div className="font-semibold !text-white text-base truncate">{currentUser.fullname as string || (currentUser.email as string) || 'User'}</div>
-                      <div className="text-sm !text-gray-300 truncate">{(currentUser.email as string) || 'user@example.com'}</div>
-                    </div>
-                  </div>
-                </div>
-                <div className="py-2">
-                  <Link to="/customer" className="w-full px-6 py-3 text-left text-blue-400 hover:bg-gray-800 transition-colors text-sm flex items-center gap-4 group" onClick={() => setIsUserMenuOpen(false)}>
-                    <svg className="w-5 h-5 text-blue-400" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M16 7a4 4 0 11-8 0 4 4 0 018 0zM12 14a7 7 0 00-7 7h14a7 7 0 00-7-7z" /></svg>
-                    <span className="font-medium">Profile</span>
+    <div className="flex h-screen bg-gray-100">
+      {/* Sidebar */}
+      <div className="w-64 bg-gray-900 text-white flex flex-col">
+        {/* Header */}
+        <div className="p-4 border-b border-gray-700">
+          <Link to="/" className="flex items-center gap-2 text-xl font-bold">
+            <div className="w-8 h-8 bg-blue-600 rounded-lg flex items-center justify-center">
+              <span className="text-white font-bold">E</span>
+            </div>
+            <span>EzBuild</span>
+          </Link>
+        </div>
+
+
+        {/* Navigation */}
+        <nav className="flex-1 overflow-y-auto py-4">
+          <div className="px-2">
+            {menuItems.map((item) => (
+              <div key={item.key}>
+                {item.link ? (
+                  <Link
+                    to={item.link}
+                    className={`flex items-center gap-3 px-3 py-2 rounded-lg mb-1 transition-colors ${
+                      isActiveRoute(item)
+                        ? 'bg-blue-600 text-white'
+                        : 'text-white hover:bg-gray-800 hover:text-white'
+                    }`}
+                  >
+                    <span className="text-lg">{item.icon}</span>
+                    <span className="text-white text-sm font-medium">{item.label}</span>
                   </Link>
-                  <button onClick={handleLogout} className="w-full px-6 py-3 text-left text-red-400 hover:bg-gray-800 transition-colors text-sm flex items-center gap-4 group">
-                    <svg className="w-5 h-5 text-red-400" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M17 16l4-4m0 0l-4-4m4 4H7m6 4v1a3 3 0 01-3 3H6a3 3 0 01-3-3V7a3 3 0 013-3h4a3 3 0 013 3v1" /></svg>
-                    <span className="font-medium">Log out</span>
-                  </button>
-                </div>
+                ) : item.children ? (
+                  <div>
+                    <button
+                      onClick={() => setIsProductsMenuOpen(!isProductsMenuOpen)}
+                      className={`w-full flex items-center gap-3 px-3 py-2 rounded-lg mb-1 transition-colors ${
+                        isActiveRoute(item)
+                          ? 'bg-blue-600 text-white'
+                          : 'text-white hover:bg-gray-800 hover:text-white'
+                      }`}
+                    >
+                      <span className="text-lg">{item.icon}</span>
+                    <span className="text-sm font-medium flex-1 text-left">{item.label}</span>
+                    <svg
+                      className={`w-4 h-4 transition-transform ${isProductsMenuOpen ? 'rotate-90' : ''}`}
+                      fill="none"
+                      stroke="currentColor"
+                      viewBox="0 0 24 24"
+                    >
+                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 5l7 7-7 7" />
+                    </svg>
+                    </button>
+                    {isProductsMenuOpen && (
+                      <div className="ml-6 mt-1">
+                        {item.children.map((child) => (
+                          <Link
+                            key={child.key}
+                            to={child.link}
+                            className={`block px-3 py-2 rounded-lg mb-1 text-sm transition-colors ${
+                              location.pathname === child.link
+                                ? 'bg-blue-600 text-white'
+                                : 'text-white hover:bg-gray-800 hover:text-white'
+                            }`}
+                          >
+                            {child.label}
+                          </Link>
+                        ))}
+                      </div>
+                    )}
+                  </div>
+                ) : (
+                  <div className="flex items-center gap-3 px-3 py-2 rounded-lg mb-1 text-white">
+                    <span className="text-lg">{item.icon}</span>
+                    <span className="text-sm font-medium">{item.label}</span>
+                  </div>
+                )}
               </div>
-            )}
+            ))}
           </div>
-        </header>
-      ) : (
-        <header className="app-header">
-          <Link to="/login" className="flex items-center gap-2 bg-white/95 backdrop-blur-sm border border-black/10 rounded-2xl px-4 py-2 shadow-lg hover:shadow-xl transition-all duration-200">
-            <svg className="w-5 h-5 text-gray-600" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M11 16l-4-4m0 0l4-4m-4 4h14m-5 4v1a3 3 0 01-3 3H6a3 3 0 01-3-3V7a3 3 0 013-3h7a3 3 0 013 3v1" /></svg>
-            <span className="text-sm font-medium text-gray-800">Sign In</span>
-          </Link>
-        </header>
-      )}
+        </nav>
 
-      <div className="app-layout-container">
-        <aside className="app-sidebar">
-          <Link to="/" style={{ padding: '16px', borderBottom: '1px solid #333333', display: 'flex', alignItems: 'center', gap: '8px', textDecoration: 'none' }}>
-            <div style={{ width: '24px', height: '24px', borderRadius: '6px', background: '#1e3a8a' }} />
-            <span style={{ fontWeight: '600', fontSize: '16px', color: 'white' }}>EzBuild</span>
-          </Link>
-          <nav style={{ height: 'calc(100% - 80px)', paddingTop: '8px', background: '#000000', overflowY: 'auto' }}>
-            <div style={{ padding: '0 16px' }}>
-              {menuItems.map((item) => (
-                <div key={item.key}>
-                  {item.link ? (
-                    <Link to={item.link} style={{ display: 'block', padding: '12px 16px', color: 'white', textDecoration: 'none', borderRadius: '6px', marginBottom: '4px', transition: 'background-color 0.2s' }} onMouseEnter={(e) => (e.currentTarget.style.backgroundColor = '#1e3a8a')} onMouseLeave={(e) => (e.currentTarget.style.backgroundColor = 'transparent')}>
-                      {item.label}
-                    </Link>
-                  ) : item.children ? (
-                    <div style={{ padding: '12px 16px', color: 'white', cursor: 'pointer', borderRadius: '6px', marginBottom: '4px', transition: 'background-color 0.2s', display: 'flex', alignItems: 'center', justifyContent: 'space-between' }} 
-                         onMouseEnter={(e) => (e.currentTarget.style.backgroundColor = '#1e3a8a')} 
-                         onMouseLeave={(e) => (e.currentTarget.style.backgroundColor = 'transparent')}
-                         onClick={() => setIsProductsMenuOpen(!isProductsMenuOpen)}>
-                      <span>{item.label}</span>
-                      <svg 
-                        style={{ 
-                          width: '16px', 
-                          height: '16px', 
-                          transition: 'transform 0.2s',
-                          transform: isProductsMenuOpen ? 'rotate(90deg)' : 'rotate(0deg)'
-                        }} 
-                        fill="none" 
-                        stroke="currentColor" 
-                        viewBox="0 0 24 24"
-                      >
-                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 5l7 7-7 7" />
-                      </svg>
-                    </div>
-                  ) : (
-                    <div style={{ padding: '12px 16px', color: 'white', cursor: 'pointer', borderRadius: '6px', marginBottom: '4px', transition: 'background-color 0.2s' }} onMouseEnter={(e) => (e.currentTarget.style.backgroundColor = '#1e3a8a')} onMouseLeave={(e) => (e.currentTarget.style.backgroundColor = 'transparent')}>
-                      {item.label}
-                    </div>
-                  )}
-                  {item.children && isProductsMenuOpen && (
-                    <div style={{ marginLeft: '16px', marginTop: '8px' }}>
-                      {item.children.map((child) => (
-                        <Link key={child.key} to={child.link} style={{ display: 'block', padding: '8px 16px', color: '#cccccc', textDecoration: 'none', fontSize: '14px', borderRadius: '6px', marginBottom: '2px', transition: 'background-color 0.2s' }} onMouseEnter={(e) => (e.currentTarget.style.backgroundColor = '#1e3a8a')} onMouseLeave={(e) => (e.currentTarget.style.backgroundColor = 'transparent')}>
-                          {child.label}
-                        </Link>
-                      ))}
-                    </div>
-                  )}
-                </div>
-              ))}
-            </div>
-          </nav>
-          <div style={{ position: 'absolute', bottom: '16px', left: '16px', right: '16px', fontSize: '12px', color: '#8c8c8c' }}>
-            <div style={{ display: 'flex', gap: '12px' }}>
-              <a href="#" style={{ color: '#1e3a8a' }}>Contact</a>
-              <a href="#" style={{ color: '#1e3a8a' }}>FAQ</a>
-            </div>
-          </div>
-        </aside>
+      </div>
 
-        <main className="app-main-content">
+      {/* Main Content */}
+      <div className="flex-1 flex flex-col overflow-hidden">
+        <main className="flex-1 overflow-y-auto bg-gray-50">
           <Outlet />
         </main>
       </div>
 
-      {/* Chat Bubble - Fixed ở góc phải dưới (như CellphoneS) */}
+      {/* Chat Bubble */}
       <ChatBubble />
     </div>
   )

@@ -165,7 +165,7 @@ function HomePage() {
                 {/* Menu Items */}
                 <div className="py-2">
                   <Link 
-                    to="/customer"
+                    to="/profile"
                     className="w-full px-6 py-3 text-left text-blue-400 hover:bg-gray-800 transition-colors text-sm flex items-center gap-4 group"
                     onClick={() => setIsUserMenuOpen(false)}
                   >
