@@ -74,9 +74,9 @@ function CustomerBuildsPage() {
   const totalBuilds = useMemo(() => builds.length, [builds])
 
   return (
-    <div className="page bg-grid-dark">
+    <div key="builds-page" className="page bg-grid-dark">
       <div className="layout">
-        <aside className="sidebar">
+        <aside className="sidebar builds-sidebar">
           <div className="px-6 py-8 border-b border-gray-700">
             <div className="flex items-center gap-3">
               <div className="w-12 h-12 rounded-full bg-gradient-to-br from-blue-500 to-purple-600 flex items-center justify-center text-white text-lg font-bold">
@@ -90,7 +90,7 @@ function CustomerBuildsPage() {
           </div>
           <nav className="flex-1 py-6">
             <div className="px-6 mb-4">
-              <Link className="nav-item" to="/customer">Profile</Link>
+              <Link className="nav-item" to="/profile">Profile</Link>
               <Link className="nav-item-active" to="/builds">My Builds</Link>
               <Link className="nav-item" to="/pcbuilder">PC Builder</Link>
             </div>

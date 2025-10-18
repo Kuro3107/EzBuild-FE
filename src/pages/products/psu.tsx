@@ -381,7 +381,7 @@ function PSUPage() {
   }
 
   return (
-    <div className="page bg-grid bg-radial">
+    <div className="page homepage-container">
       <div className="layout">
 
         {/* Main */}
