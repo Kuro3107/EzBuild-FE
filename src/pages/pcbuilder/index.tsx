@@ -52,6 +52,7 @@ interface PCComponent {
   price: string // Thay đổi từ number sang string để hiển thị min-max range
   category: string
   categoryId: number
+  hasSupplier?: boolean // Thêm thuộc tính để phân biệt có supplier hay không
   // Additional product info
   capacity?: string
   color?: string
@@ -150,8 +151,10 @@ function PCBuilderPage() {
     if (!currentUser?.id && !currentUser?.userId) {
       alert('Bạn cần đăng nhập để lưu build')
       try {
-        navigate('/login', { state: { from: '/pcbuilder' } } as unknown as any)
-      } catch (_) {}
+        navigate('/login', { state: { from: '/pcbuilder' } } as unknown as { state: { from: string } })
+      } catch {
+        // ignore navigation error
+      }
       return
     }
     const mandatoryIds = [1,4,3,2,5,6,7,8]
@@ -363,7 +366,7 @@ function PCBuilderPage() {
                     productPrices: []
                   }
                   return { categoryId, component }
-                } catch (e) {
+                } catch {
                   return { categoryId: it.category_id || 0, component: undefined as unknown as PCComponent }
                 }
               })
@@ -384,7 +387,9 @@ function PCBuilderPage() {
         }
         localStorage.removeItem('ezbuild-selected-build')
       }
-    } catch (_) {}
+    } catch {
+      // ignore parse errors
+    }
 
     const hasSeenTourBefore = localStorage.getItem('ezbuild-tour-completed')
     const isFirstVisit = !hasSeenTourBefore
@@ -1249,17 +1254,7 @@ function PCBuilderPage() {
               
               // Tính min-max price range
               let priceRange = 'Liên hệ'
-              if (productPrices.length > 0) {
-                const prices = productPrices.map(p => p.price)
-                const minPrice = Math.min(...prices)
-                const maxPrice = Math.max(...prices)
-                
-                if (minPrice === maxPrice) {
-                  priceRange = `${minPrice.toLocaleString('vi-VN')} VND`
-                } else {
-                  priceRange = `${minPrice.toLocaleString('vi-VN')} - ${maxPrice.toLocaleString('vi-VN')} VND`
-                }
-              }
+              const hasSupplier = productPrices.length > 0
 
               return {
                 id: Number(item.id) || 0,
@@ -1271,6 +1266,7 @@ function PCBuilderPage() {
                 price: priceRange,
                 category: categoryMap[categoryId] || 'Unknown',
                 categoryId: categoryId,
+                hasSupplier: hasSupplier,
         // Additional product info
         capacity: item.capacity,
         color: item.color,
@@ -1340,6 +1336,7 @@ function PCBuilderPage() {
               price: 'Đang tải...', // Placeholder price
               category: categoryMap[categoryId] || 'Unknown',
               categoryId: categoryId,
+              hasSupplier: false, // Sẽ được cập nhật khi load chi tiết
               productPrices: [], // Empty initially
               // Additional product info
               capacity: item.capacity,
@@ -1481,6 +1478,32 @@ function PCBuilderPage() {
   useEffect(() => {
     setSearchQuery('')
   }, [selectedCategory])
+
+  // Load detailed product info when category is selected
+  useEffect(() => {
+    if (selectedCategory && rawApiProducts.length > 0) {
+      const categoryProducts = rawApiProducts.filter((item: ApiProduct) => item.category?.id === selectedCategory)
+      if (categoryProducts.length > 0) {
+        const detailedProducts = formatDetailedProducts(categoryProducts, selectedCategory)
+        
+        // Update products with detailed info
+        setProducts(prev => prev.map(product => {
+          if (product.categoryId === selectedCategory) {
+            const detailedProduct = detailedProducts.find(dp => dp.id === product.id)
+            if (detailedProduct) {
+              return {
+                ...product,
+                price: detailedProduct.price,
+                hasSupplier: detailedProduct.hasSupplier,
+                productPrices: detailedProduct.productPrices
+              }
+            }
+          }
+          return product
+        }))
+      }
+    }
+  }, [selectedCategory, rawApiProducts])
 
   return (
     <div className="page bg-grid bg-radial">
@@ -1996,7 +2019,9 @@ function PCBuilderPage() {
                                   {product.brand}{product.model && product.model !== 'Unknown' ? ` - ${product.model}` : ''}
                                 </p>
                                 <p style={{ 
-                                  color: product.price === 'Đang tải...' ? 'rgba(255,255,255,0.5)' : '#3b82f6', 
+                                  color: product.price === 'Đang tải...' ? 'rgba(255,255,255,0.5)' : 
+                                       product.price === 'Liên hệ' && product.hasSupplier ? '#10b981' : 
+                                       product.price === 'Liên hệ' ? 'rgba(255,255,255,0.5)' : '#3b82f6', 
                                   fontSize: '16px', 
                                   fontWeight: '600', 
                                   margin: 0 
@@ -2292,7 +2317,14 @@ function PCBuilderPage() {
                             })()}
                           </div>
                           <div style={{ textAlign: 'right', marginLeft: '12px' }}>
-                            <div style={{ color: '#3b82f6', fontSize: '14px', fontWeight: '600', marginBottom: '4px' }}>
+                            <div style={{ 
+                              color: buildComp.component.price === 'Đang tải...' ? 'rgba(255,255,255,0.5)' : 
+                                     buildComp.component.price === 'Liên hệ' && buildComp.component.hasSupplier ? '#10b981' : 
+                                     buildComp.component.price === 'Liên hệ' ? 'rgba(255,255,255,0.5)' : '#3b82f6', 
+                              fontSize: '14px', 
+                              fontWeight: '600', 
+                              marginBottom: '4px' 
+                            }}>
                               {buildComp.component.price}
                             </div>
                             <button
@@ -2459,7 +2491,7 @@ function PCBuilderPage() {
                   className="tour-compatibility"
                   style={{
                     width: '100%',
-                    background: '#059669',
+                    background: '#1e3a8a',
                     border: 'none',
                     borderRadius: '8px',
                     padding: '12px',
@@ -2470,14 +2502,35 @@ function PCBuilderPage() {
                     marginTop: '16px',
                     transition: 'background 0.2s ease'
                   }}
+                  onClick={() => {
+                    try {
+                      const selected = buildComponents.filter(b => !!b.component)
+                      const components = selected.map(b => {
+                        const priceStr = b.component?.price || ''
+                        const match = priceStr.match(/^[\d.,]+/)
+                        const priceValue = match ? parseInt(match[0].replace(/[.,]/g, '')) : 0
+                        return {
+                          categoryId: b.categoryId,
+                          name: b.component?.name,
+                          model: b.component?.model,
+                          priceValue
+                        }
+                      })
+                      const payload = { components }
+                      localStorage.setItem('ezbuild-checkout', JSON.stringify(payload))
+                    } catch {
+                      // ignore persistence errors
+                    }
+                    navigate('/checkout')
+                  }}
                   onMouseEnter={(e) => {
-                    e.currentTarget.style.background = '#10b981'
+                    e.currentTarget.style.background = '#3b82f6'
                   }}
                   onMouseLeave={(e) => {
-                    e.currentTarget.style.background = '#059669'
+                    e.currentTarget.style.background = '#1e3a8a'
                   }}
                 >
-                        🔍 Kiểm tra tương thích
+                        💳 Thanh toán
                 </button>
                 
                 <button

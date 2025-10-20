@@ -27,6 +27,13 @@ interface UserProfile {
 function CustomerProfilePage() {
   // Lấy thông tin user hiện tại từ ApiService
   const currentUser = ApiService.getCurrentUser()
+  const headerName = String(
+    (currentUser?.fullname as string | undefined) ||
+    (currentUser?.username as string | undefined) ||
+    ((currentUser?.email as string | undefined)?.split('@')[0]) ||
+    'User'
+  )
+  const headerRole = String((currentUser?.role as string | undefined) || 'CUSTOMER')
   
   // State quản lý trạng thái form và dữ liệu
   const [isEditing, setIsEditing] = useState(false)
@@ -50,89 +57,72 @@ function CustomerProfilePage() {
   const [formData, setFormData] = useState(profile)
   const fileInputRef = useRef<HTMLInputElement>(null) // Ref để tham chiếu đến input file ẩn
 
-  // Fetch user data từ backend
+  // Fetch user data nhanh: đổ ngay dữ liệu localStorage, sau đó cập nhật từ API /api/user/{id}
   useEffect(() => {
-    let isMounted = true // Flag để tránh update state khi component unmounted
-
-    const fetchUserData = async () => {
-      // Kiểm tra nếu đã có data rồi thì không fetch lại
-      if (profile.id && profile.email) {
+    const controller = new AbortController()
+    try {
+      if (!currentUser?.id && !currentUser?.userId) {
+        setError('Không tìm thấy thông tin user')
         setIsLoading(false)
         return
       }
 
-      if (!currentUser?.id && !currentUser?.userId) {
-        if (isMounted) {
-          setError('Không tìm thấy thông tin user')
-          setIsLoading(false)
-        }
-        return
+      // 1) Hydrate tức thì từ token/localStorage (UI hiển thị ngay)
+      const fallbackData: UserProfile = {
+        id: String(currentUser.id || currentUser.userId || ''),
+        email: String(currentUser.email || ''),
+        username: String(currentUser.username || ''),
+        fullname: String(currentUser.fullname || (currentUser.email ? String(currentUser.email).split('@')[0] : '')),
+        phone: String(currentUser.phone || ''),
+        address: String(currentUser.address || ''),
+        dob: String(currentUser.dob || ''),
+        role: String(currentUser.role || 'Customer'),
+        createdAt: String(currentUser.createdAt || currentUser.timestamp || ''),
+        avatar: '',
+        bio: ''
       }
+      setProfile(fallbackData)
+      setFormData(fallbackData)
+      setIsLoading(false)
 
-      // Ưu tiên sử dụng dữ liệu từ localStorage trước
-      if (currentUser && (currentUser.id || currentUser.userId)) {
-        const fallbackData: UserProfile = {
-          id: String(currentUser.id || currentUser.userId || ''),
-          email: String(currentUser.email || ''),
-          username: String(currentUser.username || ''),
-          fullname: String(currentUser.fullname || ''),
-          phone: String(currentUser.phone || ''),
-          address: String(currentUser.address || ''),
-          dob: String(currentUser.dob || ''),
-          role: String(currentUser.role || 'Customer'),
-          createdAt: String(currentUser.createdAt || currentUser.timestamp || ''),
+      // 2) Cập nhật nền từ API /api/user/{id}
+      const base = import.meta.env?.VITE_API_BASE_URL || 'http://localhost:8080'
+      const token = localStorage.getItem('authToken') || ''
+      const rawId = String(currentUser.id || currentUser.userId)
+      const cleanedId = (rawId.match(/\d+/)?.[0] || rawId).replace(/^0+(?=\d)/, '')
+      fetch(`${base}/api/user/${cleanedId}`, {
+        method: 'GET',
+        headers: {
+          'Authorization': `Bearer ${token}`,
+          'Content-Type': 'application/json'
+        },
+        signal: controller.signal
+      }).then(async (r) => {
+        if (!r.ok) throw new Error(await r.text())
+        return r.json()
+      }).then((userData) => {
+        const transformedData: UserProfile = {
+          id: String(userData.id || fallbackData.id),
+          email: String(userData.email || fallbackData.email),
+          username: String(userData.username || fallbackData.username || ''),
+          fullname: String(userData.fullname || fallbackData.fullname),
+          phone: String(userData.phone || fallbackData.phone || ''),
+          address: String(userData.address || fallbackData.address || ''),
+          dob: String(userData.dob || fallbackData.dob || ''),
+          role: String(userData.role || fallbackData.role || 'Customer'),
+          createdAt: String(userData.createdAt || fallbackData.createdAt || ''),
           avatar: '',
           bio: ''
         }
-        
-        if (isMounted) {
-          setProfile(fallbackData)
-          setFormData(fallbackData)
-          setIsLoading(false)
-          console.log('Using data from localStorage:', fallbackData)
-        }
-        
-        // Vẫn thử fetch từ API để cập nhật dữ liệu mới nhất
-        try {
-          const userId = currentUser.id || currentUser.userId
-          const userData = await ApiService.getUserProfile(String(userId))
-          
-          if (!isMounted) return
-          
-          const transformedData: UserProfile = {
-            id: userData.id?.toString() || currentUser.id?.toString() || currentUser.userId?.toString() || '',
-            email: String(userData.email || currentUser.email || ''),
-            username: String(userData.username || currentUser.username || ''),
-            fullname: String(userData.fullname || currentUser.fullname || ''),
-            phone: String(userData.phone || currentUser.phone || ''),
-            address: String(userData.address || currentUser.address || ''),
-            dob: String(userData.dob || currentUser.dob || ''),
-            role: String(userData.role || currentUser.role || 'Customer'),
-            createdAt: String(userData.createdAt || currentUser.createdAt || currentUser.timestamp?.toString() || ''),
-            avatar: String(userData.avatar || ''),
-            bio: String(userData.bio || '')
-          }
-          
-          setProfile(transformedData)
-          setFormData(transformedData)
-          console.log('Updated with fresh data from API:', transformedData)
-        } catch (apiError) {
-          console.log('API fetch failed, keeping localStorage data:', apiError)
-          // Không cần xử lý lỗi ở đây vì đã có fallback data
-        }
-        
-        return
-      }
-
+        setProfile(transformedData)
+        setFormData(transformedData)
+      }).catch(() => {/* giữ fallback nếu lỗi */})
+    } catch {
+      // ignore
     }
-
-    fetchUserData()
-
-    // Cleanup function
-    return () => {
-      isMounted = false
-    }
-  }, [currentUser, profile.id, profile.email]) // Dependency array với các giá trị cần thiết
+    return () => controller.abort()
+  // Chạy một lần khi mount
+  }, [])
 
   /**
    * Xử lý khi user thay đổi giá trị trong form
@@ -270,84 +260,49 @@ function CustomerProfilePage() {
 
   return (
     <div className="page bg-grid-dark">
-      <div className="layout">
-        {/* Sidebar Navigation */}
-        <aside className="sidebar">
-          {/* User Info Header */}
-          <div className="px-6 py-8 border-b border-gray-700">
+      <div className="layout pt-16 md:pt-20">
+        {/* Header thay sidebar */}
+        <div className="relative z-0 bg-transparent px-4 md:px-6 pt-4 pb-3 w-full max-w-5xl mx-auto">
+          <div className="flex flex-col gap-2">
             <div className="flex items-center gap-3">
-              <div className="w-12 h-12 rounded-full bg-gradient-to-br from-blue-500 to-purple-600 flex items-center justify-center text-white text-lg font-bold">
-                {formData.fullname.charAt(0).toUpperCase()}
+              <div className="w-10 h-10 rounded-full bg-gradient-to-br from-blue-500 to-purple-600 flex items-center justify-center text-white text-base font-bold">
+                {headerName.charAt(0).toUpperCase()}
               </div>
               <div>
-                <div className="font-semibold text-white text-lg">{formData.fullname}</div>
-                <div className="text-xs text-gray-400 uppercase tracking-wider">{formData.role || 'CUSTOMER'}</div>
+                <div className="font-semibold text-white text-base">{headerName}</div>
+                <div className="text-[11px] text-gray-400 uppercase tracking-wider">{headerRole}</div>
               </div>
             </div>
+            <nav className="flex items-center gap-2 ml-12">
+              <Link className="nav-item-active" to="/customer">Profile</Link>
+              <Link className="nav-item" to="/builds">My Builds</Link>
+              <Link className="nav-item" to="/orders">Orders</Link>
+              <Link className="nav-item" to="/pcbuilder">PC Builder</Link>
+            </nav>
           </div>
-
-          {/* Navigation Menu */}
-          <nav className="flex-1 py-6">
-            <div className="px-6 mb-4">
-              <div className="text-xs font-semibold text-gray-400 uppercase tracking-wider mb-3">GENERAL</div>
-              <Link className="nav-item-active" to="/customer">
-                <svg className="w-5 h-5" fill="currentColor" viewBox="0 0 20 20">
-                  <path fillRule="evenodd" d="M10 9a3 3 0 100-6 3 3 0 000 6zm-7 9a7 7 0 1114 0H3z" clipRule="evenodd" />
-                </svg>
-                Profile
-              </Link>
-              <Link className="nav-item" to="/builds">
-                <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M3 7h18M3 12h18M3 17h18" />
-                </svg>
-                My Builds
-              </Link>
-              <Link className="nav-item" to="/">
-                <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M16 7a4 4 0 11-8 0 4 4 0 018 0zM12 14a7 7 0 00-7 7h14a7 7 0 00-7-7z" />
-                </svg>
-                Users & Permission
-              </Link>
-            </div>
-
-            <div className="px-6 mb-4">
-              <div className="text-xs font-semibold text-gray-400 uppercase tracking-wider mb-3">OTHER</div>
-              <a className="nav-item" href="#">
-                <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 21V5a2 2 0 00-2-2H7a2 2 0 00-2 2v16m14 0h2m-2 0h-5m-9 0H3m2 0h5M9 7h1m-1 4h1m4-4h1m-1 4h1m-5 10v-5a1 1 0 011-1h2a1 1 0 011 1v5m-4 0h4" />
-                </svg>
-                Dashboard
-              </a>
-              <a className="nav-item" href="#">
-                <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M20 7l-8-4-8 4m16 0l-8 4m8-4v10l-8 4m0-10L4 7m8 4v10M4 7v10l8 4" />
-                </svg>
-                Orders
-              </a>
-              <a className="nav-item" href="#">
-                <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4.318 6.318a4.5 4.5 0 000 6.364L12 20.364l7.682-7.682a4.5 4.5 0 00-6.364-6.364L12 7.636l-1.318-1.318a4.5 4.5 0 00-6.364 0z" />
-                </svg>
-                Wishlist
-              </a>
-              <a className="nav-item" href="#">
-                <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M10.325 4.317c.426-1.756 2.924-1.756 3.35 0a1.724 1.724 0 002.573 1.066c1.543-.94 3.31.826 2.37 2.37a1.724 1.724 0 001.065 2.572c1.756.426 1.756 2.924 0 3.35a1.724 1.724 0 00-1.066 2.573c.94 1.543-.826 3.31-2.37 2.37a1.724 1.724 0 00-2.572 1.065c-.426 1.756-2.924 1.756-3.35 0a1.724 1.724 0 00-2.573-1.066c-1.543.94-3.31-.826-2.37-2.37a1.724 1.724 0 00-1.065-2.572c-1.756-.426-1.756-2.924 0-3.35a1.724 1.724 0 001.066-2.573c-.94-1.543.826-3.31 2.37-2.37.996.608 2.296.07 2.572-1.065z" />
-                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 12a3 3 0 11-6 0 3 3 0 016 0z" />
-                </svg>
-                Settings
-              </a>
-            </div>
-          </nav>
-        </aside>
+        </div>
 
         {/* Main Content */}
         <main className="main">
-          <div className="max-w-6xl mx-auto">
+          <div className="max-w-5xl mx-auto px-4 md:px-6 mt-2">
             {/* Page Header */}
             <div className="mb-8">
-              <h1 className="text-3xl font-bold text-white mb-2">Profile</h1>
-              <p className="text-gray-400">Manage your personal information and account settings</p>
+              <div className="flex items-center justify-between gap-4">
+                <div>
+                  <h1 className="text-3xl font-bold text-white mb-2">Profile</h1>
+                  <p className="text-gray-400">Manage your personal information and account settings</p>
+                </div>
+                <button
+                  type="button"
+                  onClick={() => window.dispatchEvent(new Event('openSidebar'))}
+                  className="inline-flex items-center gap-2 bg-white/90 text-gray-900 px-3 py-2 rounded-lg shadow border border-black/10 hover:bg-white"
+                >
+                  <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 6h16M4 12h16M4 18h16" />
+                  </svg>
+                  Menu
+                </button>
+              </div>
             </div>
 
             {/* Profile Picture Section */}
@@ -551,16 +506,16 @@ function CustomerProfilePage() {
                   </tbody>
                 </table>
               </div>
-            </div>
 
-            {/* Hidden file input */}
-            <input
-              ref={fileInputRef}
-              type="file"
-              accept="image/*"
-              onChange={handleAvatarUpload}
-              className="hidden"
-            />
+              {/* Hidden file input */}
+              <input
+                ref={fileInputRef}
+                type="file"
+                accept="image/*"
+                onChange={handleAvatarUpload}
+                className="hidden"
+              />
+            </div>
           </div>
         </main>
       </div>

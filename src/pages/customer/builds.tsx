@@ -75,29 +75,28 @@ function CustomerBuildsPage() {
 
   return (
     <div className="page bg-grid-dark">
-      <div className="layout">
-        <aside className="sidebar">
-          <div className="px-6 py-8 border-b border-gray-700">
-            <div className="flex items-center gap-3">
-              <div className="w-12 h-12 rounded-full bg-gradient-to-br from-blue-500 to-purple-600 flex items-center justify-center text-white text-lg font-bold">
-                {(currentUser?.fullname as string || 'U').charAt(0).toUpperCase()}
+      <div className="layout pt-16 md:pt-20">
+        <main className="main">
+          <div className="relative z-0 bg-transparent px-4 md:px-6 pt-4 pb-3">
+            <div className="flex flex-col gap-2">
+              <div className="flex items-center gap-3">
+                <div className="w-10 h-10 rounded-full bg-gradient-to-br from-blue-500 to-purple-600 flex items-center justify-center text-white text-base font-bold">
+                  {(currentUser?.fullname as string || 'U').charAt(0).toUpperCase()}
+                </div>
+                <div>
+                  <div className="font-semibold text-white text-base">Builds</div>
+                  <div className="text-[11px] text-gray-400 uppercase tracking-wider">{totalBuilds} saved</div>
+                </div>
               </div>
-              <div>
-                <div className="font-semibold text-white text-lg">Builds</div>
-                <div className="text-xs text-gray-400 uppercase tracking-wider">{totalBuilds} saved</div>
-              </div>
+              <nav className="flex items-center gap-2 ml-12">
+                <Link className="nav-item" to="/customer">Profile</Link>
+                <Link className="nav-item-active" to="/builds">My Builds</Link>
+                <Link className="nav-item" to="/orders">Orders</Link>
+                <Link className="nav-item" to="/pcbuilder">PC Builder</Link>
+              </nav>
             </div>
           </div>
-          <nav className="flex-1 py-6">
-            <div className="px-6 mb-4">
-              <Link className="nav-item" to="/customer">Profile</Link>
-              <Link className="nav-item-active" to="/builds">My Builds</Link>
-              <Link className="nav-item" to="/pcbuilder">PC Builder</Link>
-            </div>
-          </nav>
-        </aside>
-        <main className="main">
-          <div className="max-w-6xl mx-auto">
+          <div className="max-w-6xl px-4 md:px-6 mt-2">
             <div className="mb-8">
               <h1 className="text-3xl font-bold text-white mb-2">Build đã lưu</h1>
               <p className="text-gray-400">Xem lại các cấu hình bạn đã lưu để mua sau</p>
@@ -111,7 +110,7 @@ function CustomerBuildsPage() {
                 Chưa có build nào. <Link className="text-blue-400" to="/pcbuilder">Tạo build</Link>
               </div>
             ) : (
-              <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+              <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-2 gap-6">
                 {builds.map((b) => (
                   <div key={b.id} className="bg-white/10 border border-white/20 rounded-2xl p-6">
                     <div className="flex items-start justify-between">
@@ -163,6 +162,21 @@ function CustomerBuildsPage() {
                         Xem
                       </button>
                       <button className="px-4 py-2 border border-gray-600 text-white rounded-lg hover:bg-gray-800 text-sm" style={{ color: '#fff' }}>Chia sẻ</button>
+                      <button
+                        onClick={async () => {
+                          if (!b.id) return
+                          if (!confirm('Bạn có chắc muốn xóa build này?')) return
+                          try {
+                            await ApiService.deleteBuild(Number(b.id))
+                            setBuilds(prev => prev.filter(x => x.id !== b.id))
+                          } catch {
+                            alert('Không thể xóa build. Vui lòng thử lại!')
+                          }
+                        }}
+                        className="px-4 py-2 border border-red-600 text-red-400 rounded-lg hover:bg-red-900/30 text-sm"
+                      >
+                        Xóa
+                      </button>
                     </div>
                   </div>
                 ))}

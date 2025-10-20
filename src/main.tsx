@@ -27,8 +27,12 @@ import StaffPage from './pages/staff/index.tsx'
 import AdminPage from './pages/admin/index.tsx'
 import CustomerProfilePage from './pages/customer/index.tsx'
 import CustomerBuildsPage from './pages/customer/builds.tsx'
+import CustomerOrdersPage from './pages/customer/orders.tsx'
 import PCBuilderPage from './pages/pcbuilder/index.tsx'
+import CheckoutPage from './pages/checkout/index.tsx'
 import OAuth2RedirectHandler from "./pages/login&register/OAuth2RedirectHandler"  
+import UserChatPage from './pages/chat/user.tsx'
+import StaffChatPage from './pages/chat/staff.tsx'
 
 createRoot(document.getElementById('root')!).render(
   <StrictMode>
@@ -43,6 +47,8 @@ createRoot(document.getElementById('root')!).render(
           <Route path="/sales" element={<SalesPage />} />
           <Route path="/compare" element={<ComparePage />} />
           <Route path="/pcbuilder" element={<PCBuilderPage />} />
+          <Route path="/checkout" element={<CheckoutPage />} />
+          <Route path="/chat" element={<UserChatPage />} />
           <Route path="/products/case" element={<CasePage />} />
           <Route path="/products/cpu" element={<CPUPage />} />
           <Route path="/products/:category/:id" element={<ProductDetailPage />} />
@@ -58,9 +64,15 @@ createRoot(document.getElementById('root')!).render(
           <Route path="/products/keyboard" element={<KeyboardPage />} />
           <Route path="/customer" element={<CustomerProfilePage />} />
           <Route path="/builds" element={<CustomerBuildsPage />} />
+          <Route path="/orders" element={<CustomerOrdersPage />} />
           <Route path="/staff" element={
             <ProtectedRoute requiredRole="Staff">
               <StaffPage />
+            </ProtectedRoute>
+          } />
+          <Route path="/staff/chat" element={
+            <ProtectedRoute requiredRole="Staff">
+              <StaffChatPage />
             </ProtectedRoute>
           } />
           <Route path="/admin" element={

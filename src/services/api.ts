@@ -338,7 +338,8 @@ export class ApiService {
       throw new Error('No authentication token found')
     }
 
-    const response = await fetch(`${API_BASE_URL}/api/user/${userId}`, {
+    const cleanedId = (String(userId).match(/\d+/)?.[0] || String(userId)).replace(/^0+(?=\d)/, '')
+    const response = await fetch(`${API_BASE_URL}/api/user/${cleanedId}`, {
       method: 'GET',
       headers: {
         'Authorization': `Bearer ${token}`,
@@ -847,6 +848,8 @@ export class ApiService {
     }
   }
 
+  
+
   // Utility functions để làm việc với token
 
   static isTokenValid(token: string): boolean {
@@ -1104,9 +1107,10 @@ export class ApiService {
       })
       if (!response.ok) throw await response.json().catch(async () => ({ message: await response.text().catch(() => 'Unknown error'), status: response.status }))
       return await response.json()
-    } catch (err: any) {
-      const message = (err?.message || '').toString()
-      const status = Number(err?.status || 0)
+    } catch (err) {
+      const anyErr = err as { message?: unknown; status?: unknown }
+      const message = (anyErr?.message || '').toString()
+      const status = Number(anyErr?.status || 0)
       const unsupported = message.includes('Content-Type') || status === 415 || message.toLowerCase().includes('not supported')
 
       // Fallback: create build first, then create items one by one (works with current backend)
@@ -1179,6 +1183,102 @@ export class ApiService {
     return all.filter((b) => {
       const u = (b as Record<string, unknown>).user as Record<string, unknown> | undefined
       const idVal = (u?.id as number) ?? (b as Record<string, unknown>).user_id as number | undefined
+      return Number(idVal) === Number(uid)
+    })
+  }
+
+  static async deleteBuild(id: number): Promise<void> {
+    const token = localStorage.getItem('authToken')
+    if (!token) {
+      throw new Error('No authentication token found')
+    }
+
+    const response = await fetch(`${API_BASE_URL}/api/build/${id}`, {
+      method: 'DELETE',
+      headers: {
+        'Authorization': `Bearer ${token}`,
+        'Content-Type': 'application/json',
+      },
+    })
+
+    if (!response.ok) {
+      const errorData = await response.json().catch(() => ({}))
+      throw new Error(errorData?.message || 'Có lỗi xảy ra khi xóa build')
+    }
+  }
+
+  // Orders APIs
+  static async createOrder(params: { userId: number | string; buildId?: number; totalPrice: number; address?: string; paymentMethod?: string; status?: string; phone?: string }): Promise<Record<string, unknown>> {
+    const token = localStorage.getItem('authToken')
+    const payload: Record<string, unknown> = {
+      userId: typeof params.userId === 'string' ? parseInt(params.userId, 10) : params.userId,
+      ...(typeof params.buildId === 'number' ? { buildId: params.buildId } : {}),
+      totalPrice: params.totalPrice,
+      address: params.address || '',
+      paymentMethod: params.paymentMethod || 'COD',
+      status: params.status || 'PAID',
+      ...(params.phone ? { phone: params.phone } : {})
+    }
+
+    const response = await fetch(`${API_BASE_URL}/api/order`, {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+        ...(token ? { 'Authorization': `Bearer ${token}` } : {})
+      },
+      body: JSON.stringify(payload)
+    })
+
+    return this.handleResponse<Record<string, unknown>>(response)
+  }
+
+  static async getOrders(): Promise<Array<Record<string, unknown>>> {
+    const token = localStorage.getItem('authToken')
+    const response = await fetch(`${API_BASE_URL}/api/order`, {
+      method: 'GET',
+      headers: {
+        'Content-Type': 'application/json',
+        ...(token ? { 'Authorization': `Bearer ${token}` } : {})
+      }
+    })
+    return this.handleResponse<Array<Record<string, unknown>>>(response)
+  }
+
+  static async getOrdersByUser(userId: number | string): Promise<Array<Record<string, unknown>>> {
+    const token = localStorage.getItem('authToken')
+    const uidNum = typeof userId === 'string' ? parseInt((userId as string).replace(/[^0-9]/g, ''), 10) : userId
+    const uid = Number.isFinite(uidNum as number) ? uidNum : userId
+    const base = `${API_BASE_URL}/api/order`
+
+    // Try direct endpoint patterns first
+    const endpoints = [
+      `${base}/user/${uid}`,
+      `${base}?userId=${encodeURIComponent(String(uid))}`
+    ]
+
+    for (const url of endpoints) {
+      try {
+        const resp = await fetch(url, {
+          method: 'GET',
+          headers: {
+            'Content-Type': 'application/json',
+            ...(token ? { 'Authorization': `Bearer ${token}` } : {})
+          }
+        })
+        if (resp.ok) {
+          const data = await this.handleResponse<Array<Record<string, unknown>>>(resp)
+          return data
+        }
+      } catch {
+        // try next
+      }
+    }
+
+    // Fallback: fetch all and filter client-side
+    const all = await this.getOrders()
+    return all.filter((o) => {
+      const u = (o as Record<string, unknown>).user as Record<string, unknown> | undefined
+      const idVal = (u?.id as number) ?? (o as Record<string, unknown>).user_id as number | undefined
       return Number(idVal) === Number(uid)
     })
   }
