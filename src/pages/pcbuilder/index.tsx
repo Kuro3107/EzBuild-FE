@@ -2530,7 +2530,7 @@ function PCBuilderPage() {
                     e.currentTarget.style.background = '#1e3a8a'
                   }}
                 >
-                        💳 Thanh toán
+                        💳 Đặt hàng
                 </button>
                 
                 <button

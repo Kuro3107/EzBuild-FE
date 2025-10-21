@@ -4,7 +4,7 @@ import { ApiService } from '../../services/api'
 
 function CheckoutPage() {
   const navigate = useNavigate()
-  const [cartBuild, setCartBuild] = useState<any | null>(null)
+  const [cartBuild, setCartBuild] = useState<{ components?: Array<{ name?: string; model?: string; priceValue?: number }> } | null>(null)
   const [isSubmitting, setIsSubmitting] = useState(false)
 
   useEffect(() => {
@@ -23,7 +23,7 @@ function CheckoutPage() {
 
   const totalPrice = useMemo(() => {
     if (!cartBuild || !Array.isArray(cartBuild.components)) return 0
-    return cartBuild.components.reduce((sum: number, c: any) => sum + (c?.priceValue || 0), 0)
+    return cartBuild.components.reduce((sum: number, c: { priceValue?: number }) => sum + (c?.priceValue || 0), 0)
   }, [cartBuild])
 
   async function handlePlaceOrder() {
@@ -38,21 +38,59 @@ function CheckoutPage() {
         return
       }
 
-      // 2) Tạo order trạng thái PAID theo yêu cầu, KHÔNG tạo build tạm
-      await ApiService.createOrder({
-        userId: String(user?.id || user?.userId || ''),
+      console.log('=== CHECKOUT DEBUG ===')
+      console.log('User object:', user)
+      console.log('User ID:', user?.id || user?.userId)
+      console.log('Total price:', totalPrice)
+
+      // Kiểm tra user ID có hợp lệ không
+      const userId = Number(user?.id || user?.userId || 0)
+      if (!userId || userId === 0) {
+        alert('Không thể xác định thông tin người dùng. Vui lòng đăng nhập lại.')
+        navigate('/login')
+        return
+      }
+
+      // 2) Lấy buildId từ build có sẵn của user
+      let buildId: number | undefined
+      try {
+        const userBuilds = await ApiService.getBuildsByUser(userId)
+        console.log('User builds:', userBuilds)
+        
+        if (userBuilds && userBuilds.length > 0) {
+          // Lấy build mới nhất (có thể là build vừa được tạo từ PC Builder)
+          const latestBuild = userBuilds[userBuilds.length - 1]
+          buildId = Number(latestBuild.id)
+          console.log('Using latest build ID:', buildId)
+        } else {
+          console.log('No builds found for user, creating order without buildId')
+        }
+      } catch (buildError) {
+        console.error('Error fetching user builds:', buildError)
+        console.log('Continuing without buildId')
+      }
+
+      // 3) Tạo order trạng thái PENDING để chờ thanh toán
+      const order = await ApiService.createOrder({
+        userId: userId,
+        buildId: buildId, // Truyền buildId từ build có sẵn
         totalPrice: totalPrice,
-        status: 'PAID',
-        paymentMethod: 'DUMMY',
-        phone: (user?.phone as string) || ''
+        status: 'PENDING',
+        paymentMethod: 'QR_CODE',
+        phone: (user?.phone as string) || '',
+        address: 'Chưa có địa chỉ' // Short address để test
       })
 
-      alert('Thanh toán thành công! Đơn hàng đã được tạo.')
+      console.log('Order created:', order)
+
+      // 4) Chuyển hướng đến trang payment với orderId và amount
+      navigate(`/payment?orderId=${order.id}&amount=${totalPrice}`)
+      
+      // 5) Xóa checkout data sau khi tạo order thành công
       localStorage.removeItem('ezbuild-checkout')
-      navigate('/customer')
     } catch (e) {
       console.error(e)
-      alert('Có lỗi khi đặt hàng, vui lòng thử lại.')
+      alert('Có lỗi khi thanh toán, vui lòng thử lại.')
     } finally {
       setIsSubmitting(false)
     }
@@ -87,7 +125,7 @@ function CheckoutPage() {
             }}>
               <h3 style={{ marginTop: 0 }}>Cấu hình của bạn</h3>
               <div style={{ display: 'flex', flexDirection: 'column', gap: '12px' }}>
-                {cartBuild.components?.map((c: any, idx: number) => (
+                {cartBuild.components?.map((c: { name?: string; model?: string; priceValue?: number }, idx: number) => (
                   <div key={idx} style={{
                     display: 'flex', justifyContent: 'space-between',
                     borderBottom: '1px dashed rgba(255,255,255,0.15)', paddingBottom: '8px'
@@ -121,7 +159,7 @@ function CheckoutPage() {
                   cursor: isSubmitting ? 'not-allowed' : 'pointer'
                 }}
               >
-                {isSubmitting ? 'Đang xử lý...' : 'Đặt hàng'}
+                {isSubmitting ? 'Đang xử lý...' : 'Thanh toán'}
               </button>
               <button
                 onClick={() => navigate('/pcbuilder')}

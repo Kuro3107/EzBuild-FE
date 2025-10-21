@@ -16,6 +16,7 @@
     "@google/generative-ai": "^0.24.1",
     "@stomp/stompjs": "^7.2.1",
     "@tailwindcss/vite": "^4.1.12",
+    "@types/sockjs-client": "^1.5.4",
     "antd": "^5.27.4",
     "react": "^19.1.1",
     "react-countup": "^6.5.3",

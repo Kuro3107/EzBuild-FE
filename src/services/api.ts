@@ -1220,6 +1220,10 @@ export class ApiService {
       ...(params.phone ? { phone: params.phone } : {})
     }
 
+    console.log('=== CREATE ORDER DEBUG ===')
+    console.log('Payload:', JSON.stringify(payload, null, 2))
+    console.log('Token exists:', !!token)
+
     const response = await fetch(`${API_BASE_URL}/api/order`, {
       method: 'POST',
       headers: {
@@ -1228,6 +1232,9 @@ export class ApiService {
       },
       body: JSON.stringify(payload)
     })
+
+    console.log('Response status:', response.status)
+    console.log('Response headers:', Object.fromEntries(response.headers.entries()))
 
     return this.handleResponse<Record<string, unknown>>(response)
   }
@@ -1308,6 +1315,119 @@ export class ApiService {
       }
     } else {
       console.log('No token found')
+    }
+  }
+
+  // Payment APIs
+  static async createPayment(payment: { orderId: number; amount: number; method: string; status?: string }): Promise<Record<string, unknown>> {
+    const token = localStorage.getItem('authToken')
+    
+    console.log('=== CREATING PAYMENT ===')
+    console.log('Payment data:', payment)
+    console.log('API URL:', `${API_BASE_URL}/api/payment`)
+    
+    // Format payload theo PaymentCreateRequest DTO
+    const payload = {
+      orderId: payment.orderId,  // ← Chỉ cần orderId, không cần object
+      amount: payment.amount,
+      method: payment.method,
+      status: payment.status || 'PENDING'
+    }
+
+    console.log('Payload:', payload)
+
+    // Thử JSON với Content-Type đơn giản
+    console.log('Trying JSON with simple Content-Type...')
+    
+    const response = await fetch(`${API_BASE_URL}/api/payment`, {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+        'Accept': 'application/json',
+        ...(token ? { 'Authorization': `Bearer ${token}` } : {})
+      },
+      body: JSON.stringify(payload)
+    })
+
+    console.log('Response status:', response.status)
+    console.log('Response headers:', Object.fromEntries(response.headers.entries()))
+
+    if (!response.ok) {
+      const errorText = await response.text()
+      console.log('Error response:', errorText)
+      throw new Error(`HTTP ${response.status}: ${errorText}`)
+    }
+
+    return await this.handleResponse<Record<string, unknown>>(response)
+  }
+
+  static async getPaymentById(id: number): Promise<Record<string, unknown>> {
+    const token = localStorage.getItem('authToken')
+    const response = await fetch(`${API_BASE_URL}/api/payment/${id}`, {
+      method: 'GET',
+      headers: {
+        'Content-Type': 'application/json',
+        ...(token ? { 'Authorization': `Bearer ${token}` } : {})
+      }
+    })
+
+    return this.handleResponse<Record<string, unknown>>(response)
+  }
+
+  static async updatePayment(id: number, payment: { status?: string; transactionId?: string; paidAt?: string }): Promise<Record<string, unknown>> {
+    const token = localStorage.getItem('authToken')
+    
+    console.log('=== UPDATING PAYMENT ===')
+    console.log('Payment ID:', id)
+    console.log('Update data:', payment)
+    
+    const response = await fetch(`${API_BASE_URL}/api/payment/${id}`, {
+      method: 'PUT',
+      headers: {
+        'Content-Type': 'application/json',
+        'Accept': 'application/json',
+        ...(token ? { 'Authorization': `Bearer ${token}` } : {})
+      },
+      body: JSON.stringify(payment)
+    })
+
+    console.log('Response status:', response.status)
+
+    if (!response.ok) {
+      const errorText = await response.text()
+      console.log('Error response:', errorText)
+      throw new Error(`HTTP ${response.status}: ${errorText}`)
+    }
+
+    return await this.handleResponse<Record<string, unknown>>(response)
+  }
+
+  static async getAllPayments(): Promise<Array<Record<string, unknown>>> {
+    const token = localStorage.getItem('authToken')
+    const response = await fetch(`${API_BASE_URL}/api/payment`, {
+      method: 'GET',
+      headers: {
+        'Content-Type': 'application/json',
+        ...(token ? { 'Authorization': `Bearer ${token}` } : {})
+      }
+    })
+
+    return this.handleResponse<Array<Record<string, unknown>>>(response)
+  }
+
+  static async deletePayment(id: number): Promise<void> {
+    const token = localStorage.getItem('authToken')
+    const response = await fetch(`${API_BASE_URL}/api/payment/${id}`, {
+      method: 'DELETE',
+      headers: {
+        'Content-Type': 'application/json',
+        ...(token ? { 'Authorization': `Bearer ${token}` } : {})
+      }
+    })
+
+    if (!response.ok) {
+      const errorData = await response.json().catch(() => ({}))
+      throw new Error(errorData?.message || 'Có lỗi xảy ra khi xóa payment')
     }
   }
 }

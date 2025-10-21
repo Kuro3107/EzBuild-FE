@@ -30,6 +30,7 @@ import CustomerBuildsPage from './pages/customer/builds.tsx'
 import CustomerOrdersPage from './pages/customer/orders.tsx'
 import PCBuilderPage from './pages/pcbuilder/index.tsx'
 import CheckoutPage from './pages/checkout/index.tsx'
+import PaymentPage from './pages/payment/index.tsx'
 import OAuth2RedirectHandler from "./pages/login&register/OAuth2RedirectHandler"  
 import UserChatPage from './pages/chat/user.tsx'
 import StaffChatPage from './pages/chat/staff.tsx'
@@ -48,6 +49,7 @@ createRoot(document.getElementById('root')!).render(
           <Route path="/compare" element={<ComparePage />} />
           <Route path="/pcbuilder" element={<PCBuilderPage />} />
           <Route path="/checkout" element={<CheckoutPage />} />
+          <Route path="/payment" element={<PaymentPage />} />
           <Route path="/chat" element={<UserChatPage />} />
           <Route path="/products/case" element={<CasePage />} />
           <Route path="/products/cpu" element={<CPUPage />} />
