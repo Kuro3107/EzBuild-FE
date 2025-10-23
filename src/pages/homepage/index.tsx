@@ -6,7 +6,6 @@ import LandingHero from '../../components/LandingHero'
 import LandingFeatures from '../../components/LandingFeatures'
 import LandingStats from '../../components/LandingStats'
 import LandingFooter from '../../components/LandingFooter'
-import ChatButton from '../../components/ChatButton'
 
 function HomePage() {
   const [isProductsOpen, setIsProductsOpen] = useState(false)
@@ -105,7 +104,7 @@ function HomePage() {
   }
 
   return (
-    <div className="page" style={{ minHeight: '100vh', color: 'white', overflowX: 'hidden' }}>
+    <div className="page homepage-container">
       {/* Header with user avatar or login button */}
       {currentUser ? (
         <header style={{ 
@@ -166,7 +165,7 @@ function HomePage() {
                 {/* Menu Items */}
                 <div className="py-2">
                   <Link 
-                    to="/customer"
+                    to="/profile"
                     className="w-full px-6 py-3 text-left text-blue-400 hover:bg-gray-800 transition-colors text-sm flex items-center gap-4 group"
                     onClick={() => setIsUserMenuOpen(false)}
                   >
@@ -331,8 +330,6 @@ function HomePage() {
       {/* Landing Footer - Outside Layout for Full Width */}
       <LandingFooter />
       
-      {/* AI Chat Assistant */}
-      <ChatButton />
     </div>
   )
 }
