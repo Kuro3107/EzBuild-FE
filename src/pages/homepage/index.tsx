@@ -6,6 +6,7 @@ import LandingHero from '../../components/LandingHero'
 import LandingFeatures from '../../components/LandingFeatures'
 import LandingStats from '../../components/LandingStats'
 import LandingFooter from '../../components/LandingFooter'
+import ChatBubble from '../../components/AIChatBubble'
 
 function HomePage() {
   const [isProductsOpen, setIsProductsOpen] = useState(false)
@@ -330,6 +331,8 @@ function HomePage() {
       {/* Landing Footer - Outside Layout for Full Width */}
       <LandingFooter />
       
+      {/* Chat Bubble */}
+      <ChatBubble />
     </div>
   )
 }

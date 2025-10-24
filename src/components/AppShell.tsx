@@ -2,6 +2,7 @@ import { Link, Outlet, useNavigate, useLocation } from 'react-router-dom'
 import { useEffect, useRef, useState } from 'react'
 import '../Homepage.css'
 import { ApiService } from '../services/api'
+import ChatBubble from './AIChatBubble'
 
 function AppShell() {
   const [isProductsOpen, setIsProductsOpen] = useState(false)
@@ -244,6 +245,9 @@ function AppShell() {
           <Outlet />
         </main>
       </div>
+      
+      {/* Chat Bubble */}
+      <ChatBubble />
     </div>
   )
 }
