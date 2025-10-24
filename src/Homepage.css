@@ -863,6 +863,56 @@ div[key="profile-page"] .sidebar {
   box-sizing: border-box;
 }
 
+/* Sidebar Overlay Trigger */
+.sidebar-overlay-trigger {
+  position: fixed;
+  top: 20px;
+  left: 20px;
+  z-index: 1001;
+  background: transparent;
+  border: none;
+  padding: 0;
+  transition: all 0.2s ease;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  cursor: pointer;
+}
+
+.sidebar-overlay-trigger:hover {
+  transform: scale(1.1);
+}
+
+/* Sidebar Overlay */
+.sidebar-overlay-backdrop {
+  position: fixed;
+  top: 0;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  background: rgba(0, 0, 0, 0.5);
+  z-index: 1000;
+  backdrop-filter: blur(4px);
+}
+
+.sidebar-overlay {
+  position: fixed;
+  top: 0;
+  left: 0;
+  bottom: 0;
+  width: 280px;
+  background: #000000;
+  border-right: 1px solid #333333;
+  z-index: 1001;
+  transform: translateX(-100%);
+  transition: transform 0.3s ease;
+  overflow-y: auto;
+}
+
+.sidebar-overlay.open {
+  transform: translateX(0);
+}
+
 /* Chat Bubble - Fixed at bottom right (like CellphoneS) */
 /* Using Tailwind classes: fixed bottom-6 right-6 z-50 */
 

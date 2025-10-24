@@ -115,7 +115,7 @@ function StaffPage() {
                   </div>
                 </div>
                 <Link 
-                  to="/customer"
+                  to="/profile"
                   className="w-full px-4 py-3 text-left text-gray-700 hover:bg-gray-50 transition-colors text-sm flex items-center gap-3"
                   onClick={() => setIsUserMenuOpen(false)}
                 >

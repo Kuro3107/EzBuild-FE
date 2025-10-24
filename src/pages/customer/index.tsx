@@ -274,7 +274,7 @@ function CustomerProfilePage() {
               </div>
             </div>
             <nav className="flex items-center gap-2 ml-12">
-              <Link className="nav-item-active" to="/customer">Profile</Link>
+              <Link className="nav-item-active" to="/profile">Profile</Link>
               <Link className="nav-item" to="/builds">My Builds</Link>
               <Link className="nav-item" to="/orders">Orders</Link>
               <Link className="nav-item" to="/pcbuilder">PC Builder</Link>

@@ -127,14 +127,27 @@ function AppShell() {
           className="sidebar-overlay-trigger"
           onClick={() => setIsSidebarOpen(true)}
         >
-          <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 6h16M4 12h16M4 18h16" />
-          </svg>
-          Menu
+          <img src="/logo.png" alt="EzBuild Logo" className="w-8 h-8 rounded-full" />
         </button>
       )}
-      {currentUser ? (
-        <header style={{ position: 'fixed', top: 0, right: 0, zIndex: 1000, background: 'transparent', padding: '8px 16px', border: 'none', width: 'auto' }}>
+      {/* Main Header with Logo */}
+      <header style={{ position: 'fixed', top: 0, left: 0, right: 0, zIndex: 1000, background: 'transparent', padding: '8px 16px', border: 'none', display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+        {/* Logo Section */}
+        <Link to="/" className="flex items-center gap-3 bg-white/95 backdrop-blur-sm border border-black/10 rounded-2xl px-4 py-2 shadow-lg hover:shadow-xl transition-all duration-200">
+          <div className="flex items-center gap-2">
+            {/* Logo Icon */}
+            <div className="w-8 h-8 rounded-lg flex items-center justify-center">
+              <img src="/images/wawasensei-white.png" alt="EzBuild Logo" className="w-6 h-6" />
+            </div>
+            <div className="flex flex-col">
+              <span className="text-lg font-bold text-gray-800">EzBuild</span>
+              <span className="text-xs text-gray-500 -mt-1">Build your dream</span>
+            </div>
+          </div>
+        </Link>
+
+        {/* User Section */}
+        {currentUser ? (
           <div className="relative">
             <button
               onClick={() => setIsUserMenuOpen(!isUserMenuOpen)}
@@ -164,7 +177,7 @@ function AppShell() {
                   </div>
                 </div>
                 <div className="py-2">
-                  <Link to="/customer" className="w-full px-6 py-3 text-left text-blue-400 hover:bg-gray-800 transition-colors text-sm flex items-center gap-4 group" onClick={() => setIsUserMenuOpen(false)}>
+                  <Link to="/profile" className="w-full px-6 py-3 text-left text-blue-400 hover:bg-gray-800 transition-colors text-sm flex items-center gap-4 group" onClick={() => setIsUserMenuOpen(false)}>
                     <svg className="w-5 h-5 text-blue-400" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M16 7a4 4 0 11-8 0 4 4 0 018 0zM12 14a7 7 0 00-7 7h14a7 7 0 00-7-7z" /></svg>
                     <span className="font-medium">Profile</span>
                   </Link>
@@ -176,15 +189,13 @@ function AppShell() {
               </div>
             )}
           </div>
-        </header>
-      ) : (
-        <header style={{ position: 'fixed', top: 0, right: 0, zIndex: 1000, background: 'transparent', padding: '8px 16px', border: 'none', width: 'auto' }}>
+        ) : (
           <Link to="/login" className="flex items-center gap-2 bg-white/95 backdrop-blur-sm border border-black/10 rounded-2xl px-4 py-2 shadow-lg hover:shadow-xl transition-all duration-200">
             <svg className="w-5 h-5 text-gray-600" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M11 16l-4-4m0 0l4-4m-4 4h14m-5 4v1a3 3 0 01-3 3H6a3 3 0 01-3-3V7a3 3 0 013-3h7a3 3 0 013 3v1" /></svg>
             <span className="text-sm font-medium text-gray-800">Sign In</span>
           </Link>
-        </header>
-      )}
+        )}
+      </header>
 
       <div style={{ display: 'flex', minHeight: '100vh' }}>
         {/* Sidebar overlay */}
@@ -193,7 +204,7 @@ function AppShell() {
             <div className="sidebar-overlay-backdrop" onClick={() => setIsSidebarOpen(false)} />
             <aside className="sidebar-overlay open">
               <Link to="/" className="flex items-center gap-2 px-4 pb-4 border-b border-white/20">
-                <div style={{ width: '24px', height: '24px', borderRadius: '6px', background: '#1e3a8a' }} />
+                <img src="/logo.png" alt="EzBuild Logo" style={{ width: '24px', height: '24px', borderRadius: '50%' }} />
                 <span style={{ fontWeight: 600, fontSize: '16px', color: 'white' }}>EzBuild</span>
                 <button onClick={() => setIsSidebarOpen(false)} className="ml-auto text-white/80 hover:text-white p-2">
                   <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" /></svg>

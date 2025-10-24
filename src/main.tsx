@@ -34,6 +34,7 @@ import PaymentPage from './pages/payment/index.tsx'
 import OAuth2RedirectHandler from "./pages/login&register/OAuth2RedirectHandler"  
 import UserChatPage from './pages/chat/user.tsx'
 import StaffChatPage from './pages/chat/staff.tsx'
+import ProfilePage from './pages/profile/index.tsx'
 
 createRoot(document.getElementById('root')!).render(
   <StrictMode>
@@ -65,6 +66,7 @@ createRoot(document.getElementById('root')!).render(
           <Route path="/products/mouse" element={<MousePage />} />
           <Route path="/products/keyboard" element={<KeyboardPage />} />
           <Route path="/customer" element={<CustomerProfilePage />} />
+          <Route path="/profile" element={<ProfilePage />} />
           <Route path="/builds" element={<CustomerBuildsPage />} />
           <Route path="/orders" element={<CustomerOrdersPage />} />
           <Route path="/staff" element={
