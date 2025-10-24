@@ -96,7 +96,25 @@ function CustomerOrdersPage() {
                           <div className="text-blue-400 font-bold">{total.toLocaleString('vi-VN')} VND</div>
                         </div>
                         <div className="text-xs text-gray-400">{created ? new Date(created as string).toLocaleString() : '-'}</div>
-                        <div className="text-xs mt-1"><span className="px-2 py-0.5 rounded bg-white/10">{o.status}</span></div>
+                        <div className="text-xs mt-1">
+                          <span className={`px-2 py-0.5 rounded text-xs font-medium ${
+                            o.status === 'PENDING' ? 'bg-yellow-500/20 text-yellow-300' :
+                            o.status === 'DEPOSITED' ? 'bg-blue-500/20 text-blue-300' :
+                            o.status === 'SHIPPING' ? 'bg-purple-500/20 text-purple-300' :
+                            o.status === 'PAID' ? 'bg-green-500/20 text-green-300' :
+                            o.status === 'DONE' ? 'bg-emerald-500/20 text-emerald-300' :
+                            o.status === 'CANCEL' ? 'bg-red-500/20 text-red-300' :
+                            'bg-white/10 text-white'
+                          }`}>
+                            {o.status === 'PENDING' ? '⏳ Chờ thanh toán' :
+                             o.status === 'DEPOSITED' ? '💰 Đã cọc' :
+                             o.status === 'SHIPPING' ? '🚚 Đang giao' :
+                             o.status === 'PAID' ? '✅ Đã thanh toán' :
+                             o.status === 'DONE' ? '🎉 Hoàn thành' :
+                             o.status === 'CANCEL' ? '❌ Đã hủy' :
+                             o.status}
+                          </span>
+                        </div>
                       </button>
                     )
                   })}
@@ -112,12 +130,74 @@ function CustomerOrdersPage() {
                   ) : (
                     <div className="space-y-3 text-white">
                       <div className="text-xl font-bold">Order #{selected.id}</div>
-                      <div className="text-gray-300">Trạng thái: <span className="text-white font-semibold">{selected.status}</span></div>
+                      <div className="text-gray-300">Trạng thái: 
+                        <span className={`ml-2 px-2 py-1 rounded text-xs font-medium ${
+                          selected.status === 'PENDING' ? 'bg-yellow-500/20 text-yellow-300' :
+                          selected.status === 'DEPOSITED' ? 'bg-blue-500/20 text-blue-300' :
+                          selected.status === 'SHIPPING' ? 'bg-purple-500/20 text-purple-300' :
+                          selected.status === 'PAID' ? 'bg-green-500/20 text-green-300' :
+                          selected.status === 'DONE' ? 'bg-emerald-500/20 text-emerald-300' :
+                          selected.status === 'CANCEL' ? 'bg-red-500/20 text-red-300' :
+                          'bg-white/10 text-white'
+                        }`}>
+                          {selected.status === 'PENDING' ? '⏳ Chờ thanh toán' :
+                           selected.status === 'DEPOSITED' ? '💰 Đã cọc' :
+                           selected.status === 'SHIPPING' ? '🚚 Đang giao' :
+                           selected.status === 'PAID' ? '✅ Đã thanh toán' :
+                           selected.status === 'DONE' ? '🎉 Hoàn thành' :
+                           selected.status === 'CANCEL' ? '❌ Đã hủy' :
+                           selected.status}
+                        </span>
+                      </div>
                       <div className="text-gray-300">Tổng tiền: <span className="text-blue-400 font-bold">{(typeof selected.totalPrice === 'number' ? selected.totalPrice : Number((selected as any).total_price || 0)).toLocaleString('vi-VN')} VND</span></div>
                       <div className="text-gray-300">Phương thức thanh toán: <span className="text-white">{selected.paymentMethod || (selected as any).payment_method || '-'}</span></div>
                       <div className="text-gray-300">SĐT: <span className="text-white">{String(selected.phone || '')}</span></div>
                       <div className="text-gray-300">Địa chỉ: <span className="text-white">{selected.address || '-'}</span></div>
                       <div className="text-gray-300">Thời gian: <span className="text-white">{(selected.createdAt || (selected as any).created_at) ? new Date((selected.createdAt || (selected as any).created_at) as string).toLocaleString() : '-'}</span></div>
+                      
+                      {/* Thông tin thanh toán */}
+                      {selected.status === 'PENDING' && (
+                        <div className="mt-4 p-3 bg-yellow-500/10 border border-yellow-500/20 rounded-lg">
+                          <div className="text-yellow-300 text-sm font-medium mb-2">💳 Cần thanh toán cọc 25%</div>
+                          <div className="text-yellow-200 text-xs">
+                            Để đơn hàng được xử lý, vui lòng thanh toán cọc 25% trước.
+                          </div>
+                          <Link 
+                            to={`/payment?orderId=${selected.id}&amount=${(typeof selected.totalPrice === 'number' ? selected.totalPrice : Number((selected as any).total_price || 0))}`}
+                            className="inline-block mt-2 px-3 py-1 bg-yellow-500 text-black text-xs font-medium rounded hover:bg-yellow-400 transition-colors"
+                          >
+                            Thanh toán ngay
+                          </Link>
+                        </div>
+                      )}
+                      
+                      {selected.status === 'DEPOSITED' && (
+                        <div className="mt-4 p-3 bg-blue-500/10 border border-blue-500/20 rounded-lg">
+                          <div className="text-blue-300 text-sm font-medium mb-2">✅ Đã thanh toán cọc 25%</div>
+                          <div className="text-blue-200 text-xs">
+                            Đơn hàng đã được xác nhận. Staff đang chuẩn bị hàng.
+                          </div>
+                        </div>
+                      )}
+                      
+                      {selected.status === 'SHIPPING' && (
+                        <div className="mt-4 p-3 bg-purple-500/10 border border-purple-500/20 rounded-lg">
+                          <div className="text-purple-300 text-sm font-medium mb-2">🚚 Đang giao hàng</div>
+                          <div className="text-purple-200 text-xs">
+                            Đơn hàng đang được vận chuyển đến bạn.
+                          </div>
+                        </div>
+                      )}
+                      
+                      {selected.status === 'PAID' && (
+                        <div className="mt-4 p-3 bg-green-500/10 border border-green-500/20 rounded-lg">
+                          <div className="text-green-300 text-sm font-medium mb-2">✅ Đã thanh toán đầy đủ</div>
+                          <div className="text-green-200 text-xs">
+                            Đơn hàng đã được thanh toán hoàn toàn.
+                          </div>
+                        </div>
+                      )}
+                      
                       <div className="pt-2">
                         <Link className="text-blue-400 underline" to="/builds">Xem Build đã lưu</Link>
                       </div>
