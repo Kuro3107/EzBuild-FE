@@ -1,6 +1,7 @@
 import { useState, useRef, useEffect } from 'react'
 import { Link, useLocation } from 'react-router-dom'
 import { ApiService } from '../../services/api'
+import ChatBubble from '../../components/AIChatBubble'
 import '../../Homepage.css'
 
 /**
@@ -530,6 +531,9 @@ function ProfilePage() {
           </div>
         </main>
       </div>
+      
+      {/* Chat Bubble */}
+      <ChatBubble />
     </div>
   )
 }
