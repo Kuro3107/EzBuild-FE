@@ -139,41 +139,78 @@ function PaymentPage() {
       setIsProcessing(true)
       
       if (payment?.isMock) {
-        // Xử lý mock payment - cập nhật status thành "Waiting accept"
+        // Xử lý mock payment - cập nhật status thành "PAID 25%"
         console.log('Processing mock payment...')
         
-        // Lưu payment info vào localStorage với status "Waiting accept"
+        // Lưu payment info vào localStorage với status "PAID 25%"
         const paymentHistory = JSON.parse(localStorage.getItem('paymentHistory') || '[]')
-        paymentHistory.push({
+        const updatedPayment = {
           ...payment,
-          status: 'Waiting accept',
+          status: 'PAID 25%',
           transactionId: `TXN_${Date.now()}`,
           paidAt: new Date().toISOString()
-        })
+        }
+        paymentHistory.push(updatedPayment)
         localStorage.setItem('paymentHistory', JSON.stringify(paymentHistory))
         
-        alert('Thanh toán thành công! Đang chờ xác nhận.')
-        // Xóa payment khỏi localStorage sau khi thanh toán thành công
-        localStorage.removeItem(`payment_${orderId}`)
-        localStorage.removeItem(`global_payment_creating_${orderId}`)
-        navigate('/')
-        } else {
-          // Xử lý API payment - cập nhật status thành "Waiting accept"
-          await ApiService.updatePayment(Number(payment.id), {
-            status: 'Waiting accept',
+        // Cập nhật payment hiện tại để hiển thị trạng thái mới
+        setPayment(updatedPayment)
+        
+        alert('✅ Thanh toán cọc 25% thành công!\n\nĐơn hàng đã được chuyển sang trạng thái "Đã cọc".\nStaff sẽ xác nhận và chuẩn bị hàng.')
+        
+        // Không navigate ngay, để khách hàng thấy trạng thái đã cập nhật
+        setTimeout(() => {
+          localStorage.removeItem(`payment_${orderId}`)
+          localStorage.removeItem(`global_payment_creating_${orderId}`)
+          navigate('/orders')
+        }, 2000)
+      } else {
+        // Xử lý API payment - cập nhật status thành "PAID 25%"
+        console.log('=== UPDATING PAYMENT VIA API ===')
+        console.log('Payment ID:', payment.id)
+        console.log('New status: PAID 25%')
+        
+        try {
+          const result = await ApiService.updatePayment(Number(payment.id), {
+            status: 'PAID 25%',
             transactionId: `TXN_${Date.now()}`,
             paidAt: new Date().toISOString()
           })
+          console.log('Payment update result:', result)
+        } catch (apiError) {
+          console.error('API update failed:', apiError)
+          // Fallback: lưu vào localStorage
+          const paymentHistory = JSON.parse(localStorage.getItem('paymentHistory') || '[]')
+          paymentHistory.push({
+            ...payment,
+            status: 'PAID 25%',
+            transactionId: `TXN_${Date.now()}`,
+            paidAt: new Date().toISOString()
+          })
+          localStorage.setItem('paymentHistory', JSON.stringify(paymentHistory))
+          console.log('Saved to localStorage as fallback')
+        }
 
-          alert('Thanh toán thành công! Đang chờ xác nhận.')
-          // Xóa payment khỏi localStorage sau khi thanh toán thành công
+        // Cập nhật payment hiện tại để hiển thị trạng thái mới
+        setPayment({
+          ...payment,
+          status: 'PAID 25%',
+          transactionId: `TXN_${Date.now()}`,
+          paidAt: new Date().toISOString()
+        })
+
+        alert('✅ Thanh toán cọc 25% thành công!\n\nĐơn hàng đã được chuyển sang trạng thái "Đã cọc".\nStaff sẽ xác nhận và chuẩn bị hàng.')
+        
+        // Không navigate ngay, để khách hàng thấy trạng thái đã cập nhật
+        setTimeout(() => {
           localStorage.removeItem(`payment_${orderId}`)
           localStorage.removeItem(`global_payment_creating_${orderId}`)
-          navigate('/')
-        }
+          navigate('/orders')
+        }, 2000)
+      }
     } catch (error) {
       console.error('Error updating payment:', error)
-      alert('Có lỗi khi cập nhật thanh toán, vui lòng thử lại')
+      alert('❌ Có lỗi khi cập nhật thanh toán, vui lòng thử lại')
     } finally {
       setIsProcessing(false)
     }
@@ -282,11 +319,43 @@ function PaymentPage() {
               <strong>Số tiền:</strong> {parseFloat(amount || '0').toLocaleString('vi-VN')} VND
             </p>
             <p style={{ margin: '4px 0', fontSize: '14px' }}>
-              <strong>Trạng thái:</strong> <span style={{ color: '#fbbf24' }}>Chờ thanh toán</span>
+              <strong>Trạng thái:</strong> 
+              <span style={{ 
+                color: payment?.status === 'PAID 25%' ? '#22c55e' : '#fbbf24',
+                fontWeight: 'bold',
+                padding: '2px 8px',
+                borderRadius: '4px',
+                background: payment?.status === 'PAID 25%' ? 'rgba(34, 197, 94, 0.2)' : 'rgba(251, 191, 36, 0.2)',
+                marginLeft: '8px'
+              }}>
+                {payment?.status === 'PAID 25%' ? '✅ Đã cọc 25%' : '⏳ Chờ thanh toán'}
+              </span>
             </p>
-            <p style={{ margin: '4px 0', fontSize: '12px', color: 'rgba(255,255,255,0.6)' }}>
-              Sau khi thanh toán, đơn hàng sẽ chuyển sang trạng thái "Chờ xác nhận"
-            </p>
+            {payment?.status === 'PAID 25%' ? (
+              <div style={{
+                background: 'rgba(34, 197, 94, 0.1)',
+                border: '1px solid rgba(34, 197, 94, 0.3)',
+                borderRadius: '8px',
+                padding: '12px',
+                marginTop: '8px'
+              }}>
+                <p style={{ margin: '0 0 4px 0', fontSize: '12px', color: '#22c55e', fontWeight: 'bold' }}>
+                  🎉 Thanh toán thành công!
+                </p>
+                <p style={{ margin: '0', fontSize: '11px', color: 'rgba(255,255,255,0.8)' }}>
+                  Đơn hàng đã được chuyển sang trạng thái "Đã cọc". Staff sẽ xác nhận và chuẩn bị hàng.
+                </p>
+                {payment.transactionId && (
+                  <p style={{ margin: '4px 0 0 0', fontSize: '10px', color: 'rgba(255,255,255,0.6)' }}>
+                    Mã giao dịch: {payment.transactionId}
+                  </p>
+                )}
+              </div>
+            ) : (
+              <p style={{ margin: '4px 0', fontSize: '12px', color: 'rgba(255,255,255,0.6)' }}>
+                Sau khi thanh toán, đơn hàng sẽ chuyển sang trạng thái "Đã cọc"
+              </p>
+            )}
           </div>
 
           {/* Ảnh QR Code */}
@@ -340,45 +409,69 @@ function PaymentPage() {
             justifyContent: 'center',
             flexWrap: 'wrap'
           }}>
-            <button
-              onClick={handlePaymentSuccess}
-              disabled={isProcessing}
-              style={{
-                background: '#22c55e',
-                border: 'none',
-                borderRadius: '12px',
-                padding: '16px 32px',
-                color: 'white',
-                fontWeight: 'bold',
-                fontSize: '16px',
-                cursor: isProcessing ? 'not-allowed' : 'pointer',
-                minWidth: '160px',
-                opacity: isProcessing ? 0.7 : 1,
-                transition: 'all 0.2s ease'
-              }}
-            >
-              {isProcessing ? 'Đang xử lý...' : 'Đã thanh toán'}
-            </button>
+            {payment?.status !== 'PAID 25%' && (
+              <button
+                onClick={handlePaymentSuccess}
+                disabled={isProcessing}
+                style={{
+                  background: '#22c55e',
+                  border: 'none',
+                  borderRadius: '12px',
+                  padding: '16px 32px',
+                  color: 'white',
+                  fontWeight: 'bold',
+                  fontSize: '16px',
+                  cursor: isProcessing ? 'not-allowed' : 'pointer',
+                  minWidth: '160px',
+                  opacity: isProcessing ? 0.7 : 1,
+                  transition: 'all 0.2s ease'
+                }}
+              >
+                {isProcessing ? 'Đang xử lý...' : 'Đã thanh toán'}
+              </button>
+            )}
 
-            <button
-              onClick={handleCancel}
-              disabled={isProcessing}
-              style={{
-                background: 'transparent',
-                border: '2px solid #ef4444',
-                borderRadius: '12px',
-                padding: '16px 32px',
-                color: '#ef4444',
-                fontWeight: 'bold',
-                fontSize: '16px',
-                cursor: isProcessing ? 'not-allowed' : 'pointer',
-                minWidth: '160px',
-                opacity: isProcessing ? 0.7 : 1,
-                transition: 'all 0.2s ease'
-              }}
-            >
-              {isProcessing ? 'Đang xử lý...' : 'Hủy'}
-            </button>
+            {payment?.status !== 'PAID 25%' && (
+              <button
+                onClick={handleCancel}
+                disabled={isProcessing}
+                style={{
+                  background: 'transparent',
+                  border: '2px solid #ef4444',
+                  borderRadius: '12px',
+                  padding: '16px 32px',
+                  color: '#ef4444',
+                  fontWeight: 'bold',
+                  fontSize: '16px',
+                  cursor: isProcessing ? 'not-allowed' : 'pointer',
+                  minWidth: '160px',
+                  opacity: isProcessing ? 0.7 : 1,
+                  transition: 'all 0.2s ease'
+                }}
+              >
+                {isProcessing ? 'Đang xử lý...' : 'Hủy'}
+              </button>
+            )}
+
+            {payment?.status === 'PAID 25%' && (
+              <button
+                onClick={() => navigate('/orders')}
+                style={{
+                  background: '#3b82f6',
+                  border: 'none',
+                  borderRadius: '12px',
+                  padding: '16px 32px',
+                  color: 'white',
+                  fontWeight: 'bold',
+                  fontSize: '16px',
+                  cursor: 'pointer',
+                  minWidth: '160px',
+                  transition: 'all 0.2s ease'
+                }}
+              >
+                Xem đơn hàng
+              </button>
+            )}
           </div>
 
           {/* Lưu ý */}

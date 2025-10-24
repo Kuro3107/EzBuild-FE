@@ -1452,6 +1452,88 @@ export class ApiService {
       throw new Error(errorData?.message || 'Có lỗi xảy ra khi xóa payment')
     }
   }
+
+  // Order Management APIs for Staff
+  static async updateOrderStatus(orderId: number, status: string): Promise<Record<string, unknown>> {
+    const token = localStorage.getItem('authToken')
+    
+    console.log('=== UPDATING ORDER STATUS ===')
+    console.log('Order ID:', orderId)
+    console.log('New Status:', status)
+    
+    const response = await fetch(`${API_BASE_URL}/api/order/${orderId}/status`, {
+      method: 'PUT',
+      headers: {
+        'Content-Type': 'application/json',
+        'Accept': 'application/json',
+        ...(token ? { 'Authorization': `Bearer ${token}` } : {})
+      },
+      body: JSON.stringify({ status })
+    })
+
+    console.log('Response status:', response.status)
+
+    if (!response.ok) {
+      const errorText = await response.text()
+      console.log('Error response:', errorText)
+      throw new Error(`HTTP ${response.status}: ${errorText}`)
+    }
+
+    return await this.handleResponse<Record<string, unknown>>(response)
+  }
+
+  static async getOrderById(orderId: number): Promise<Record<string, unknown>> {
+    const token = localStorage.getItem('authToken')
+    const response = await fetch(`${API_BASE_URL}/api/order/${orderId}`, {
+      method: 'GET',
+      headers: {
+        'Content-Type': 'application/json',
+        ...(token ? { 'Authorization': `Bearer ${token}` } : {})
+      }
+    })
+
+    return this.handleResponse<Record<string, unknown>>(response)
+  }
+
+  // Auto-update order status when payment is updated
+  static async updatePaymentAndOrderStatus(paymentId: number, paymentStatus: string): Promise<{ payment: Record<string, unknown>; order?: Record<string, unknown> }> {
+    try {
+      // Update payment status
+      const updatedPayment = await this.updatePayment(paymentId, { 
+        status: paymentStatus,
+        paidAt: paymentStatus !== 'PENDING' ? new Date().toISOString() : undefined
+      })
+
+      let updatedOrder = null
+
+      // If payment is PAID 25%, auto-update order to DEPOSITED
+      if (paymentStatus === 'PAID 25%') {
+        try {
+          const payment = await this.getPaymentById(paymentId)
+          const orderId = payment.orderId as number
+          
+          if (orderId) {
+            // Get current order status
+            const currentOrder = await this.getOrderById(orderId)
+            
+            // Only update if order is still PENDING
+            if (currentOrder.status === 'PENDING') {
+              updatedOrder = await this.updateOrderStatus(orderId, 'DEPOSITED')
+              console.log(`Auto-updated order ${orderId} to DEPOSITED`)
+            }
+          }
+        } catch (orderError) {
+          console.error('Error auto-updating order status:', orderError)
+          // Don't throw error, payment update was successful
+        }
+      }
+
+      return { payment: updatedPayment, order: updatedOrder }
+    } catch (error) {
+      console.error('Error updating payment and order status:', error)
+      throw error
+    }
+  }
 }
 
 export default ApiService

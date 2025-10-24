@@ -1,6 +1,7 @@
 import { useEffect, useMemo, useState } from 'react'
 import { ApiService } from '../../services/api'
 import { Link } from 'react-router-dom'
+import ChatBubble from '../../components/AIChatBubble'
 
 interface BuildItemDTO {
   id?: number
@@ -188,6 +189,9 @@ function CustomerBuildsPage() {
           </div>
         </main>
       </div>
+      
+      {/* Chat Bubble */}
+      <ChatBubble />
     </div>
   )
 }

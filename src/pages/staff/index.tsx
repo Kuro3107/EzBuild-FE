@@ -160,6 +160,8 @@ function StaffPage() {
             <div className="sidebar-group">Staff Management</div>
             <Link className="nav-item" to="/staff/dashboard">Dashboard</Link>
             <Link className="nav-item" to="/staff/orders">Order Management</Link>
+            <Link className="nav-item" to="/staff/payments">Payment Management</Link>
+            <Link className="nav-item" to="/staff/debug">Debug</Link>
             <Link className="nav-item" to="/staff/customers">Customer Support</Link>
             <Link className="nav-item" to="/staff/inventory">Inventory Management</Link>
             <Link className="nav-item" to="/staff/products">Product Management</Link>
@@ -199,6 +201,8 @@ function StaffPage() {
                 <div className="sidebar-group">Staff Management</div>
                 <Link className="nav-item" to="/staff/dashboard" onClick={() => setIsSidebarOpen(false)}>Dashboard</Link>
                 <Link className="nav-item" to="/staff/orders" onClick={() => setIsSidebarOpen(false)}>Order Management</Link>
+                <Link className="nav-item" to="/staff/payments" onClick={() => setIsSidebarOpen(false)}>Payment Management</Link>
+                <Link className="nav-item" to="/staff/debug" onClick={() => setIsSidebarOpen(false)}>Debug</Link>
                 <Link className="nav-item" to="/staff/customers" onClick={() => setIsSidebarOpen(false)}>Customer Support</Link>
                 <Link className="nav-item" to="/staff/inventory" onClick={() => setIsSidebarOpen(false)}>Inventory Management</Link>
                 <Link className="nav-item" to="/staff/products" onClick={() => setIsSidebarOpen(false)}>Product Management</Link>

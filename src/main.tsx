@@ -24,6 +24,10 @@ import RegisterPage from './pages/login&register/register.tsx'
 import ForgotPasswordPage from './pages/login&register/forgot-password.tsx'
 import ComparePage from './pages/compare/compare.tsx'
 import StaffPage from './pages/staff/index.tsx'
+import StaffDashboardPage from './pages/staff/dashboard.tsx'
+import StaffOrdersPage from './pages/staff/orders.tsx'
+import StaffPaymentsPage from './pages/staff/payments.tsx'
+import StaffDebugPage from './pages/staff/debug.tsx'
 import AdminPage from './pages/admin/index.tsx'
 import CustomerProfilePage from './pages/customer/index.tsx'
 import CustomerBuildsPage from './pages/customer/builds.tsx'
@@ -72,6 +76,26 @@ createRoot(document.getElementById('root')!).render(
           <Route path="/staff" element={
             <ProtectedRoute requiredRole="Staff">
               <StaffPage />
+            </ProtectedRoute>
+          } />
+          <Route path="/staff/dashboard" element={
+            <ProtectedRoute requiredRole="Staff">
+              <StaffDashboardPage />
+            </ProtectedRoute>
+          } />
+          <Route path="/staff/orders" element={
+            <ProtectedRoute requiredRole="Staff">
+              <StaffOrdersPage />
+            </ProtectedRoute>
+          } />
+          <Route path="/staff/payments" element={
+            <ProtectedRoute requiredRole="Staff">
+              <StaffPaymentsPage />
+            </ProtectedRoute>
+          } />
+          <Route path="/staff/debug" element={
+            <ProtectedRoute requiredRole="Staff">
+              <StaffDebugPage />
             </ProtectedRoute>
           } />
           <Route path="/staff/chat" element={
