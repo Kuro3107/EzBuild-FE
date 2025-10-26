@@ -1482,7 +1482,7 @@ export class ApiService {
         paidAt: paymentStatus !== 'PENDING' ? new Date().toISOString() : undefined
       })
 
-      let updatedOrder = null
+      let updatedOrder: Record<string, unknown> | undefined = undefined
 
       // If payment is PAID 25%, auto-update order to DEPOSITED
       if (paymentStatus === 'PAID 25%') {
@@ -1511,6 +1511,43 @@ export class ApiService {
       console.error('Error updating payment and order status:', error)
       throw error
     }
+  }
+
+  // AI Chat API
+  static async sendAIChatMessage(message: string, chatHistory: Array<{ role: string; content: string }> = []): Promise<string> {
+    const token = localStorage.getItem('authToken')
+    const user = this.getCurrentUser()
+    
+    console.log('📤 Sending chat request to backend...')
+    console.log('Endpoint:', `${API_BASE_URL}/api/chat/send`)
+    console.log('Message:', message)
+    console.log('User:', user?.id?.toString() || 'guest')
+    console.log('Chat History:', chatHistory)
+    
+    const response = await fetch(`${API_BASE_URL}/api/chat/send`, {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+        ...(token ? { 'Authorization': `Bearer ${token}` } : {})
+      },
+      body: JSON.stringify({
+        message,
+        userId: user?.id?.toString() || 'guest',
+        chatHistory: chatHistory
+      })
+    })
+
+    console.log('📥 Response status:', response.status)
+
+    const data = await this.handleResponse<{ message: string; response: string; success: boolean; error?: string }>(response)
+    
+    console.log('📥 Response data:', data)
+    
+    if (!data.success) {
+      throw new Error(data.error || 'Failed to get AI response')
+    }
+    
+    return data.response
   }
 }
 
