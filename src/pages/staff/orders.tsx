@@ -37,15 +37,6 @@ function StaffOrdersPage() {
 
   useEffect(() => {
     loadData()
-    
-    // Auto-refresh data mỗi 3 giây
-    const interval = setInterval(() => {
-      loadData()
-      // Kiểm tra và cập nhật orders thành DONE sau 3 ngày
-      ApiService.checkAndUpdateOrdersToDone()
-    }, 3000)
-    
-    return () => clearInterval(interval)
   }, [])
 
   const loadData = async () => {
