@@ -151,6 +151,28 @@ export class ApiService {
     }
   }
 
+  static getCurrentUser(): Record<string, unknown> | null {
+    try {
+      const token = localStorage.getItem('authToken')
+      if (!token) {
+        console.log('No auth token found in localStorage')
+        return null
+      }
+
+      const decoded = this.decodeToken(token)
+      if (!decoded) {
+        console.log('Failed to decode token')
+        return null
+      }
+
+      console.log('Current user from token:', decoded)
+      return decoded
+    } catch (error) {
+      console.error('Error getting current user:', error)
+      return null
+    }
+  }
+
 
   static async login(credentials: LoginRequest): Promise<{ token: string; user?: Record<string, unknown> }> {
     console.log('=== API LOGIN DEBUG ===')

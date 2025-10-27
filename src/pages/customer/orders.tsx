@@ -51,26 +51,31 @@ function CustomerOrdersPage() {
 
   return (
     <div className="page bg-grid-dark">
-      <div className="layout pt-16 md:pt-20">
-        <main className="main">
-          <div className="px-4 md:px-6">
-            {/* Header */}
-            <div className="flex flex-col gap-2 mb-6">
-              <div className="flex items-center gap-3">
-                <div className="w-10 h-10 rounded-full bg-gradient-to-br from-blue-500 to-purple-600 flex items-center justify-center text-white text-base font-bold">
-                  {(currentUser?.fullname as string || 'U').charAt(0).toUpperCase()}
-                </div>
-                <div>
-                  <div className="font-semibold text-white text-base">Orders</div>
-                  <div className="text-[11px] text-gray-400 uppercase tracking-wider">{totalOrders} orders</div>
-                </div>
+      <div className="layout">
+        <aside className="sidebar profile-sidebar">
+          <div className="px-6 py-8 border-b border-gray-700">
+            <div className="flex items-center gap-3">
+              <div className="w-12 h-12 rounded-full bg-gradient-to-br from-blue-500 to-purple-600 flex items-center justify-center text-white text-lg font-bold">
+                {(currentUser?.fullname as string || 'U').charAt(0).toUpperCase()}
               </div>
-              <nav className="flex items-center gap-2 ml-12">
-                <Link className="nav-item" to="/customer">Profile</Link>
-                <Link className="nav-item" to="/builds">My Builds</Link>
-                <Link className="nav-item-active" to="/orders">Orders</Link>
-              </nav>
+              <div>
+                <div className="font-semibold text-white text-lg">Orders</div>
+                <div className="text-xs text-gray-400 uppercase tracking-wider">{totalOrders} orders</div>
+              </div>
             </div>
+          </div>
+          <nav className="flex-1 py-6">
+            <div className="px-6 mb-4">
+              <Link className="nav-item" to="/profile">Profile</Link>
+              <Link className="nav-item" to="/builds">My Builds</Link>
+              <Link className="nav-item-active" to="/orders">Orders</Link>
+              <Link className="nav-item" to="/pcbuilder">PC Builder</Link>
+            </div>
+          </nav>
+        </aside>
+
+        <main className="main">
+          <div className="w-full px-6 md:px-8 lg:px-10 pt-2">
 
             {/* Layout: left list, right detail */}
             {loading ? (
