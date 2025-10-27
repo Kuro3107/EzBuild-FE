@@ -51,6 +51,16 @@ function CheckoutPage() {
         return
       }
 
+      // Kiểm tra nếu đang có tiến trình checkout khác
+      const checkoutCreatingKey = `checkout_creating_${userId}`
+      if (sessionStorage.getItem(checkoutCreatingKey)) {
+        console.log('Checkout is being processed, please wait...')
+        return
+      }
+
+      // Đánh dấu đang tạo order
+      sessionStorage.setItem(checkoutCreatingKey, 'true')
+
       // 2) Lấy buildId từ build có sẵn của user
       let buildId: number | undefined
       try {
@@ -83,6 +93,9 @@ function CheckoutPage() {
 
       console.log('Order created:', order)
 
+      // Xóa flag sau khi tạo thành công
+      sessionStorage.removeItem(checkoutCreatingKey)
+
       // 4) Chuyển hướng đến trang payment với orderId và amount
       navigate(`/payment?orderId=${order.id}&amount=${totalPrice}`)
       
@@ -90,6 +103,12 @@ function CheckoutPage() {
       localStorage.removeItem('ezbuild-checkout')
     } catch (e) {
       console.error(e)
+      // Xóa flag khi có lỗi
+      const user = ApiService.getCurrentUser()
+      if (user) {
+        const userId = Number(user?.id || user?.userId || 0)
+        sessionStorage.removeItem(`checkout_creating_${userId}`)
+      }
       alert('Có lỗi khi thanh toán, vui lòng thử lại.')
     } finally {
       setIsSubmitting(false)

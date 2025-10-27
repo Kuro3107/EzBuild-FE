@@ -31,13 +31,6 @@ function StaffPaymentsPage() {
 
   useEffect(() => {
     loadData()
-    
-    // Auto-refresh data mỗi 3 giây
-    const interval = setInterval(() => {
-      loadData()
-    }, 3000)
-    
-    return () => clearInterval(interval)
   }, [])
 
   const loadData = async () => {
