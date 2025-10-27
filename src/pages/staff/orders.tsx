@@ -33,16 +33,17 @@ function StaffOrdersPage() {
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState<string | null>(null)
   const [selectedOrder, setSelectedOrder] = useState<Order | null>(null)
-  const [selectedPayment, setSelectedPayment] = useState<Payment | null>(null)
   const [filterStatus, setFilterStatus] = useState<string>('ALL')
 
   useEffect(() => {
     loadData()
     
-    // Auto-refresh data mỗi 10 giây
+    // Auto-refresh data mỗi 3 giây
     const interval = setInterval(() => {
       loadData()
-    }, 10000)
+      // Kiểm tra và cập nhật orders thành DONE sau 3 ngày
+      ApiService.checkAndUpdateOrdersToDone()
+    }, 3000)
     
     return () => clearInterval(interval)
   }, [])
@@ -58,8 +59,8 @@ function StaffOrdersPage() {
         ApiService.getAllPayments()
       ])
       
-      setOrders(ordersData as Order[])
-      setPayments(paymentsData as Payment[])
+      setOrders(ordersData as unknown as Order[])
+      setPayments(paymentsData as unknown as Payment[])
     } catch (err) {
       setError('Không thể tải dữ liệu')
       console.error('Error loading data:', err)
@@ -74,7 +75,7 @@ function StaffOrdersPage() {
       
       // Update local state
       setOrders(prev => prev.map(order => 
-        order.id === orderId ? { ...order, status: newStatus } : order
+        order.id === orderId ? { ...order, status: newStatus, updatedAt: new Date().toISOString() } : order
       ))
       
       alert(`Đã cập nhật trạng thái đơn hàng thành: ${newStatus}`)
@@ -84,33 +85,12 @@ function StaffOrdersPage() {
     }
   }
 
-  const updatePaymentStatus = async (paymentId: number, newStatus: string) => {
-    try {
-      const result = await ApiService.updatePaymentAndOrderStatus(paymentId, newStatus)
-      
-      // Update local state
-      setPayments(prev => prev.map(payment => 
-        payment.id === paymentId ? { ...payment, status: newStatus } : payment
-      ))
-      
-      // If order was auto-updated, update local state
-      if (result.order) {
-        setOrders(prev => prev.map(order => 
-          order.id === result.order.id ? { ...order, status: result.order.status } : order
-        ))
-      }
-      
-      alert(`Đã cập nhật trạng thái thanh toán thành: ${newStatus}`)
-    } catch (err) {
-      console.error('Error updating payment status:', err)
-      alert('Có lỗi khi cập nhật trạng thái thanh toán')
-    }
-  }
 
   const getStatusColor = (status: string) => {
     switch (status) {
       case 'PENDING': return 'bg-yellow-100 text-yellow-800'
       case 'DEPOSITED': return 'bg-blue-100 text-blue-800'
+      case 'PAID 25%': return 'bg-orange-100 text-orange-800'
       case 'SHIPPING': return 'bg-purple-100 text-purple-800'
       case 'PAID': return 'bg-green-100 text-green-800'
       case 'DONE': return 'bg-emerald-100 text-emerald-800'
@@ -122,7 +102,6 @@ function StaffOrdersPage() {
   const getPaymentStatusColor = (status: string) => {
     switch (status) {
       case 'PENDING': return 'bg-yellow-100 text-yellow-800'
-      case 'PAID 25%': return 'bg-blue-100 text-blue-800'
       case 'PAID': return 'bg-green-100 text-green-800'
       default: return 'bg-gray-100 text-gray-800'
     }
@@ -189,7 +168,7 @@ function StaffOrdersPage() {
           >
             Tất cả ({orders.length})
           </button>
-          {['PENDING', 'DEPOSITED', 'SHIPPING', 'PAID', 'DONE', 'CANCEL'].map(status => {
+          {['PENDING', 'DEPOSITED', 'PAID 25%', 'SHIPPING', 'PAID', 'DONE', 'CANCEL'].map(status => {
             const count = orders.filter(o => o.status === status).length
             return (
               <button
@@ -247,7 +226,6 @@ function StaffOrdersPage() {
             </thead>
             <tbody className="bg-white divide-y divide-gray-200">
               {filteredOrders.map((order) => {
-                const orderPayments = getOrderPayments(order.id)
                 return (
                   <tr key={order.id} className="hover:bg-gray-50">
                     <td className="px-6 py-4 whitespace-nowrap text-sm font-medium text-gray-900">
@@ -281,7 +259,23 @@ function StaffOrdersPage() {
                         >
                           Chi tiết
                         </button>
+                        {order.status === 'PENDING' && (
+                          <button
+                            onClick={() => updateOrderStatus(order.id, 'DEPOSITED')}
+                            className="text-blue-600 hover:text-blue-900"
+                          >
+                            Đã cọc
+                          </button>
+                        )}
                         {order.status === 'DEPOSITED' && (
+                          <button
+                            onClick={() => updateOrderStatus(order.id, 'PAID 25%')}
+                            className="text-orange-600 hover:text-orange-900"
+                          >
+                            Cọc 25%
+                          </button>
+                        )}
+                        {order.status === 'PAID 25%' && (
                           <button
                             onClick={() => updateOrderStatus(order.id, 'SHIPPING')}
                             className="text-green-600 hover:text-green-900"
@@ -295,6 +289,22 @@ function StaffOrdersPage() {
                             className="text-purple-600 hover:text-purple-900"
                           >
                             Hoàn thành
+                          </button>
+                        )}
+                        {order.status === 'PAID' && (
+                          <button
+                            onClick={() => updateOrderStatus(order.id, 'DONE')}
+                            className="text-emerald-600 hover:text-emerald-900"
+                          >
+                            Hoàn tất
+                          </button>
+                        )}
+                        {order.status !== 'DONE' && order.status !== 'CANCEL' && (
+                          <button
+                            onClick={() => updateOrderStatus(order.id, 'CANCEL')}
+                            className="text-red-600 hover:text-red-900"
+                          >
+                            Hủy đơn
                           </button>
                         )}
                       </div>
@@ -380,29 +390,8 @@ function StaffOrdersPage() {
                         }).format(payment.amount)}
                       </div>
                     </div>
-                    <div className="mt-2 flex gap-2">
-                      {payment.status === 'PENDING' && (
-                        <button
-                          onClick={() => {
-                            updatePaymentStatus(payment.id, 'PAID 25%')
-                            setSelectedOrder(null)
-                          }}
-                          className="text-xs bg-blue-600 text-white px-2 py-1 rounded hover:bg-blue-700"
-                        >
-                          Xác nhận cọc 25%
-                        </button>
-                      )}
-                      {payment.status === 'PAID 25%' && (
-                        <button
-                          onClick={() => {
-                            updatePaymentStatus(payment.id, 'PAID')
-                            setSelectedOrder(null)
-                          }}
-                          className="text-xs bg-green-600 text-white px-2 py-1 rounded hover:bg-green-700"
-                        >
-                          Xác nhận thanh toán đầy đủ
-                        </button>
-                      )}
+                    <div className="mt-2 text-xs text-gray-500">
+                      Quản lý thanh toán tại trang Payment Management
                     </div>
                   </div>
                 ))}

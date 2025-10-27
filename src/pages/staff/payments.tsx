@@ -32,10 +32,10 @@ function StaffPaymentsPage() {
   useEffect(() => {
     loadData()
     
-    // Auto-refresh data mỗi 10 giây
+    // Auto-refresh data mỗi 3 giây
     const interval = setInterval(() => {
       loadData()
-    }, 10000)
+    }, 3000)
     
     return () => clearInterval(interval)
   }, [])
@@ -51,8 +51,8 @@ function StaffPaymentsPage() {
         ApiService.getOrders()
       ])
       
-      setPayments(paymentsData as Payment[])
-      setOrders(ordersData as Order[])
+      setPayments(paymentsData as unknown as Payment[])
+      setOrders(ordersData as unknown as Order[])
     } catch (err) {
       setError('Không thể tải dữ liệu')
       console.error('Error loading data:', err)
@@ -61,37 +61,10 @@ function StaffPaymentsPage() {
     }
   }
 
-  const updatePaymentStatus = async (paymentId: number, newStatus: string) => {
-    try {
-      const result = await ApiService.updatePaymentAndOrderStatus(paymentId, newStatus)
-      
-      // Update local state
-      setPayments(prev => prev.map(payment => 
-        payment.id === paymentId ? { 
-          ...payment, 
-          status: newStatus,
-          paidAt: newStatus !== 'PENDING' ? new Date().toISOString() : payment.paidAt
-        } : payment
-      ))
-      
-      // If order was auto-updated, update local state
-      if (result.order) {
-        setOrders(prev => prev.map(order => 
-          order.id === result.order.id ? { ...order, status: result.order.status } : order
-        ))
-      }
-      
-      alert(`Đã cập nhật trạng thái thanh toán thành: ${newStatus}`)
-    } catch (err) {
-      console.error('Error updating payment status:', err)
-      alert('Có lỗi khi cập nhật trạng thái thanh toán')
-    }
-  }
 
   const getStatusColor = (status: string) => {
     switch (status) {
       case 'PENDING': return 'bg-yellow-100 text-yellow-800'
-      case 'PAID 25%': return 'bg-blue-100 text-blue-800'
       case 'PAID': return 'bg-green-100 text-green-800'
       default: return 'bg-gray-100 text-gray-800'
     }
@@ -149,7 +122,7 @@ function StaffPaymentsPage() {
     <div className="page bg-grid bg-radial">
       <div className="mb-6">
         <h1 className="text-3xl font-bold text-gray-900 mb-2">Quản lý thanh toán</h1>
-        <p className="text-gray-600">Xử lý các giao dịch thanh toán</p>
+        <p className="text-gray-600">Theo dõi các giao dịch thanh toán (chỉ xem, không chỉnh sửa)</p>
       </div>
 
       {/* Search and Filter */}
@@ -178,7 +151,7 @@ function StaffPaymentsPage() {
             >
               Tất cả ({payments.length})
             </button>
-          {['PENDING', 'PAID 25%', 'PAID'].map(status => {
+          {['PENDING', 'PAID'].map(status => {
             const count = payments.filter(p => p.status === status).length
             return (
               <button
@@ -287,22 +260,6 @@ function StaffPaymentsPage() {
                         >
                           Chi tiết
                         </button>
-                        {payment.status === 'PENDING' && (
-                          <button
-                            onClick={() => updatePaymentStatus(payment.id, 'PAID 25%')}
-                            className="text-blue-600 hover:text-blue-900"
-                          >
-                            Cọc 25%
-                          </button>
-                        )}
-                        {payment.status === 'PAID 25%' && (
-                          <button
-                            onClick={() => updatePaymentStatus(payment.id, 'PAID')}
-                            className="text-green-600 hover:text-green-900"
-                          >
-                            Hoàn thành
-                          </button>
-                        )}
                       </div>
                     </td>
                   </tr>
@@ -378,31 +335,11 @@ function StaffPaymentsPage() {
                 </div>
               )}
               
-              {/* Action buttons */}
+              {/* Thông tin trạng thái */}
               <div className="pt-4 border-t">
-                <div className="flex gap-2">
-                  {selectedPayment.status === 'PENDING' && (
-                    <button
-                      onClick={() => {
-                        updatePaymentStatus(selectedPayment.id, 'PAID 25%')
-                        setSelectedPayment(null)
-                      }}
-                      className="px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700"
-                    >
-                      Xác nhận cọc 25%
-                    </button>
-                  )}
-                  {selectedPayment.status === 'PAID 25%' && (
-                    <button
-                      onClick={() => {
-                        updatePaymentStatus(selectedPayment.id, 'PAID')
-                        setSelectedPayment(null)
-                      }}
-                      className="px-4 py-2 bg-green-600 text-white rounded-lg hover:bg-green-700"
-                    >
-                      Xác nhận thanh toán đầy đủ
-                    </button>
-                  )}
+                <div className="text-sm text-gray-600">
+                  <p><strong>Lưu ý:</strong> Thanh toán được cập nhật tự động khi khách hàng xác nhận thanh toán.</p>
+                  <p>Staff chỉ có thể xem thông tin thanh toán, không thể chỉnh sửa trạng thái.</p>
                 </div>
               </div>
             </div>
