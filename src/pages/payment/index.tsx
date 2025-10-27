@@ -26,18 +26,11 @@ function PaymentPage() {
     console.log('orderId:', orderId)
     console.log('amount:', amount)
     
-    // Kiểm tra sessionStorage để tránh duplicate payment
-    const paymentKey = `payment_creating_${orderId}`
-    if (sessionStorage.getItem(paymentKey)) {
-      console.log('Payment creation already in progress, skipping...')
-      setIsLoading(false)
-      return
-    }
-    
-    // Kiểm tra thêm với localStorage để tránh duplicate
-    const globalPaymentKey = `global_payment_creating_${orderId}`
-    if (localStorage.getItem(globalPaymentKey)) {
-      console.log('Global payment creation already in progress, skipping...')
+    // Kiểm tra xem đã có payment cho order này chưa
+    const existingPayment = localStorage.getItem(`payment_${orderId}`)
+    if (existingPayment) {
+      console.log('Using existing payment:', existingPayment)
+      setPayment(JSON.parse(existingPayment))
       setIsLoading(false)
       return
     }
@@ -51,18 +44,6 @@ function PaymentPage() {
         return
       }
 
-      // Kiểm tra xem đã có payment cho order này chưa
-      const existingPayment = localStorage.getItem(`payment_${orderId}`)
-      if (existingPayment) {
-        console.log('Using existing payment:', existingPayment)
-        setPayment(JSON.parse(existingPayment))
-        setIsLoading(false)
-        return
-      }
-
-      // Đánh dấu đã bắt đầu tạo payment
-      sessionStorage.setItem(paymentKey, 'true')
-      localStorage.setItem(globalPaymentKey, 'true')
       console.log('Creating new payment for orderId:', orderId)
 
       try {
@@ -126,9 +107,6 @@ function PaymentPage() {
     // Cleanup function
     return () => {
       isMounted = false
-      // Xóa sessionStorage flag khi component unmount
-      sessionStorage.removeItem(paymentKey)
-      // Không xóa localStorage flag ở đây để tránh duplicate khi navigate
     }
   }, [orderId, amount])
 
@@ -142,11 +120,11 @@ function PaymentPage() {
         // Xử lý mock payment - cập nhật status thành "PAID 25%"
         console.log('Processing mock payment...')
         
-        // Lưu payment info vào localStorage với status "PAID 25%"
+        // Lưu payment info vào localStorage với status "PAID"
         const paymentHistory = JSON.parse(localStorage.getItem('paymentHistory') || '[]')
         const updatedPayment = {
           ...payment,
-          status: 'PAID 25%',
+          status: 'PAID',
           transactionId: `TXN_${Date.now()}`,
           paidAt: new Date().toISOString()
         }
@@ -156,34 +134,45 @@ function PaymentPage() {
         // Cập nhật payment hiện tại để hiển thị trạng thái mới
         setPayment(updatedPayment)
         
-        alert('✅ Thanh toán cọc 25% thành công!\n\nĐơn hàng đã được chuyển sang trạng thái "Đã cọc".\nStaff sẽ xác nhận và chuẩn bị hàng.')
+        // Lưu payment đã cập nhật vào localStorage
+        localStorage.setItem(`payment_${orderId}`, JSON.stringify(updatedPayment))
+        
+        alert('✅ Thanh toán thành công!\n\nĐơn hàng đã được chuyển sang trạng thái "Đã cọc".\nStaff sẽ xác nhận và chuẩn bị hàng.')
         
         // Không navigate ngay, để khách hàng thấy trạng thái đã cập nhật
         setTimeout(() => {
-          localStorage.removeItem(`payment_${orderId}`)
-          localStorage.removeItem(`global_payment_creating_${orderId}`)
-          navigate('/orders')
+          navigate('/')
         }, 2000)
       } else {
-        // Xử lý API payment - cập nhật status thành "PAID 25%"
+        // Xử lý API payment - cập nhật status thành "PAID"
         console.log('=== UPDATING PAYMENT VIA API ===')
         console.log('Payment ID:', payment.id)
-        console.log('New status: PAID 25%')
+        console.log('New status: PAID')
         
         try {
-          const result = await ApiService.updatePayment(Number(payment.id), {
-            status: 'PAID 25%',
+          // Cập nhật payment trước
+          const paymentResult = await ApiService.updatePayment(Number(payment.id), {
+            status: 'PAID',
             transactionId: `TXN_${Date.now()}`,
             paidAt: new Date().toISOString()
           })
-          console.log('Payment update result:', result)
+          console.log('Payment update result:', paymentResult)
+          
+          // Sau đó cập nhật order
+          try {
+            const orderResult = await ApiService.updateOrderStatus(Number(payment.order.id), 'DEPOSITED')
+            console.log('Order update result:', orderResult)
+          } catch (orderError) {
+            console.error('Order update failed:', orderError)
+            // Không throw error, payment đã thành công
+          }
         } catch (apiError) {
           console.error('API update failed:', apiError)
           // Fallback: lưu vào localStorage
           const paymentHistory = JSON.parse(localStorage.getItem('paymentHistory') || '[]')
           paymentHistory.push({
             ...payment,
-            status: 'PAID 25%',
+            status: 'PAID',
             transactionId: `TXN_${Date.now()}`,
             paidAt: new Date().toISOString()
           })
@@ -192,20 +181,22 @@ function PaymentPage() {
         }
 
         // Cập nhật payment hiện tại để hiển thị trạng thái mới
-        setPayment({
+        const updatedPayment = {
           ...payment,
-          status: 'PAID 25%',
+          status: 'PAID',
           transactionId: `TXN_${Date.now()}`,
           paidAt: new Date().toISOString()
-        })
+        }
+        setPayment(updatedPayment)
+        
+        // Lưu payment đã cập nhật vào localStorage
+        localStorage.setItem(`payment_${orderId}`, JSON.stringify(updatedPayment))
 
-        alert('✅ Thanh toán cọc 25% thành công!\n\nĐơn hàng đã được chuyển sang trạng thái "Đã cọc".\nStaff sẽ xác nhận và chuẩn bị hàng.')
+        alert('✅ Thanh toán thành công!\n\nĐơn hàng đã được chuyển sang trạng thái "Đã cọc".\nStaff sẽ xác nhận và chuẩn bị hàng.')
         
         // Không navigate ngay, để khách hàng thấy trạng thái đã cập nhật
         setTimeout(() => {
-          localStorage.removeItem(`payment_${orderId}`)
-          localStorage.removeItem(`global_payment_creating_${orderId}`)
-          navigate('/orders')
+          navigate('/')
         }, 2000)
       }
     } catch (error) {
@@ -453,11 +444,11 @@ function PaymentPage() {
               </button>
             )}
 
-            {payment?.status === 'PAID 25%' && (
+            {payment?.status === 'PAID' && (
               <button
-                onClick={() => navigate('/orders')}
+                onClick={() => navigate('/')}
                 style={{
-                  background: '#3b82f6',
+                  background: '#10b981',
                   border: 'none',
                   borderRadius: '12px',
                   padding: '16px 32px',
@@ -469,7 +460,7 @@ function PaymentPage() {
                   transition: 'all 0.2s ease'
                 }}
               >
-                Xem đơn hàng
+                Về trang chủ
               </button>
             )}
           </div>

@@ -3,9 +3,9 @@
 ## Order Status Flow
 
 ```
-PENDING → DEPOSITED → SHIPPING → PAID → DONE
-   ↓         ↓           ↓        ↓
- CANCEL   CANCEL     CANCEL   CANCEL
+PENDING → DEPOSITED → PAID 25% → SHIPPING → PAID → DONE
+   ↓         ↓           ↓          ↓        ↓
+ CANCEL   CANCEL     CANCEL     CANCEL   CANCEL
 ```
 
 ### Chi tiết từng trạng thái:
@@ -13,36 +13,41 @@ PENDING → DEPOSITED → SHIPPING → PAID → DONE
 1. **PENDING** 
    - Trạng thái ban đầu sau khi tạo đơn hàng
    - Hiển thị ở trang quản lý đơn của staff
-   - Khách hàng chưa thanh toán
+   - Staff có thể chuyển thành DEPOSITED
 
 2. **DEPOSITED** 
-   - Tự động chuyển khi payment được thanh toán 25%
-   - Staff KHÔNG thể chuyển trực tiếp thành DEPOSITED
-   - Chỉ thay đổi khi payment status = "PAID 25%"
+   - Staff chuyển khi khách hàng đã cọc
+   - Staff có thể chuyển thành PAID 25%
+   - Staff thực hiện ở trang quản lý order
 
-3. **SHIPPING**
+3. **PAID 25%**
+   - Staff chuyển khi khách hàng đã cọc 25%
+   - Staff có thể chuyển thành SHIPPING
+   - Staff thực hiện ở trang quản lý order
+
+4. **SHIPPING**
    - Staff chuyển sau khi chuẩn bị hàng xong
-   - Có thể chuyển từ DEPOSITED → SHIPPING
+   - Staff có thể chuyển thành PAID
    - Staff thực hiện ở trang quản lý order
 
-4. **PAID**
+5. **PAID**
    - Staff chuyển khi thanh toán đầy đủ
-   - Có thể chuyển từ SHIPPING → PAID
-   - Staff thực hiện ở trang quản lý order
+   - Staff có thể chuyển thành DONE
+   - Tự động chuyển thành DONE sau 3 ngày
 
-5. **DONE**
+6. **DONE**
    - Khách hàng feedback xong
-   - Tự động chuyển sau 3 ngày nhận đơn (nếu được implement)
-   - Có thể chuyển từ PAID → DONE
+   - Tự động chuyển sau 3 ngày từ trạng thái PAID
+   - Staff có thể chuyển thủ công từ PAID → DONE
 
-6. **CANCEL**
+7. **CANCEL**
    - Khách hàng hủy đơn
    - Có thể chuyển từ bất kỳ trạng thái nào
 
 ## Payment Status Flow
 
 ```
-PENDING → PAID 25% → PAID
+PENDING → PAID
 ```
 
 ### Chi tiết từng trạng thái:
@@ -51,14 +56,10 @@ PENDING → PAID 25% → PAID
    - Trạng thái ban đầu sau khi tạo payment
    - Chưa thanh toán
 
-2. **PAID 25%**
-   - Staff chuyển khi khách hàng thanh toán cọc 25%
+2. **PAID**
+   - Tự động chuyển khi khách hàng xác nhận thanh toán
    - Tự động cập nhật order status thành DEPOSITED
-   - Staff thực hiện ở trang quản lý payment
-
-3. **PAID**
-   - Staff chuyển khi thanh toán đầy đủ
-   - Staff thực hiện ở trang quản lý payment
+   - Staff chỉ có thể xem, không thể chỉnh sửa
 
 ## API Endpoints
 
@@ -83,20 +84,33 @@ PENDING → PAID 25% → PAID
 2. **Order Management** (`/staff/orders`)
    - Danh sách tất cả orders
    - Filter theo trạng thái
-   - Cập nhật trạng thái order
+   - Cập nhật trạng thái order thủ công
    - Xem chi tiết order
+   - Staff có thể chuyển: PENDING → DEPOSITED → PAID 25% → SHIPPING → PAID → DONE
 
 3. **Payment Management** (`/staff/payments`)
    - Danh sách tất cả payments
    - Filter theo trạng thái
-   - Cập nhật trạng thái payment
-   - Tự động cập nhật order khi payment thay đổi
+   - Chỉ xem thông tin, không chỉnh sửa
+   - Thanh toán được cập nhật tự động
 
 ## Auto-Update Logic
 
-Khi staff cập nhật payment status:
-- `PENDING` → `PAID 25%`: Tự động cập nhật order thành `DEPOSITED`
-- `PAID 25%` → `PAID`: Không tự động cập nhật order (staff phải làm thủ công)
+Khi khách hàng xác nhận thanh toán:
+- Payment: `PENDING` → `PAID` (tự động)
+- Order: `PENDING` → `DEPOSITED` (tự động)
+
+Tự động cập nhật order status:
+- `PAID` → `DONE`: Tự động chuyển sau 3 ngày từ trạng thái PAID
+
+## Staff Manual Control
+
+Staff có thể cập nhật thủ công tất cả trạng thái order:
+- `PENDING` → `DEPOSITED` (khi khách hàng đã cọc)
+- `DEPOSITED` → `PAID 25%` (khi khách hàng cọc 25%)
+- `PAID 25%` → `SHIPPING` (khi chuẩn bị hàng xong)
+- `SHIPPING` → `PAID` (khi giao hàng xong)
+- `PAID` → `DONE` (khi hoàn tất)
 
 ## Staff Permissions
 

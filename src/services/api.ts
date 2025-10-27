@@ -1404,7 +1404,7 @@ export class ApiService {
     console.log('Update data:', payment)
     
     const response = await fetch(`${API_BASE_URL}/api/payment/${id}`, {
-      method: 'PUT',
+      method: 'PATCH',
       headers: {
         'Content-Type': 'application/json',
         'Accept': 'application/json',
@@ -1461,25 +1461,31 @@ export class ApiService {
     console.log('Order ID:', orderId)
     console.log('New Status:', status)
     
-    const response = await fetch(`${API_BASE_URL}/api/order/${orderId}/status`, {
-      method: 'PUT',
-      headers: {
-        'Content-Type': 'application/json',
-        'Accept': 'application/json',
-        ...(token ? { 'Authorization': `Bearer ${token}` } : {})
-      },
-      body: JSON.stringify({ status })
-    })
+    try {
+      // Sử dụng PATCH để cập nhật order status
+      const response = await fetch(`${API_BASE_URL}/api/order/${orderId}`, {
+        method: 'PATCH',
+        headers: {
+          'Content-Type': 'application/json',
+          'Accept': 'application/json',
+          ...(token ? { 'Authorization': `Bearer ${token}` } : {})
+        },
+        body: JSON.stringify({ status })
+      })
 
-    console.log('Response status:', response.status)
+      console.log('Response status:', response.status)
 
-    if (!response.ok) {
-      const errorText = await response.text()
-      console.log('Error response:', errorText)
-      throw new Error(`HTTP ${response.status}: ${errorText}`)
+      if (!response.ok) {
+        const errorText = await response.text()
+        console.log('Error response:', errorText)
+        throw new Error(`HTTP ${response.status}: ${errorText}`)
+      }
+
+      return await this.handleResponse<Record<string, unknown>>(response)
+    } catch (error) {
+      console.log('API update failed:', error)
+      throw error
     }
-
-    return await this.handleResponse<Record<string, unknown>>(response)
   }
 
   static async getOrderById(orderId: number): Promise<Record<string, unknown>> {
@@ -1506,8 +1512,8 @@ export class ApiService {
 
       let updatedOrder: Record<string, unknown> | undefined = undefined
 
-      // If payment is PAID 25%, auto-update order to DEPOSITED
-      if (paymentStatus === 'PAID 25%') {
+      // If payment is PAID, auto-update order to DEPOSITED
+      if (paymentStatus === 'PAID') {
         try {
           const payment = await this.getPaymentById(paymentId)
           const orderId = payment.orderId as number
@@ -1532,6 +1538,32 @@ export class ApiService {
     } catch (error) {
       console.error('Error updating payment and order status:', error)
       throw error
+    }
+  }
+
+  // Auto-update orders to DONE after 3 days from PAID status
+  static async checkAndUpdateOrdersToDone(): Promise<void> {
+    try {
+      const orders = await this.getOrders()
+      const now = new Date()
+      const threeDaysAgo = new Date(now.getTime() - (3 * 24 * 60 * 60 * 1000))
+
+      for (const order of orders as any[]) {
+        // Check if order is PAID and has been PAID for more than 3 days
+        if (order.status === 'PAID' && order.updatedAt) {
+          const updatedAt = new Date(order.updatedAt)
+          if (updatedAt < threeDaysAgo) {
+            try {
+              await this.updateOrderStatus(order.id, 'DONE')
+              console.log(`Auto-updated order ${order.id} to DONE after 3 days`)
+            } catch (error) {
+              console.error(`Error auto-updating order ${order.id} to DONE:`, error)
+            }
+          }
+        }
+      }
+    } catch (error) {
+      console.error('Error checking and updating orders to DONE:', error)
     }
   }
 
@@ -1570,6 +1602,221 @@ export class ApiService {
     }
     
     return data.response
+  }
+
+  // Services APIs
+  static async getAllServices(): Promise<Record<string, unknown>[]> {
+    try {
+      const response = await fetch(`${API_BASE_URL}/api/service`, {
+        method: 'GET',
+        headers: { 'Content-Type': 'application/json' },
+      })
+
+      if (!response.ok) {
+        throw new Error(`HTTP ${response.status}: ${response.statusText}`)
+      }
+
+      return await this.handleResponse<Record<string, unknown>[]>(response)
+    } catch (error) {
+      console.error('Error fetching services:', error)
+      throw error
+    }
+  }
+
+  static async getServiceById(id: number): Promise<Record<string, unknown>> {
+    try {
+      const response = await fetch(`${API_BASE_URL}/api/service/${id}`, {
+        method: 'GET',
+        headers: { 'Content-Type': 'application/json' },
+      })
+
+      if (!response.ok) {
+        throw new Error(`HTTP ${response.status}: ${response.statusText}`)
+      }
+
+      return await this.handleResponse<Record<string, unknown>>(response)
+    } catch (error) {
+      console.error('Error fetching service:', error)
+      throw error
+    }
+  }
+
+  static async createService(service: Record<string, unknown>): Promise<Record<string, unknown>> {
+    const response = await fetch(`${API_BASE_URL}/api/service`, {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+      },
+      body: JSON.stringify(service),
+    })
+
+    return this.handleResponse<Record<string, unknown>>(response)
+  }
+
+  static async updateService(id: number, service: Record<string, unknown>): Promise<Record<string, unknown>> {
+    const response = await fetch(`${API_BASE_URL}/api/service/${id}`, {
+      method: 'PUT',
+      headers: {
+        'Content-Type': 'application/json',
+      },
+      body: JSON.stringify(service),
+    })
+
+    return this.handleResponse<Record<string, unknown>>(response)
+  }
+
+  static async deleteService(id: number): Promise<void> {
+    const response = await fetch(`${API_BASE_URL}/api/service/${id}`, {
+      method: 'DELETE',
+      headers: {
+        'Content-Type': 'application/json',
+      },
+    })
+
+    if (!response.ok) {
+      const errorData = await response.json().catch(() => ({}))
+      throw new Error(errorData?.message || 'Có lỗi xảy ra khi xóa service')
+    }
+  }
+
+  // Games APIs
+  static async getAllGames(): Promise<Record<string, unknown>[]> {
+    try {
+      const response = await fetch(`${API_BASE_URL}/api/game`, {
+        method: 'GET',
+        headers: { 'Content-Type': 'application/json' },
+      })
+
+      if (!response.ok) {
+        throw new Error(`HTTP ${response.status}: ${response.statusText}`)
+      }
+
+      return await this.handleResponse<Record<string, unknown>[]>(response)
+    } catch (error) {
+      console.error('Error fetching games:', error)
+      throw error
+    }
+  }
+
+  static async getGameById(id: number): Promise<Record<string, unknown>> {
+    try {
+      const response = await fetch(`${API_BASE_URL}/api/game/${id}`, {
+        method: 'GET',
+        headers: { 'Content-Type': 'application/json' },
+      })
+
+      if (!response.ok) {
+        throw new Error(`HTTP ${response.status}: ${response.statusText}`)
+      }
+
+      return await this.handleResponse<Record<string, unknown>>(response)
+    } catch (error) {
+      console.error('Error fetching game:', error)
+      throw error
+    }
+  }
+
+  static async createGame(game: Record<string, unknown>): Promise<Record<string, unknown>> {
+    const response = await fetch(`${API_BASE_URL}/api/game`, {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+      },
+      body: JSON.stringify(game),
+    })
+
+    return this.handleResponse<Record<string, unknown>>(response)
+  }
+
+  static async updateGame(id: number, game: Record<string, unknown>): Promise<Record<string, unknown>> {
+    const response = await fetch(`${API_BASE_URL}/api/game/${id}`, {
+      method: 'PUT',
+      headers: {
+        'Content-Type': 'application/json',
+      },
+      body: JSON.stringify(game),
+    })
+
+    return this.handleResponse<Record<string, unknown>>(response)
+  }
+
+  static async deleteGame(id: number): Promise<void> {
+    const response = await fetch(`${API_BASE_URL}/api/game/${id}`, {
+      method: 'DELETE',
+      headers: {
+        'Content-Type': 'application/json',
+      },
+    })
+
+    if (!response.ok) {
+      const errorData = await response.json().catch(() => ({}))
+      throw new Error(errorData?.message || 'Có lỗi xảy ra khi xóa game')
+    }
+  }
+
+  // Feedbacks APIs
+  static async getAllOrderFeedbacks(): Promise<Record<string, unknown>[]> {
+    try {
+      const response = await fetch(`${API_BASE_URL}/api/order-feedback`, {
+        method: 'GET',
+        headers: { 'Content-Type': 'application/json' },
+      })
+
+      if (!response.ok) {
+        throw new Error(`HTTP ${response.status}: ${response.statusText}`)
+      }
+
+      return await this.handleResponse<Record<string, unknown>[]>(response)
+    } catch (error) {
+      console.error('Error fetching order feedbacks:', error)
+      throw error
+    }
+  }
+
+  static async getAllServiceFeedbacks(): Promise<Record<string, unknown>[]> {
+    try {
+      const response = await fetch(`${API_BASE_URL}/api/service-feedback`, {
+        method: 'GET',
+        headers: { 'Content-Type': 'application/json' },
+      })
+
+      if (!response.ok) {
+        throw new Error(`HTTP ${response.status}: ${response.statusText}`)
+      }
+
+      return await this.handleResponse<Record<string, unknown>[]>(response)
+    } catch (error) {
+      console.error('Error fetching service feedbacks:', error)
+      throw error
+    }
+  }
+
+  static async deleteOrderFeedback(id: number): Promise<void> {
+    const response = await fetch(`${API_BASE_URL}/api/order-feedback/${id}`, {
+      method: 'DELETE',
+      headers: {
+        'Content-Type': 'application/json',
+      },
+    })
+
+    if (!response.ok) {
+      const errorData = await response.json().catch(() => ({}))
+      throw new Error(errorData?.message || 'Có lỗi xảy ra khi xóa feedback')
+    }
+  }
+
+  static async deleteServiceFeedback(id: number): Promise<void> {
+    const response = await fetch(`${API_BASE_URL}/api/service-feedback/${id}`, {
+      method: 'DELETE',
+      headers: {
+        'Content-Type': 'application/json',
+      },
+    })
+
+    if (!response.ok) {
+      const errorData = await response.json().catch(() => ({}))
+      throw new Error(errorData?.message || 'Có lỗi xảy ra khi xóa feedback')
+    }
   }
 }
 

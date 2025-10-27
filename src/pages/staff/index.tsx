@@ -161,13 +161,11 @@ function StaffPage() {
             <Link className="nav-item" to="/staff/dashboard">Dashboard</Link>
             <Link className="nav-item" to="/staff/orders">Order Management</Link>
             <Link className="nav-item" to="/staff/payments">Payment Management</Link>
-            <Link className="nav-item" to="/staff/debug">Debug</Link>
-            <Link className="nav-item" to="/staff/customers">Customer Support</Link>
-            <Link className="nav-item" to="/staff/inventory">Inventory Management</Link>
             <Link className="nav-item" to="/staff/products">Product Management</Link>
-            <Link className="nav-item" to="/staff/sales">Sales Management</Link>
-            <Link className="nav-item" to="/staff/reports">Reports & Analytics</Link>
-            <Link className="nav-item" to="/staff/notifications">Notifications</Link>
+            <Link className="nav-item" to="/staff/services">Service Management</Link>
+            <Link className="nav-item" to="/staff/games">Game Management</Link>
+            <Link className="nav-item" to="/staff/feedbacks">Feedback Management</Link>
+            <Link className="nav-item" to="/staff/debug">Debug</Link>
           </div>
 
           <div>
@@ -202,13 +200,11 @@ function StaffPage() {
                 <Link className="nav-item" to="/staff/dashboard" onClick={() => setIsSidebarOpen(false)}>Dashboard</Link>
                 <Link className="nav-item" to="/staff/orders" onClick={() => setIsSidebarOpen(false)}>Order Management</Link>
                 <Link className="nav-item" to="/staff/payments" onClick={() => setIsSidebarOpen(false)}>Payment Management</Link>
-                <Link className="nav-item" to="/staff/debug" onClick={() => setIsSidebarOpen(false)}>Debug</Link>
-                <Link className="nav-item" to="/staff/customers" onClick={() => setIsSidebarOpen(false)}>Customer Support</Link>
-                <Link className="nav-item" to="/staff/inventory" onClick={() => setIsSidebarOpen(false)}>Inventory Management</Link>
                 <Link className="nav-item" to="/staff/products" onClick={() => setIsSidebarOpen(false)}>Product Management</Link>
-                <Link className="nav-item" to="/staff/sales" onClick={() => setIsSidebarOpen(false)}>Sales Management</Link>
-                <Link className="nav-item" to="/staff/reports" onClick={() => setIsSidebarOpen(false)}>Reports & Analytics</Link>
-                <Link className="nav-item" to="/staff/notifications" onClick={() => setIsSidebarOpen(false)}>Notifications</Link>
+                <Link className="nav-item" to="/staff/services" onClick={() => setIsSidebarOpen(false)}>Service Management</Link>
+                <Link className="nav-item" to="/staff/games" onClick={() => setIsSidebarOpen(false)}>Game Management</Link>
+                <Link className="nav-item" to="/staff/feedbacks" onClick={() => setIsSidebarOpen(false)}>Feedback Management</Link>
+                <Link className="nav-item" to="/staff/debug" onClick={() => setIsSidebarOpen(false)}>Debug</Link>
               </div>
 
               <div>
