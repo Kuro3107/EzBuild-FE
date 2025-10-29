@@ -33,6 +33,10 @@ import StaffServicesPage from './pages/staff/services.tsx'
 import StaffGamesPage from './pages/staff/games.tsx'
 import StaffFeedbacksPage from './pages/staff/feedbacks.tsx'
 import AdminPage from './pages/admin/index.tsx'
+import AdminDashboardPage from './pages/admin/dashboard.tsx'
+import AdminUsersPage from './pages/admin/users.tsx'
+import AdminStaffPage from './pages/admin/staff.tsx'
+import AdminAIPage from './pages/admin/ai.tsx'
 import CustomerProfilePage from './pages/customer/index.tsx'
 import CustomerBuildsPage from './pages/customer/builds.tsx'
 import CustomerOrdersPage from './pages/customer/orders.tsx'
@@ -130,6 +134,26 @@ createRoot(document.getElementById('root')!).render(
           <Route path="/admin" element={
             <ProtectedRoute requiredRole="Admin">
               <AdminPage />
+            </ProtectedRoute>
+          } />
+          <Route path="/admin/dashboard" element={
+            <ProtectedRoute requiredRole="Admin">
+              <AdminDashboardPage />
+            </ProtectedRoute>
+          } />
+          <Route path="/admin/users" element={
+            <ProtectedRoute requiredRole="Admin">
+              <AdminUsersPage />
+            </ProtectedRoute>
+          } />
+          <Route path="/admin/staff" element={
+            <ProtectedRoute requiredRole="Admin">
+              <AdminStaffPage />
+            </ProtectedRoute>
+          } />
+          <Route path="/admin/ai" element={
+            <ProtectedRoute requiredRole="Admin">
+              <AdminAIPage />
             </ProtectedRoute>
           } />
         </Route>

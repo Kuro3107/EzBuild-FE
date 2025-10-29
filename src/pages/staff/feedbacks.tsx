@@ -26,6 +26,8 @@ function StaffFeedbacksPage() {
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState<string | null>(null)
   const [activeTab, setActiveTab] = useState<'orders' | 'services'>('orders')
+  const [isDeleteModalOpen, setIsDeleteModalOpen] = useState(false)
+  const [selectedFeedback, setSelectedFeedback] = useState<{ id: number; type: 'order' | 'service'; name: string } | null>(null)
 
   useEffect(() => {
     loadData()
@@ -39,8 +41,8 @@ function StaffFeedbacksPage() {
         ApiService.getAllOrderFeedbacks(),
         ApiService.getAllServiceFeedbacks()
       ])
-      setOrderFeedbacks(orderData as OrderFeedback[])
-      setServiceFeedbacks(serviceData as ServiceFeedback[])
+      setOrderFeedbacks(orderData.map((f: Record<string, unknown>) => f as unknown as OrderFeedback))
+      setServiceFeedbacks(serviceData.map((f: Record<string, unknown>) => f as unknown as ServiceFeedback))
     } catch (err) {
       setError('Không thể tải dữ liệu')
       console.error('Error loading data:', err)
@@ -49,23 +51,27 @@ function StaffFeedbacksPage() {
     }
   }
 
-  const handleDeleteOrderFeedback = async (id: number) => {
-    if (!confirm('Bạn có chắc chắn muốn xóa feedback này?')) return
-    try {
-      await ApiService.deleteOrderFeedback(id)
-      alert('Đã xóa feedback thành công!')
-      loadData()
-    } catch (err) {
-      console.error('Error deleting feedback:', err)
-      alert('Có lỗi khi xóa feedback')
-    }
+  const handleDeleteOrderFeedback = (id: number) => {
+    setSelectedFeedback({ id, type: 'order', name: `Order Feedback #${id}` })
+    setIsDeleteModalOpen(true)
   }
 
-  const handleDeleteServiceFeedback = async (id: number) => {
-    if (!confirm('Bạn có chắc chắn muốn xóa feedback này?')) return
+  const handleDeleteServiceFeedback = (id: number) => {
+    setSelectedFeedback({ id, type: 'service', name: `Service Feedback #${id}` })
+    setIsDeleteModalOpen(true)
+  }
+
+  const confirmDelete = async () => {
+    if (!selectedFeedback) return
     try {
-      await ApiService.deleteServiceFeedback(id)
+      if (selectedFeedback.type === 'order') {
+        await ApiService.deleteOrderFeedback(selectedFeedback.id)
+      } else {
+        await ApiService.deleteServiceFeedback(selectedFeedback.id)
+      }
       alert('Đã xóa feedback thành công!')
+      setIsDeleteModalOpen(false)
+      setSelectedFeedback(null)
       loadData()
     } catch (err) {
       console.error('Error deleting feedback:', err)
@@ -276,6 +282,74 @@ function StaffFeedbacksPage() {
                 )}
               </tbody>
             </table>
+          </div>
+        </div>
+      )}
+
+      {/* Delete Confirmation Modal */}
+      {isDeleteModalOpen && selectedFeedback && (
+        <div style={{
+          position: 'fixed',
+          top: 0,
+          left: 0,
+          right: 0,
+          bottom: 0,
+          backgroundColor: 'rgba(0, 0, 0, 0.5)',
+          display: 'flex',
+          alignItems: 'center',
+          justifyContent: 'center',
+          zIndex: 10000,
+          padding: '20px'
+        }}>
+          <div style={{
+            backgroundColor: '#1f2937',
+            border: '1px solid rgba(255, 255, 255, 0.2)',
+            borderRadius: '12px',
+            maxWidth: '400px',
+            width: '100%',
+            padding: '24px'
+          }}>
+            <div style={{
+              display: 'flex',
+              justifyContent: 'space-between',
+              alignItems: 'flex-start',
+              marginBottom: '24px'
+            }}>
+              <h2 style={{ color: 'white', fontSize: '24px', fontWeight: 'bold', margin: 0 }}>Xác nhận xóa</h2>
+              <button onClick={() => { setIsDeleteModalOpen(false); setSelectedFeedback(null) }} style={{
+                background: 'none',
+                border: 'none',
+                color: 'rgba(255, 255, 255, 0.6)',
+                fontSize: '24px',
+                cursor: 'pointer',
+                padding: '4px'
+              }}>×</button>
+            </div>
+            <p style={{ color: 'white', marginBottom: '24px', fontSize: '14px' }}>
+              Bạn có chắc chắn muốn xóa feedback <strong style={{ fontWeight: '600' }}>{selectedFeedback.name}</strong> không?
+            </p>
+            <div style={{ display: 'flex', justifyContent: 'flex-end', gap: '12px' }}>
+              <button onClick={() => { setIsDeleteModalOpen(false); setSelectedFeedback(null) }} style={{
+                padding: '10px 24px',
+                backgroundColor: '#374151',
+                border: '1px solid rgba(255, 255, 255, 0.2)',
+                borderRadius: '8px',
+                color: 'white',
+                cursor: 'pointer',
+                fontSize: '14px',
+                fontWeight: '500'
+              }} onMouseOver={(e) => e.currentTarget.style.backgroundColor = '#4b5563'} onMouseOut={(e) => e.currentTarget.style.backgroundColor = '#374151'}>Hủy</button>
+              <button onClick={confirmDelete} style={{
+                padding: '10px 24px',
+                backgroundColor: '#ef4444',
+                border: 'none',
+                borderRadius: '8px',
+                color: 'white',
+                cursor: 'pointer',
+                fontSize: '14px',
+                fontWeight: '500'
+              }} onMouseOver={(e) => e.currentTarget.style.backgroundColor = '#dc2626'} onMouseOut={(e) => e.currentTarget.style.backgroundColor = '#ef4444'}>Xóa</button>
+            </div>
           </div>
         </div>
       )}
