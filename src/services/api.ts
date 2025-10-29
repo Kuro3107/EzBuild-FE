@@ -151,29 +151,6 @@ export class ApiService {
     }
   }
 
-  static getCurrentUser(): Record<string, unknown> | null {
-    try {
-      const token = localStorage.getItem('authToken')
-      if (!token) {
-        console.log('No auth token found in localStorage')
-        return null
-      }
-
-      const decoded = this.decodeToken(token)
-      if (!decoded) {
-        console.log('Failed to decode token')
-        return null
-      }
-
-      console.log('Current user from token:', decoded)
-      return decoded
-    } catch (error) {
-      console.error('Error getting current user:', error)
-      return null
-    }
-  }
-
-
   static async login(credentials: LoginRequest): Promise<{ token: string; user?: Record<string, unknown> }> {
     console.log('=== API LOGIN DEBUG ===')
     console.log('API URL:', `${API_BASE_URL}/api/user/login`)
@@ -1816,6 +1793,351 @@ export class ApiService {
     if (!response.ok) {
       const errorData = await response.json().catch(() => ({}))
       throw new Error(errorData?.message || 'Có lỗi xảy ra khi xóa feedback')
+    }
+  }
+
+  // User Management APIs (Admin)
+  static async getAllUsers(): Promise<Record<string, unknown>[]> {
+    const token = localStorage.getItem('authToken')
+    if (!token) {
+      throw new Error('No authentication token found')
+    }
+
+    // Thử nhiều endpoint khác nhau
+    const endpoints = [
+      `${API_BASE_URL}/api/user`,  // Endpoint chính - có thể trả về danh sách
+      `${API_BASE_URL}/api/user/all`,
+      `${API_BASE_URL}/api/users`,
+      `${API_BASE_URL}/api/admin/users`,
+      `${API_BASE_URL}/api/user/list`
+    ]
+
+    for (const endpoint of endpoints) {
+      try {
+        console.log(`Trying endpoint: ${endpoint}`)
+        const response = await fetch(endpoint, {
+          method: 'GET',
+          headers: {
+            'Authorization': `Bearer ${token}`,
+            'Content-Type': 'application/json',
+          },
+        })
+
+        if (response.ok) {
+          const data = await this.handleResponse<Record<string, unknown>[]>(response)
+          console.log(`✅ Success with endpoint: ${endpoint}, got ${data.length} users`)
+          return data
+        } else {
+          console.log(`Endpoint ${endpoint} failed with status: ${response.status}`)
+        }
+      } catch (err) {
+        console.log(`Endpoint ${endpoint} error:`, err)
+      }
+    }
+
+    // Fallback: Thử lấy từng user bằng cách loop qua IDs
+    // Tối ưu: Gọi song song nhiều API cùng lúc thay vì tuần tự
+    console.log('⚠️ Không tìm thấy endpoint list users, thử lấy từng user (song song)...')
+    const maxAttempts = 100 // Thử tối đa 100 users
+    const batchSize = 10 // Gọi 10 API cùng lúc để không quá tải
+    
+    // Tạo array các Promise để gọi song song
+    const fetchUser = async (id: number): Promise<Record<string, unknown> | null> => {
+      try {
+        const response = await fetch(`${API_BASE_URL}/api/user/${id}`, {
+          method: 'GET',
+          headers: {
+            'Authorization': `Bearer ${token}`,
+            'Content-Type': 'application/json',
+          },
+        })
+
+        if (response.ok) {
+          return await this.handleResponse<Record<string, unknown>>(response)
+        } else if (response.status === 404) {
+          return null // User không tồn tại
+        } else if (response.status === 401 || response.status === 403) {
+          console.warn('⚠️ Không có quyền truy cập')
+          return null
+        }
+        return null
+      } catch (err) {
+        console.log(`Error fetching user ${id}:`, err)
+        return null
+      }
+    }
+
+    // Chia thành các batch để gọi song song
+    const users: Record<string, unknown>[] = []
+    for (let startId = 1; startId <= maxAttempts; startId += batchSize) {
+      const endId = Math.min(startId + batchSize - 1, maxAttempts)
+      const batchPromises: Promise<Record<string, unknown> | null>[] = []
+      
+      // Tạo batch requests
+      for (let id = startId; id <= endId; id++) {
+        batchPromises.push(fetchUser(id))
+      }
+
+      // Gọi song song batch này
+      try {
+        const batchResults = await Promise.all(batchPromises)
+        // Lọc bỏ các null (users không tồn tại)
+        const validUsers = batchResults.filter(user => user !== null) as Record<string, unknown>[]
+        users.push(...validUsers)
+        
+        // Nếu batch này không có user nào, có thể đã hết users
+        if (validUsers.length === 0 && startId > 20) {
+          console.log(`Không tìm thấy users từ ID ${startId}, có thể đã hết`)
+          break
+        }
+      } catch (err) {
+        console.error(`Error in batch ${startId}-${endId}:`, err)
+      }
+    }
+
+    if (users.length > 0) {
+      console.log(`✅ Lấy được ${users.length} users bằng cách gọi song song API /api/user/{id}`)
+      return users
+    }
+
+    // Nếu tất cả đều fail
+    console.warn('⚠️ Không thể lấy danh sách users. Backend cần có GET /api/user (trả về array) để hiệu quả hơn.')
+    return []
+  }
+
+  static async getUserById(userId: string): Promise<Record<string, unknown>> {
+    const token = localStorage.getItem('authToken')
+    if (!token) {
+      throw new Error('No authentication token found')
+    }
+
+    const response = await fetch(`${API_BASE_URL}/api/user/${userId}`, {
+      method: 'GET',
+      headers: {
+        'Authorization': `Bearer ${token}`,
+        'Content-Type': 'application/json',
+      },
+    })
+
+    return this.handleResponse<Record<string, unknown>>(response)
+  }
+
+  static async createUser(userData: Record<string, unknown>): Promise<Record<string, unknown>> {
+    const token = localStorage.getItem('authToken')
+    if (!token) {
+      throw new Error('No authentication token found')
+    }
+
+    const response = await fetch(`${API_BASE_URL}/api/user`, {
+      method: 'POST',
+      headers: {
+        'Authorization': `Bearer ${token}`,
+        'Content-Type': 'application/json',
+      },
+      body: JSON.stringify(userData),
+    })
+
+    return this.handleResponse<Record<string, unknown>>(response)
+  }
+
+  static async updateUser(userId: string, userData: Record<string, unknown>): Promise<Record<string, unknown>> {
+    return this.updateUserProfile(userId, userData)
+  }
+
+  // Staff Management APIs (Admin)
+  // Staff là users có role = "Staff", nên lấy từ users và filter
+  static async getAllStaff(): Promise<Record<string, unknown>[]> {
+    try {
+      // Lấy tất cả users rồi filter role = "Staff"
+      const allUsers = await this.getAllUsers()
+      return allUsers.filter(user => user.role === 'Staff')
+    } catch (err) {
+      console.error('Error loading staff:', err)
+      return []
+    }
+  }
+
+  static async getStaffById(staffId: string): Promise<Record<string, unknown>> {
+    const token = localStorage.getItem('authToken')
+    if (!token) {
+      throw new Error('No authentication token found')
+    }
+
+    const response = await fetch(`${API_BASE_URL}/api/staff/${staffId}`, {
+      method: 'GET',
+      headers: {
+        'Authorization': `Bearer ${token}`,
+        'Content-Type': 'application/json',
+      },
+    })
+
+    return this.handleResponse<Record<string, unknown>>(response)
+  }
+
+  static async createStaff(staffData: Record<string, unknown>): Promise<Record<string, unknown>> {
+    const token = localStorage.getItem('authToken')
+    if (!token) {
+      throw new Error('No authentication token found')
+    }
+
+    const response = await fetch(`${API_BASE_URL}/api/staff`, {
+      method: 'POST',
+      headers: {
+        'Authorization': `Bearer ${token}`,
+        'Content-Type': 'application/json',
+      },
+      body: JSON.stringify(staffData),
+    })
+
+    return this.handleResponse<Record<string, unknown>>(response)
+  }
+
+  static async updateStaff(staffId: string, staffData: Record<string, unknown>): Promise<Record<string, unknown>> {
+    const token = localStorage.getItem('authToken')
+    if (!token) {
+      throw new Error('No authentication token found')
+    }
+
+    const response = await fetch(`${API_BASE_URL}/api/staff/${staffId}`, {
+      method: 'PUT',
+      headers: {
+        'Authorization': `Bearer ${token}`,
+        'Content-Type': 'application/json',
+      },
+      body: JSON.stringify(staffData),
+    })
+
+    return this.handleResponse<Record<string, unknown>>(response)
+  }
+
+  static async deleteStaff(staffId: string): Promise<void> {
+    const token = localStorage.getItem('authToken')
+    if (!token) {
+      throw new Error('No authentication token found')
+    }
+
+    const response = await fetch(`${API_BASE_URL}/api/staff/${staffId}`, {
+      method: 'DELETE',
+      headers: {
+        'Authorization': `Bearer ${token}`,
+        'Content-Type': 'application/json',
+      },
+    })
+
+    if (!response.ok) {
+      const errorData = await response.json().catch(() => ({}))
+      throw new Error(errorData?.message || 'Có lỗi xảy ra khi xóa staff')
+    }
+  }
+
+  // AI Management APIs (Admin)
+  static async getAllAIConfigs(): Promise<Record<string, unknown>[]> {
+    const token = localStorage.getItem('authToken')
+    if (!token) {
+      throw new Error('No authentication token found')
+    }
+
+    // Thử nhiều endpoint khác nhau
+    const endpoints = [
+      `${API_BASE_URL}/api/ai-config`,
+      `${API_BASE_URL}/api/ai-config/all`,
+      `${API_BASE_URL}/api/admin/ai-config`,
+      `${API_BASE_URL}/api/ai/configs`
+    ]
+
+    for (const endpoint of endpoints) {
+      try {
+        const response = await fetch(endpoint, {
+          method: 'GET',
+          headers: {
+            'Authorization': `Bearer ${token}`,
+            'Content-Type': 'application/json',
+          },
+        })
+
+        if (response.ok) {
+          return await this.handleResponse<Record<string, unknown>[]>(response)
+        }
+      } catch (err) {
+        console.log(`Endpoint ${endpoint} failed, trying next...`)
+      }
+    }
+
+    // Nếu tất cả đều fail, trả về empty array và log warning
+    console.warn('⚠️ Backend chưa có endpoint để lấy danh sách AI configs. Vui lòng implement GET /api/ai-config hoặc tương tự.')
+    return []
+  }
+
+  static async getAIConfigById(configId: string): Promise<Record<string, unknown>> {
+    const token = localStorage.getItem('authToken')
+    if (!token) {
+      throw new Error('No authentication token found')
+    }
+
+    const response = await fetch(`${API_BASE_URL}/api/ai-config/${configId}`, {
+      method: 'GET',
+      headers: {
+        'Authorization': `Bearer ${token}`,
+        'Content-Type': 'application/json',
+      },
+    })
+
+    return this.handleResponse<Record<string, unknown>>(response)
+  }
+
+  static async createAIConfig(configData: Record<string, unknown>): Promise<Record<string, unknown>> {
+    const token = localStorage.getItem('authToken')
+    if (!token) {
+      throw new Error('No authentication token found')
+    }
+
+    const response = await fetch(`${API_BASE_URL}/api/ai-config`, {
+      method: 'POST',
+      headers: {
+        'Authorization': `Bearer ${token}`,
+        'Content-Type': 'application/json',
+      },
+      body: JSON.stringify(configData),
+    })
+
+    return this.handleResponse<Record<string, unknown>>(response)
+  }
+
+  static async updateAIConfig(configId: string, configData: Record<string, unknown>): Promise<Record<string, unknown>> {
+    const token = localStorage.getItem('authToken')
+    if (!token) {
+      throw new Error('No authentication token found')
+    }
+
+    const response = await fetch(`${API_BASE_URL}/api/ai-config/${configId}`, {
+      method: 'PUT',
+      headers: {
+        'Authorization': `Bearer ${token}`,
+        'Content-Type': 'application/json',
+      },
+      body: JSON.stringify(configData),
+    })
+
+    return this.handleResponse<Record<string, unknown>>(response)
+  }
+
+  static async deleteAIConfig(configId: string): Promise<void> {
+    const token = localStorage.getItem('authToken')
+    if (!token) {
+      throw new Error('No authentication token found')
+    }
+
+    const response = await fetch(`${API_BASE_URL}/api/ai-config/${configId}`, {
+      method: 'DELETE',
+      headers: {
+        'Authorization': `Bearer ${token}`,
+        'Content-Type': 'application/json',
+      },
+    })
+
+    if (!response.ok) {
+      const errorData = await response.json().catch(() => ({}))
+      throw new Error(errorData?.message || 'Có lỗi xảy ra khi xóa AI config')
     }
   }
 }
