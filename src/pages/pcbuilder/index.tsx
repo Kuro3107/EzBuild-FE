@@ -439,6 +439,9 @@ function PCBuilderPage() {
       psuWattage: 0,
       caseSize: '',
       coolingTDP: 0,
+      mainboardSocket: '',
+      mainboardRamType: '',
+      mainboardSize: '',
       compatibilityIssues: [] as string[],
       recommendations: [] as string[]
     }
@@ -453,6 +456,17 @@ function PCBuilderPage() {
       if (categoryId === 1) {
         specs.totalTDP += component.tdpWatt || 0
         specs.cpuSocket = component.socket || ''
+      }
+
+      // Mainboard specs
+      if (categoryId === 4) {
+        specs.mainboardSocket = component.socket || ''
+        specs.mainboardSize = component.size || ''
+        // Extract RAM type from specs (DDR4/DDR5)
+        const ramTypeMatch = component.specs?.match(/(DDR[45])/i)
+        if (ramTypeMatch) {
+          specs.mainboardRamType = ramTypeMatch[1].toUpperCase()
+        }
       }
 
       // RAM specs
@@ -492,6 +506,52 @@ function PCBuilderPage() {
     })
 
     // Check compatibility and generate recommendations
+    
+    // Check CPU Socket vs Mainboard Socket
+    if (specs.cpuSocket && specs.mainboardSocket) {
+      if (specs.cpuSocket.toLowerCase() !== specs.mainboardSocket.toLowerCase()) {
+        specs.compatibilityIssues.push(`CPU socket "${specs.cpuSocket}" không tương thích với Mainboard socket "${specs.mainboardSocket}"`)
+      }
+    }
+
+    // Check RAM Type vs Mainboard RAM Type
+    if (specs.ramType && specs.mainboardRamType) {
+      if (specs.ramType.toUpperCase() !== specs.mainboardRamType.toUpperCase()) {
+        specs.compatibilityIssues.push(`RAM ${specs.ramType} không tương thích với Mainboard hỗ trợ ${specs.mainboardRamType}`)
+      }
+    }
+
+    // Check Case Size vs Mainboard Size
+    if (specs.caseSize && specs.mainboardSize) {
+      const caseSizeUpper = specs.caseSize.toUpperCase()
+      const mbSizeUpper = specs.mainboardSize.toUpperCase()
+      
+      // Case size compatibility rules:
+      // - ATX case: supports ATX, Micro-ATX, Mini-ITX
+      // - Micro-ATX case: supports Micro-ATX, Mini-ITX
+      // - Mini-ITX case: only supports Mini-ITX
+      let isCompatible = false
+      
+      if (caseSizeUpper.includes('MINI')) {
+        // Mini-ITX case only supports Mini-ITX motherboard
+        isCompatible = mbSizeUpper.includes('MINI')
+      } else if (caseSizeUpper.includes('MICRO')) {
+        // Micro-ATX case supports Micro-ATX and Mini-ITX
+        isCompatible = mbSizeUpper.includes('MICRO') || mbSizeUpper.includes('MINI')
+      } else if (caseSizeUpper.includes('ATX')) {
+        // ATX case supports ATX, Micro-ATX, and Mini-ITX
+        isCompatible = mbSizeUpper.includes('ATX') || mbSizeUpper.includes('MICRO') || mbSizeUpper.includes('MINI')
+      } else {
+        // If format not recognized, assume compatible
+        isCompatible = true
+      }
+      
+      if (!isCompatible) {
+        specs.compatibilityIssues.push(`Case size "${specs.caseSize}" không tương thích với Mainboard size "${specs.mainboardSize}"`)
+      }
+    }
+
+    // Check PSU Wattage
     if (specs.psuWattage > 0 && specs.totalTDP > 0) {
       const recommendedPSU = Math.round(specs.totalTDP * 1.5) // 50% headroom
       if (specs.psuWattage < recommendedPSU) {
@@ -499,6 +559,7 @@ function PCBuilderPage() {
       }
     }
 
+    // Check Cooling TDP
     if (specs.coolingTDP > 0 && specs.totalTDP > 0) {
       const cpuTDP = buildComponents.find(bc => bc.categoryId === 1)?.component?.tdpWatt || 0
       if (specs.coolingTDP < cpuTDP) {
@@ -506,6 +567,7 @@ function PCBuilderPage() {
       }
     }
 
+    // Recommendations
     if (specs.totalRAM < 16) {
       specs.recommendations.push('RAM 16GB+ được khuyến nghị cho gaming và multitasking')
     }
