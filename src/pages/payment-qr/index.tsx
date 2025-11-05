@@ -1,16 +1,22 @@
 import { useEffect, useState } from 'react'
 import { useNavigate, useLocation } from 'react-router-dom'
-import { ApiService } from '../../services/api'
+
+interface PaymentData {
+  id: number
+  amount: number
+}
 
 function PaymentQRPage() {
   const navigate = useNavigate()
   const location = useLocation()
-  const [paymentData, setPaymentData] = useState<any>(null)
+  const [paymentData, setPaymentData] = useState<PaymentData | null>(null)
   const [isLoading, setIsLoading] = useState(true)
 
   useEffect(() => {
     // Lấy payment data từ state hoặc localStorage
-    const data = location.state?.paymentData || JSON.parse(localStorage.getItem('payment-data') || '{}')
+    const stateData = (location.state as { paymentData?: PaymentData } | null)?.paymentData
+    const storedData = JSON.parse(localStorage.getItem('payment-data') || 'null') as PaymentData | null
+    const data: PaymentData | null = stateData ?? storedData
     if (data && data.id) {
       setPaymentData(data)
     } else {

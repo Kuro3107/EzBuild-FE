@@ -32,7 +32,7 @@ function ChatDebugPage() {
     
     if (user && user.userId) {
       addLog(`Attempting WebSocket connection for user: ${user.userId}`)
-      chatService.connect(apiBase, user.userId, (msg) => {
+      chatService.connect(apiBase, Number(user.userId), (msg) => {
         addLog(`Received message: ${JSON.stringify(msg)}`)
       })
       setWsStatus('Đã kết nối')
