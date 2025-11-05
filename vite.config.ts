@@ -4,6 +4,10 @@ import tailwindcss from '@tailwindcss/vite'
 // https://vite.dev/config/
 export default defineConfig({
   plugins: [ tailwindcss()],
+  css: {
+    // Force Vite to use PostCSS instead of Lightning CSS native bindings
+    transformer: 'postcss'
+  },
   server: {
     proxy: {
       '/api': {
