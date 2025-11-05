@@ -2,6 +2,11 @@
   "buildCommand": "npm run build",
   "env": {
     "ROLLUP_SKIP_NODE_JS_NATIVE": "true"
+  },
+  "build": {
+    "env": {
+      "ROLLUP_SKIP_NODE_JS_NATIVE": "true"
+    }
   }
 }
 
