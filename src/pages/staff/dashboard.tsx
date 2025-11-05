@@ -1,4 +1,4 @@
-import { useEffect, useState } from 'react'
+import { useEffect, useMemo, useState } from 'react'
 import { Link } from 'react-router-dom'
 import { ApiService } from '../../services/api'
 import '../../Homepage.css'
@@ -35,6 +35,29 @@ function StaffDashboardPage() {
   })
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState<string | null>(null)
+  const [ordersForChart, setOrdersForChart] = useState<Array<Record<string, unknown>>>([])
+  const [paymentsForChart, setPaymentsForChart] = useState<Array<Record<string, unknown>>>([])
+
+  // Compute chart data with stable hook order (declare before any conditional returns)
+  const revenuePoints = useMemo(() => {
+    const map = new Map<string, number>()
+    paymentsForChart
+      .filter(p => (p as Record<string, unknown>)['status'] === 'PAID')
+      .forEach(p => {
+        const rec = p as Record<string, unknown>
+        const d = (rec['paidAt'] as string) || (rec['updatedAt'] as string) || (rec['createdAt'] as string)
+        const key = d ? new Date(d).toLocaleDateString('vi-VN', { day: '2-digit', month: '2-digit' }) : '??'
+        const amtRaw = rec['amount'] as number | string | undefined
+        map.set(key, (map.get(key) || 0) + (amtRaw !== undefined ? Number(amtRaw) : 0))
+      })
+    const arr = Array.from(map.entries()).map(([k, v]) => ({ x: k, y: v }))
+    arr.sort((a, b) => {
+      const [da, ma] = a.x.split('/').map(Number)
+      const [db, mb] = b.x.split('/').map(Number)
+      return ma === mb ? da - db : ma - mb
+    })
+    return arr
+  }, [paymentsForChart])
 
   useEffect(() => {
     loadDashboardData()
@@ -73,6 +96,8 @@ function StaffDashboardPage() {
       }
       
       setStats(newStats)
+      setOrdersForChart(orders)
+      setPaymentsForChart(payments)
     } catch (err) {
       setError('Không thể tải dữ liệu dashboard')
       console.error('Error loading dashboard data:', err)
@@ -255,23 +280,25 @@ function StaffDashboardPage() {
         </div>
       </div>
 
-      {/* Revenue */}
-      <div className="bg-white rounded-lg border border-black/10 p-6 mb-8">
-        <div className="flex items-center justify-between">
-          <div>
-            <p className="text-sm font-medium text-gray-600">Tổng doanh thu</p>
-            <p className="text-3xl font-bold text-emerald-600">
-              {new Intl.NumberFormat('vi-VN', {
-                style: 'currency',
-                currency: 'VND'
-              }).format(stats.totalRevenue)}
-            </p>
-          </div>
-          <div className="w-16 h-16 bg-emerald-100 rounded-lg flex items-center justify-center">
-            <svg className="w-8 h-8 text-emerald-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 8c-1.657 0-3 .895-3 2s1.343 2 3 2 3 .895 3 2-1.343 2-3 2m0-8c1.11 0 2.08.402 2.599 1M12 8V7m0 1v8m0 0v1m0-1c-1.11 0-2.08-.402-2.599-1" />
-            </svg>
-          </div>
+      {/* Charts */}
+      <div className="grid grid-cols-1 lg:grid-cols-2 gap-6 mb-8">
+        <div className="bg-white rounded-lg border border-black/10 p-6">
+          <h3 className="font-semibold text-gray-900 mb-3">Đơn hàng theo trạng thái</h3>
+          <BarChart
+            labels={['PEND', 'DEP', 'SHIP', 'PAID', 'DONE', 'CANC']}
+            values={[
+              ordersForChart.filter(o => (o as Record<string, unknown>)['status'] === 'PENDING').length,
+              ordersForChart.filter(o => (o as Record<string, unknown>)['status'] === 'DEPOSITED').length,
+              ordersForChart.filter(o => (o as Record<string, unknown>)['status'] === 'SHIPPING').length,
+              ordersForChart.filter(o => (o as Record<string, unknown>)['status'] === 'PAID').length,
+              ordersForChart.filter(o => (o as Record<string, unknown>)['status'] === 'DONE').length,
+              ordersForChart.filter(o => (o as Record<string, unknown>)['status'] === 'CANCEL').length,
+            ]}
+          />
+        </div>
+        <div className="bg-white rounded-lg border border-black/10 p-6">
+          <h3 className="font-semibold text-gray-900 mb-3">Doanh thu (ngày gần đây)</h3>
+          <LineChart points={revenuePoints} />
         </div>
       </div>
 
@@ -326,6 +353,42 @@ function StaffDashboardPage() {
         </Link>
       </div>
     </div>
+  )
+}
+
+// Reuse lightweight charts
+function BarChart({ labels, values, color = '#6366f1' }: { labels: string[]; values: number[]; color?: string }) {
+  const max = Math.max(1, ...values)
+  const barWidth = 100 / Math.max(1, values.length)
+  return (
+    <svg viewBox="0 0 100 60" preserveAspectRatio="none" className="w-full h-40">
+      {values.map((v, i) => {
+        const h = (v / max) * 48
+        return (
+          <g key={i}>
+            <rect x={i * barWidth + 4 * 0.01} y={55 - h} width={barWidth * 0.9} height={h} fill={color} rx={1.5} />
+            <text x={i * barWidth + (barWidth * 0.45)} y={58.5} fontSize="3" textAnchor="middle" fill="#6b7280">
+              {labels[i]}
+            </text>
+          </g>
+        )
+      })}
+      <line x1="0" y1="55" x2="100" y2="55" stroke="#e5e7eb" strokeWidth="0.5" />
+    </svg>
+  )
+}
+
+function LineChart({ points, color = '#10b981' }: { points: Array<{ x: string; y: number }>; color?: string }) {
+  const maxY = Math.max(1, ...points.map(p => p.y))
+  const stepX = 100 / Math.max(1, points.length - 1)
+  return (
+    <svg viewBox="0 0 100 60" preserveAspectRatio="none" className="w-full h-40">
+      <polyline fill="none" stroke={color} strokeWidth="1.5" points={points.map((p, i) => `${i * stepX},${55 - (p.y / maxY) * 48}`).join(' ')} />
+      {points.map((p, i) => (
+        <circle key={i} cx={i * stepX} cy={55 - (p.y / maxY) * 48} r={1.2} fill={color} />
+      ))}
+      <line x1="0" y1="55" x2="100" y2="55" stroke="#e5e7eb" strokeWidth="0.5" />
+    </svg>
   )
 }
 
