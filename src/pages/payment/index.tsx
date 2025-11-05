@@ -115,36 +115,102 @@ function PaymentPage() {
       }
     }
     
-    if (!currentPayment) {
-      console.error('❌ No payment object!')
-      alert('Không tìm thấy thông tin payment. Vui lòng thử lại.')
-      return
-    }
+    // Nếu không có payment, sẽ cố gắng fetch từ BE theo orderId
 
     try {
       setIsProcessing(true)
       
-      console.log('Payment ID:', currentPayment.id)
-      console.log('Payment ID type:', typeof currentPayment.id)
-      
-      // Cập nhật API thật - KHÔNG dùng localStorage
-      if (currentPayment?.id && typeof currentPayment.id !== 'string') {
-        console.log('✅ Calling updatePayment API...')
-        // Payment thật từ API - cập nhật API
-        const result = await ApiService.updatePayment(Number(currentPayment.id), {
-          status: 'PAID',
-          transactionId: `TXN_${Date.now()}`,
-          paidAt: new Date().toISOString()
+      // B1: lấy paymentId từ state/localStorage nếu có
+      let paymentIdNumber: number = NaN
+      if (currentPayment && 'id' in (currentPayment as object)) {
+        const rawId = (currentPayment as { id: string | number }).id
+        paymentIdNumber = Number(rawId)
+      }
+
+      // B2: nếu vẫn không có, gọi BE lấy danh sách payment và tìm theo orderId (kèm retry)
+      const tryResolvePaymentFromAPI = async (): Promise<number | null> => {
+        if (!orderId) return null
+        const oid = Number(orderId)
+        const allPayments = await ApiService.getAllPayments()
+        console.log('🔍 Payments fetched:', Array.isArray(allPayments) ? allPayments.length : 0)
+        // 1) Ưu tiên match theo orderId
+        let matched = (allPayments || []).find((p: Record<string, unknown>) => {
+          const byFlatField = Number((p as { orderId?: number | string })?.orderId) === oid
+          const byNestedOrder = Number((p as { order?: { id?: number | string } })?.order?.id) === oid
+          return byFlatField || byNestedOrder
         })
-        
-        console.log('✅ Payment updated via API successfully:', result)
-        
-        // Navigate ngay sau khi API thành công
+        // 2) Nếu chưa thấy, thử theo amount=deposit và status=PENDING, chọn id lớn nhất (mới nhất)
+        if (!matched) {
+          const candidates = (allPayments || []).filter((p: Record<string, unknown>) => {
+            const amount = Number((p as { amount?: number | string })?.amount)
+            const status = String((p as { status?: string })?.status || '')
+            return amount === depositAmount && status.toUpperCase() === 'PENDING'
+          }) as Array<Record<string, unknown>>
+          if (candidates.length > 0) {
+            matched = candidates.sort((a: Record<string, unknown>, b: Record<string, unknown>) => {
+              const bid = Number((b as { id?: number | string }).id)
+              const aid = Number((a as { id?: number | string }).id)
+              return bid - aid
+            })[0]
+          }
+        }
+        if (!matched) return null
+        type MatchedPayment = {
+          id: string | number
+          orderId?: number | string
+          order?: { id?: number | string }
+          amount?: number
+          method?: string
+          status?: string
+          transactionId?: string | null
+          paidAt?: string | null
+        }
+        const m = matched as MatchedPayment
+        const resolvedId = Number(m.id)
+        if (Number.isFinite(resolvedId)) {
+          const normalized = {
+            id: m.id,
+            order: m.order || { id: m.orderId },
+            amount: Number(m.amount ?? depositAmount),
+            method: (m.method as string) || 'QR_CODE',
+            status: (m.status as string) || 'PENDING',
+            transactionId: m.transactionId ?? null,
+            paidAt: m.paidAt ?? null,
+            isMock: false
+          }
+          localStorage.setItem(`payment_${orderId}`, JSON.stringify(normalized))
+          setPayment(normalized as unknown as typeof payment)
+          return resolvedId
+        }
+        return null
+      }
+
+      if (!Number.isFinite(paymentIdNumber) && orderId) {
+        try {
+          console.log('🔄 Fetching payments from API to resolve missing payment...')
+          let resolved = await tryResolvePaymentFromAPI()
+          // Nếu chưa có, retry vài lần (đợi quá trình tạo payment hoàn tất và được BE trả về khi GET)
+          let attempts = 0
+          while (!resolved && attempts < 4) {
+            attempts += 1
+            await new Promise((r) => setTimeout(r, 700))
+            resolved = await tryResolvePaymentFromAPI()
+          }
+          if (resolved) {
+            paymentIdNumber = resolved
+          }
+        } catch (fetchErr) {
+          console.error('❌ Failed to fetch payments for fallback:', fetchErr)
+        }
+      }
+      
+      if (Number.isFinite(paymentIdNumber)) {
+        console.log('✅ Updating payment status only...', { paymentId: paymentIdNumber })
+        await ApiService.updatePayment(paymentIdNumber, { status: 'PAID' })
         navigate('/')
       } else {
-        // Mock payment - báo lỗi
-        console.error('❌ Mock payment detected, cannot update')
-        alert('Không thể cập nhật payment. Vui lòng thử lại.')
+        console.error('❌ No valid payment id to update', { currentPayment })
+        alert('Không tìm thấy payment để cập nhật. Vui lòng thử lại.')
       }
       
     } catch (error) {
@@ -178,12 +244,16 @@ function PaymentPage() {
           localStorage.removeItem(`payment_${orderId}`)
           localStorage.removeItem(`global_payment_creating_${orderId}`)
           navigate('/checkout')
-        } else {
-          // Xử lý API payment - xóa payment
-          await ApiService.deletePayment(Number(payment?.id))
-          
+        } else if (payment?.id && !Number.isNaN(Number(payment.id))) {
+          // Xử lý API payment - xóa payment nếu có id hợp lệ
+          await ApiService.deletePayment(Number(payment.id))
           alert('Đã hủy thanh toán.')
-          // Xóa payment khỏi localStorage sau khi hủy
+          localStorage.removeItem(`payment_${orderId}`)
+          localStorage.removeItem(`global_payment_creating_${orderId}`)
+          navigate('/checkout')
+        } else {
+          // Không có payment id -> chỉ dọn local và điều hướng
+          alert('Đã hủy thanh toán.')
           localStorage.removeItem(`payment_${orderId}`)
           localStorage.removeItem(`global_payment_creating_${orderId}`)
           navigate('/checkout')
