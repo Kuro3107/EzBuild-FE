@@ -41,15 +41,81 @@ function StaffProductsPage() {
     brand: '',
     model: '',
     specs: '',
-    category_id: 1,
+    category_id: 0,
     imageUrl1: '',
     imageUrl2: '',
     imageUrl3: '',
     imageUrl4: ''
   })
 
+  // Load tất cả products một lần - giống như trang builder
   useEffect(() => {
-    loadData()
+    const loadAllData = async () => {
+      try {
+        setLoading(true)
+        setError(null)
+        
+        // Load categories và products cùng lúc
+        // Fetch trực tiếp như builder để có category được populate
+        const categoriesData = await ApiService.getCategories()
+        
+        // Fetch trực tiếp như builder - có thể API trả về category khi fetch trực tiếp
+        const response = await fetch(`${import.meta.env?.VITE_API_BASE_URL || 'http://localhost:8080'}/api/product`, {
+          method: 'GET',
+          headers: { 'Content-Type': 'application/json' },
+        })
+        
+        if (!response.ok) {
+          throw new Error(`HTTP ${response.status}: ${response.statusText}`)
+        }
+        
+        const productsData = await response.json()
+        
+        setCategories(categoriesData as unknown as Category[])
+        
+        console.log('📦 Loaded products:', productsData.length)
+        
+        // Normalize products - đơn giản, lấy category_id nếu có
+        const normalizedProducts: Product[] = productsData.map((item: Record<string, unknown>) => {
+          // Lấy category_id từ category.id hoặc category_id trực tiếp
+          const categoryId = (item.category as { id?: number })?.id 
+            ?? (item.category_id as number)
+            ?? (item.categoryId as number)
+            ?? 0
+          
+          // Tạo product object
+          const product: Product = {
+            id: Number(item.id) || 0,
+            name: String(item.name || ''),
+            brand: String(item.brand || ''),
+            model: String(item.model || ''),
+            specs: String(item.specs || ''),
+            category_id: Number(categoryId) || 0,
+            imageUrl1: String(item.imageUrl1 || item.image_url1 || ''),
+            imageUrl2: item.imageUrl2 || item.image_url2 ? String(item.imageUrl2 || item.image_url2) : undefined,
+            imageUrl3: item.imageUrl3 || item.image_url3 ? String(item.imageUrl3 || item.image_url3) : undefined,
+            imageUrl4: item.imageUrl4 || item.image_url4 ? String(item.imageUrl4 || item.image_url4) : undefined,
+            createdAt: item.createdAt ? String(item.createdAt) : undefined,
+            category: item.category && typeof item.category === 'object' && 'id' in item.category && 'name' in item.category
+              ? { id: Number((item.category as { id?: unknown }).id) || 0, name: String((item.category as { name?: unknown }).name) || '' }
+              : undefined
+          }
+          
+          return product
+        })
+        
+        console.log('✅ Normalized products:', normalizedProducts.length)
+        
+        setProducts(normalizedProducts)
+      } catch (err) {
+        setError('Không thể tải dữ liệu')
+        console.error('Error loading data:', err)
+      } finally {
+        setLoading(false)
+      }
+    }
+    
+    loadAllData()
   }, [])
 
   // Debounce search term để tối ưu performance
@@ -62,21 +128,56 @@ function StaffProductsPage() {
   }, [searchTerm])
 
   const loadData = async () => {
+    // Reload tất cả data - giống như khi component mount
+    // Sử dụng cùng logic với loadAllData
     try {
       setLoading(true)
       setError(null)
       
-      const [productsData, categoriesData] = await Promise.all([
-        ApiService.getAllProducts(),
-        ApiService.getCategories()
-      ])
+      const categoriesData = await ApiService.getCategories()
       
-      console.log('=== LOAD DATA DEBUG ===')
-      console.log('Products sample:', productsData.slice(0, 3))
-      console.log('Categories:', categoriesData)
+      // Fetch trực tiếp như builder
+      const response = await fetch(`${import.meta.env?.VITE_API_BASE_URL || 'http://localhost:8080'}/api/product`, {
+        method: 'GET',
+        headers: { 'Content-Type': 'application/json' },
+      })
       
-      setProducts(productsData as Product[])
-      setCategories(categoriesData as Category[])
+      if (!response.ok) {
+        throw new Error(`HTTP ${response.status}: ${response.statusText}`)
+      }
+      
+      const productsData = await response.json()
+      
+      setCategories(categoriesData as unknown as Category[])
+      
+      // Normalize products - đơn giản
+      const normalizedProducts: Product[] = productsData.map((item: Record<string, unknown>) => {
+        const categoryId = (item.category as { id?: number })?.id 
+          ?? (item.category_id as number)
+          ?? (item.categoryId as number)
+          ?? 0
+        
+        const product: Product = {
+          id: Number(item.id) || 0,
+          name: String(item.name || ''),
+          brand: String(item.brand || ''),
+          model: String(item.model || ''),
+          specs: String(item.specs || ''),
+          category_id: Number(categoryId) || 0,
+          imageUrl1: String(item.imageUrl1 || item.image_url1 || ''),
+          imageUrl2: item.imageUrl2 || item.image_url2 ? String(item.imageUrl2 || item.image_url2) : undefined,
+          imageUrl3: item.imageUrl3 || item.image_url3 ? String(item.imageUrl3 || item.image_url3) : undefined,
+          imageUrl4: item.imageUrl4 || item.image_url4 ? String(item.imageUrl4 || item.image_url4) : undefined,
+          createdAt: item.createdAt ? String(item.createdAt) : undefined,
+          category: item.category && typeof item.category === 'object' && 'id' in item.category && 'name' in item.category
+            ? { id: Number((item.category as { id?: unknown }).id) || 0, name: String((item.category as { name?: unknown }).name) || '' }
+            : undefined
+        }
+        
+        return product
+      })
+      
+      setProducts(normalizedProducts)
     } catch (err) {
       setError('Không thể tải dữ liệu')
       console.error('Error loading data:', err)
@@ -87,7 +188,18 @@ function StaffProductsPage() {
 
   const handleAddProduct = async () => {
     try {
-      await ApiService.createProduct(formData)
+      const payload = {
+        name: formData.name,
+        brand: formData.brand,
+        model: formData.model,
+        specs: formData.specs,
+        category_id: Number(formData.category_id) || 0,
+        imageUrl1: formData.imageUrl1,
+        imageUrl2: formData.imageUrl2,
+        imageUrl3: formData.imageUrl3,
+        imageUrl4: formData.imageUrl4
+      }
+      await ApiService.createProduct(payload)
       alert('Đã thêm sản phẩm thành công!')
       setIsAddModalOpen(false)
       resetForm()
@@ -102,7 +214,18 @@ function StaffProductsPage() {
     if (!selectedProduct) return
     
     try {
-      await ApiService.updateProduct(selectedProduct.id, formData)
+      const payload = {
+        name: formData.name,
+        brand: formData.brand,
+        model: formData.model,
+        specs: formData.specs,
+        category_id: Number(formData.category_id) || 0,
+        imageUrl1: formData.imageUrl1,
+        imageUrl2: formData.imageUrl2,
+        imageUrl3: formData.imageUrl3,
+        imageUrl4: formData.imageUrl4
+      }
+      await ApiService.updateProduct(selectedProduct.id, payload)
       alert('Đã cập nhật sản phẩm thành công!')
       setIsEditModalOpen(false)
       setSelectedProduct(null)
@@ -135,7 +258,7 @@ function StaffProductsPage() {
       brand: '',
       model: '',
       specs: '',
-      category_id: 1,
+      category_id: 0,
       imageUrl1: '',
       imageUrl2: '',
       imageUrl3: '',
@@ -145,12 +268,14 @@ function StaffProductsPage() {
 
   const openEditModal = (product: Product) => {
     setSelectedProduct(product)
+    // category_id đã được normalize khi load, nên dùng trực tiếp
+    const resolvedCategoryId = product.category_id || 0
     setFormData({
       name: product.name,
       brand: product.brand,
       model: product.model,
       specs: product.specs,
-      category_id: product.category_id,
+      category_id: resolvedCategoryId,
       imageUrl1: product.imageUrl1,
       imageUrl2: product.imageUrl2 || '',
       imageUrl3: product.imageUrl3 || '',
@@ -164,40 +289,30 @@ function StaffProductsPage() {
     setIsDeleteModalOpen(true)
   }
 
-  // Tối ưu filter với useMemo và debounced search
+  // Filter products - giống như trang builder: filter ở frontend theo category và search
   const filteredProducts = useMemo(() => {
-    if (!products.length) return []
-    
-    console.log('=== FILTER DEBUG ===')
-    console.log('Total products:', products.length)
-    console.log('Filter category:', filterCategory)
-    console.log('Search term:', debouncedSearchTerm)
-    
-    return products.filter(product => {
-      // Filter theo category - kiểm tra cả category_id và category.id
-      if (filterCategory !== 0) {
-        const productCategoryId = product.category_id || (product.category as { id?: number })?.id
-        console.log(`Product ${product.name}: category_id=${product.category_id}, category.id=${(product.category as { id?: number })?.id}, filter=${filterCategory}`)
-        
-        if (productCategoryId !== filterCategory) {
-          return false
-        }
-      }
-      
-      // Filter theo search term (đã debounce)
-      if (debouncedSearchTerm.trim()) {
-        const lowerSearch = debouncedSearchTerm.toLowerCase()
-        const nameMatch = product.name.toLowerCase().includes(lowerSearch)
-        const brandMatch = product.brand.toLowerCase().includes(lowerSearch)
-        const modelMatch = product.model.toLowerCase().includes(lowerSearch)
-        
-        if (!nameMatch && !brandMatch && !modelMatch) {
-          return false
-        }
-      }
-      
-      return true
-    })
+    if (!products.length) {
+      return []
+    }
+
+    let filtered = products
+
+    // Filter theo category
+    if (filterCategory !== 0) {
+      filtered = filtered.filter(p => p.category_id === filterCategory)
+    }
+
+    // Filter theo search term
+    if (debouncedSearchTerm.trim()) {
+      const query = debouncedSearchTerm.trim().toLowerCase()
+      filtered = filtered.filter(p => 
+        String(p.name || '').toLowerCase().includes(query) ||
+        String(p.brand || '').toLowerCase().includes(query) ||
+        String(p.model || '').toLowerCase().includes(query)
+      )
+    }
+
+    return filtered
   }, [products, filterCategory, debouncedSearchTerm])
 
   const getCategoryName = (categoryId: number) => {
@@ -353,6 +468,7 @@ function StaffProductsPage() {
                         src={product.imageUrl1}
                         alt={product.name}
                         className="w-16 h-16 object-cover rounded"
+                        loading="lazy"
                         onError={(e) => {
                           (e.target as HTMLImageElement).src = 'https://via.placeholder.com/100x100?text=No+Image'
                         }}
@@ -366,7 +482,7 @@ function StaffProductsPage() {
                       {product.brand}
                     </td>
                     <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-900">
-                      {getCategoryName(product.category_id)}
+                      {getCategoryName(product.category_id || 0)}
                     </td>
                     <td className="px-6 py-4 whitespace-nowrap text-sm font-medium">
                       <div className="flex gap-2">
@@ -391,6 +507,7 @@ function StaffProductsPage() {
           </table>
         </div>
       </div>
+
 
       {/* Add Product Modal */}
       {isAddModalOpen && (

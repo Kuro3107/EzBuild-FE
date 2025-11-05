@@ -20,13 +20,15 @@ function PaymentPage() {
 
   const orderId = searchParams.get('orderId')
   const amount = searchParams.get('amount')
+  const depositAmount = 50000
+  const orderTotal = parseFloat(amount || '0')
 
   useEffect(() => {
     console.log('=== PAYMENT PAGE useEffect ===')
     console.log('orderId:', orderId)
     console.log('amount:', amount)
     
-    if (!orderId || !amount) {
+    if (!orderId) {
       alert('Thiếu thông tin đơn hàng')
       navigate('/checkout')
       return
@@ -63,7 +65,7 @@ function PaymentPage() {
         // Tạo payment qua API - CHỈ 1 LẦN DUY NHẤT
         const newPayment = await ApiService.createPayment({
           orderId: parseInt(orderId),
-          amount: parseFloat(amount),
+          amount: depositAmount,
           method: 'QR_CODE',
           status: 'PENDING'
         })
@@ -130,7 +132,7 @@ function PaymentPage() {
         console.log('✅ Calling updatePayment API...')
         // Payment thật từ API - cập nhật API
         const result = await ApiService.updatePayment(Number(currentPayment.id), {
-          status: 'PAID 25%',
+          status: 'PAID',
           transactionId: `TXN_${Date.now()}`,
           paidAt: new Date().toISOString()
         })
@@ -253,22 +255,25 @@ function PaymentPage() {
               <strong>Mã đơn hàng:</strong> #{orderId}
             </p>
             <p style={{ margin: '4px 0', fontSize: '14px' }}>
-              <strong>Số tiền:</strong> {parseFloat(amount || '0').toLocaleString('vi-VN')} VND
+              <strong>Tổng giá trị đơn hàng:</strong> {orderTotal.toLocaleString('vi-VN')} VND
+            </p>
+            <p style={{ margin: '4px 0', fontSize: '14px' }}>
+              <strong>Số tiền cọc:</strong> {depositAmount.toLocaleString('vi-VN')} VND
             </p>
             <p style={{ margin: '4px 0', fontSize: '14px' }}>
               <strong>Trạng thái:</strong> 
               <span style={{ 
-                color: payment?.status === 'PAID 25%' ? '#22c55e' : '#fbbf24',
+                color: payment?.status === 'PAID' ? '#22c55e' : '#fbbf24',
                 fontWeight: 'bold',
                 padding: '2px 8px',
                 borderRadius: '4px',
-                background: payment?.status === 'PAID 25%' ? 'rgba(34, 197, 94, 0.2)' : 'rgba(251, 191, 36, 0.2)',
+                background: payment?.status === 'PAID' ? 'rgba(34, 197, 94, 0.2)' : 'rgba(251, 191, 36, 0.2)',
                 marginLeft: '8px'
               }}>
-                {payment?.status === 'PAID 25%' ? '✅ Đã cọc 25%' : '⏳ Chờ thanh toán'}
+                {payment?.status === 'PAID' ? '✅ Đã cọc 50.000đ' : '⏳ Chờ thanh toán'}
               </span>
             </p>
-            {payment?.status === 'PAID 25%' ? (
+            {payment?.status === 'PAID' ? (
               <div style={{
                 background: 'rgba(34, 197, 94, 0.1)',
                 border: '1px solid rgba(34, 197, 94, 0.3)',
@@ -290,7 +295,7 @@ function PaymentPage() {
               </div>
             ) : (
               <p style={{ margin: '4px 0', fontSize: '12px', color: 'rgba(255,255,255,0.6)' }}>
-                Sau khi thanh toán, đơn hàng sẽ chuyển sang trạng thái "Đã cọc"
+                Sau khi thanh toán 50.000đ, đơn hàng sẽ chuyển sang trạng thái "Đã cọc"
               </p>
             )}
           </div>
@@ -346,7 +351,7 @@ function PaymentPage() {
             justifyContent: 'center',
             flexWrap: 'wrap'
           }}>
-            {payment?.status !== 'PAID 25%' && (
+            {payment?.status !== 'PAID' && (
               <button
                 onClick={handlePaymentSuccess}
                 disabled={isProcessing}
@@ -368,7 +373,7 @@ function PaymentPage() {
               </button>
             )}
 
-            {payment?.status !== 'PAID 25%' && (
+            {payment?.status !== 'PAID' && (
               <button
                 onClick={handleCancel}
                 disabled={isProcessing}
@@ -390,7 +395,7 @@ function PaymentPage() {
               </button>
             )}
 
-                         {payment?.status === 'PAID 25%' && (
+                        {payment?.status === 'PAID' && (
               <button
                 onClick={() => navigate('/')}
                 style={{

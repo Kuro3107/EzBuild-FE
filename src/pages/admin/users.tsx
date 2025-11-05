@@ -55,8 +55,23 @@ function AdminUsersPage() {
       setError(null)
       const usersData = await ApiService.getAllUsers()
       
-      // Kiểm tra nếu có dữ liệu hoặc không có lỗi
-      setUsers(usersData.map(u => u as unknown as User))
+      // Normalize users data - đảm bảo tất cả fields đều có giá trị đúng
+      const normalizedUsers: User[] = usersData.map((u: Record<string, unknown>) => {
+        const user: User = {
+          id: u.id ? String(u.id) : String(u.userId || u.user_id || ''),
+          email: String(u.email || ''),
+          fullname: u.fullname ? String(u.fullname) : (u.full_name ? String(u.full_name) : undefined),
+          username: u.username ? String(u.username) : (u.user_name ? String(u.user_name) : undefined),
+          phone: u.phone ? String(u.phone) : (u.phoneNumber || u.phone_number ? String(u.phoneNumber || u.phone_number) : undefined),
+          role: u.role ? String(u.role) : 'Customer',
+          dob: u.dob ? String(u.dob) : (u.dateOfBirth || u.date_of_birth ? String(u.dateOfBirth || u.date_of_birth) : undefined),
+          address: u.address ? String(u.address) : undefined,
+          createdAt: u.createdAt ? String(u.createdAt) : (u.created_at ? String(u.created_at) : undefined)
+        }
+        
+        return user
+      })
+      setUsers(normalizedUsers)
       
       // Chỉ hiển thị warning trong console, không block UI
       if (usersData.length === 0) {
@@ -135,16 +150,20 @@ function AdminUsersPage() {
 
   const openEditModal = (user: User) => {
     setSelectedUser(user)
-    setFormData({
-      email: user.email || '',
-      fullname: user.fullname || '',
-      username: user.username || '',
-      phone: user.phone || '',
-      password: '',
-      role: user.role || 'User',
-      dob: user.dob || '',
-      address: user.address || ''
-    })
+    
+    // Đảm bảo lấy đúng data từ user được chọn, không phải admin
+    const formDataToSet = {
+      email: String(user.email || ''),
+      fullname: String(user.fullname || ''),
+      username: String(user.username || ''),
+      phone: String(user.phone || ''),
+      password: '', // Luôn để trống password khi edit
+      role: String(user.role || 'User'),
+      dob: user.dob ? String(user.dob) : '',
+      address: String(user.address || '')
+    }
+    
+    setFormData(formDataToSet)
     setIsEditModalOpen(true)
   }
 
@@ -620,88 +639,96 @@ function AdminUsersPage() {
             
             <div className="space-y-4">
               <div>
-                <label className="block text-sm font-medium text-gray-700 mb-1">Email *</label>
+                <label className="block text-sm font-medium text-black mb-1">Email *</label>
                 <input
                   type="email"
                   value={formData.email}
                   onChange={(e) => setFormData({ ...formData, email: e.target.value })}
-                  className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
+                  className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 text-black bg-white"
                   required
+                  style={{ color: '#000000' }}
                 />
               </div>
               
               <div>
-                <label className="block text-sm font-medium text-gray-700 mb-1">Password (để trống nếu không đổi)</label>
+                <label className="block text-sm font-medium text-black mb-1">Password (để trống nếu không đổi)</label>
                 <input
                   type="password"
                   value={formData.password}
                   onChange={(e) => setFormData({ ...formData, password: e.target.value })}
-                  className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
+                  className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 text-black bg-white"
+                  style={{ color: '#000000' }}
                 />
               </div>
 
               <div>
-                <label className="block text-sm font-medium text-gray-700 mb-1">Họ tên</label>
+                <label className="block text-sm font-medium text-black mb-1">Họ tên</label>
                 <input
                   type="text"
                   value={formData.fullname}
                   onChange={(e) => setFormData({ ...formData, fullname: e.target.value })}
-                  className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
+                  className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 text-black bg-white"
+                  style={{ color: '#000000' }}
                 />
               </div>
 
               <div>
-                <label className="block text-sm font-medium text-gray-700 mb-1">Username</label>
+                <label className="block text-sm font-medium text-black mb-1">Username</label>
                 <input
                   type="text"
                   value={formData.username}
                   onChange={(e) => setFormData({ ...formData, username: e.target.value })}
-                  className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
+                  className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 text-black bg-white"
+                  style={{ color: '#000000' }}
                 />
               </div>
 
               <div className="grid grid-cols-2 gap-4">
                 <div>
-                  <label className="block text-sm font-medium text-gray-700 mb-1">Số điện thoại</label>
+                  <label className="block text-sm font-medium text-black mb-1">Số điện thoại</label>
                   <input
                     type="text"
                     value={formData.phone}
                     onChange={(e) => setFormData({ ...formData, phone: e.target.value })}
-                    className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
+                    className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 text-black bg-white"
+                    style={{ color: '#000000' }}
                   />
                 </div>
 
                 <div>
-                  <label className="block text-sm font-medium text-gray-700 mb-1">Role</label>
+                  <label className="block text-sm font-medium text-black mb-1">Role</label>
                   <select
                     value={formData.role}
                     onChange={(e) => setFormData({ ...formData, role: e.target.value })}
-                    className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
+                    className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 text-black bg-white"
+                    style={{ color: '#000000' }}
                   >
-                    <option value="Customer">Customer</option>
-                    <option value="Staff">Staff</option>
-                    <option value="Admin">Admin</option>
+                    <option value="Customer" style={{ color: '#000000', backgroundColor: '#ffffff' }}>Customer</option>
+                    <option value="Staff" style={{ color: '#000000', backgroundColor: '#ffffff' }}>Staff</option>
+                    <option value="Admin" style={{ color: '#000000', backgroundColor: '#ffffff' }}>Admin</option>
                   </select>
                 </div>
               </div>
 
               <div>
-                <label className="block text-sm font-medium text-gray-700 mb-1">Ngày sinh</label>
+                <label className="block text-sm font-medium text-black mb-1">Ngày sinh</label>
                 <input
                   type="date"
                   value={formData.dob}
                   onChange={(e) => setFormData({ ...formData, dob: e.target.value })}
-                  className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
+                  className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 text-black bg-white"
+                  style={{ color: '#000000' }}
                 />
               </div>
 
               <div>
-                <label className="block text-sm font-medium text-gray-700 mb-1">Địa chỉ</label>
+                <label className="block text-sm font-medium text-black mb-1">Địa chỉ</label>
                 <textarea
                   value={formData.address}
                   onChange={(e) => setFormData({ ...formData, address: e.target.value })}
-                  className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
+                  className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 text-black bg-white"
                   rows={3}
+                  style={{ color: '#000000' }}
                 />
               </div>
             </div>
@@ -745,11 +772,11 @@ function AdminUsersPage() {
         }}>
           <div className="bg-white rounded-lg shadow-xl max-w-md w-full">
             <div className="p-6">
-              <h2 className="text-xl font-bold mb-4 text-red-600">Xác nhận xóa</h2>
-              <p className="mb-4 text-gray-700">
-                Bạn có chắc chắn muốn xóa user <strong className="font-semibold">{selectedUser.email}</strong> không?
+              <h2 style={{ color: '#dc2626', fontSize: '20px', fontWeight: 'bold', marginBottom: '16px' }}>Xác nhận xóa</h2>
+              <p style={{ color: '#000000', marginBottom: '16px', fontSize: '14px' }}>
+                Bạn có chắc chắn muốn xóa user <strong style={{ color: '#000000', fontWeight: '600' }}>{selectedUser.email}</strong> không?
               </p>
-              <p className="text-sm text-gray-500 mb-6">Hành động này không thể hoàn tác.</p>
+              <p style={{ color: '#000000', fontSize: '12px', marginBottom: '24px' }}>Hành động này không thể hoàn tác.</p>
             </div>
             <div className="flex justify-end gap-3 p-6 border-t border-gray-200 bg-gray-50">
               <button
@@ -757,13 +784,35 @@ function AdminUsersPage() {
                   setIsDeleteModalOpen(false)
                   setSelectedUser(null)
                 }}
-                className="px-6 py-2 border border-gray-300 rounded-lg hover:bg-gray-100 transition-colors font-medium"
+                style={{
+                  padding: '8px 24px',
+                  border: '1px solid #d1d5db',
+                  borderRadius: '8px',
+                  backgroundColor: '#ffffff',
+                  color: '#000000',
+                  fontWeight: '500',
+                  cursor: 'pointer',
+                  transition: 'background-color 0.2s'
+                }}
+                onMouseOver={(e) => e.currentTarget.style.backgroundColor = '#f3f4f6'}
+                onMouseOut={(e) => e.currentTarget.style.backgroundColor = '#ffffff'}
               >
                 Hủy
               </button>
               <button
                 onClick={handleDeleteUser}
-                className="px-6 py-2 bg-red-600 text-white rounded-lg hover:bg-red-700 transition-colors font-medium"
+                style={{
+                  padding: '8px 24px',
+                  backgroundColor: '#dc2626',
+                  color: '#ffffff',
+                  borderRadius: '8px',
+                  fontWeight: '500',
+                  cursor: 'pointer',
+                  border: 'none',
+                  transition: 'background-color 0.2s'
+                }}
+                onMouseOver={(e) => e.currentTarget.style.backgroundColor = '#b91c1c'}
+                onMouseOut={(e) => e.currentTarget.style.backgroundColor = '#dc2626'}
               >
                 Xóa User
               </button>

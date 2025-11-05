@@ -772,6 +772,19 @@ export class ApiService {
 
       const allProducts = await this.handleResponse<Record<string, unknown>[]>(response)
       
+      // Debug: Log sample product để xem cấu trúc dữ liệu
+      if (allProducts.length > 0) {
+        console.log(`🔍 Filtering ${allProducts.length} products for category_id=${categoryId}`)
+        console.log('🔍 Sample product before filter:', allProducts[0])
+        const sampleProduct = allProducts[0] as Record<string, unknown>
+        console.log('🔍 Sample product.category_id:', sampleProduct.category_id)
+        console.log('🔍 Sample product.categoryId:', sampleProduct.categoryId)
+        console.log('🔍 Sample product.category:', sampleProduct.category)
+        if (sampleProduct.category && typeof sampleProduct.category === 'object') {
+          console.log('🔍 Sample product.category.id:', (sampleProduct.category as { id?: number })?.id)
+        }
+      }
+      
       // Filter theo category_id (hỗ trợ nhiều dạng trường như CPU page)
       const products = allProducts.filter((product: Record<string, unknown>) => {
         const rawId = (product as Record<string, unknown>).category_id
@@ -781,7 +794,18 @@ export class ApiService {
         return normalized === categoryId
       })
       
-      console.log(`Tìm thấy ${products.length} products với category_id=${categoryId}`)
+      console.log(`✅ Tìm thấy ${products.length} products với category_id=${categoryId}`)
+      if (products.length === 0 && allProducts.length > 0) {
+        console.log('⚠️ Không tìm thấy products. Sample product:', allProducts[0])
+        const sampleProduct = allProducts[0] as Record<string, unknown>
+        const sampleRawId = sampleProduct.category_id 
+          ?? sampleProduct.categoryId 
+          ?? ((sampleProduct.category as { id?: number })?.id)
+        console.log('⚠️ Sample product raw category_id:', sampleRawId)
+        const sampleNormalized = typeof sampleRawId === 'string' ? parseInt(sampleRawId, 10) : Number(sampleRawId)
+        console.log('⚠️ Sample product normalized category_id:', sampleNormalized)
+        console.log('⚠️ Looking for category_id:', categoryId)
+      }
       return products
     } catch (error) {
       console.error('Error fetching products by category:', error)
@@ -810,27 +834,157 @@ export class ApiService {
   }
 
   static async createProduct(product: Record<string, unknown>): Promise<Record<string, unknown>> {
+    // Backend expects JSON body mapped to Product with category object
+    const catId = Number(product['category_id'] ?? product['categoryId'] ?? (product['category'] as any)?.id ?? 0)
+    const payload: Record<string, unknown> = {
+      name: product['name'],
+      brand: product['brand'],
+      model: product['model'],
+      specs: product['specs'],
+      ...(Number.isFinite(catId) && catId > 0 ? { category: { id: catId } } : {}),
+      imageUrl1: product['imageUrl1'],
+      imageUrl2: product['imageUrl2'],
+      imageUrl3: product['imageUrl3'],
+      imageUrl4: product['imageUrl4']
+    }
+
     const response = await fetch(`${API_BASE_URL}/api/product`, {
       method: 'POST',
       headers: {
         'Content-Type': 'application/json',
+        'Accept': 'application/json',
       },
-      body: JSON.stringify(product),
+      body: JSON.stringify(payload),
     })
 
     return this.handleResponse<Record<string, unknown>>(response)
   }
 
   static async updateProduct(id: number, product: Record<string, unknown>): Promise<Record<string, unknown>> {
-    const response = await fetch(`${API_BASE_URL}/api/product/${id}`, {
+    // Try JSON first
+    try {
+      const response = await fetch(`${API_BASE_URL}/api/product/${id}`, {
+        method: 'PUT',
+        headers: {
+          'Content-Type': 'application/json',
+          'Accept': 'application/json',
+        },
+        body: JSON.stringify(product),
+      })
+
+      if (response.ok) {
+        return this.handleResponse<Record<string, unknown>>(response)
+      } else {
+        const text = await response.text().catch(() => '')
+        console.warn('[updateProduct] JSON simple failed:', response.status, text)
+      }
+    } catch (e) {
+      console.warn('[updateProduct] JSON simple error:', e)
+    }
+
+    // Try JSON with category object
+    try {
+      const catId = Number(product['category_id'] ?? product['categoryId'] ?? (product['category'] as any)?.id ?? 0)
+      const jsonWithCategory = {
+        id,
+        ...product,
+        ...(Number.isFinite(catId) && catId > 0 ? { category: { id: catId } } : {}),
+      }
+      const response = await fetch(`${API_BASE_URL}/api/product/${id}`, {
+        method: 'PUT',
+        headers: {
+          'Content-Type': 'application/json',
+          'Accept': 'application/json',
+        },
+        body: JSON.stringify(jsonWithCategory),
+      })
+
+      if (response.ok) {
+        return this.handleResponse<Record<string, unknown>>(response)
+      } else {
+        const text = await response.text().catch(() => '')
+        console.warn('[updateProduct] JSON with category failed:', response.status, text)
+      }
+    } catch (e) {
+      console.warn('[updateProduct] JSON with category error:', e)
+    }
+
+    // Try MINIMAL JSON (whitelisted fields only) to avoid UnrecognizedPropertyException
+    try {
+      const catId = Number(product['category_id'] ?? product['categoryId'] ?? (product['category'] as any)?.id ?? 0)
+      const minimalPayload: Record<string, unknown> = {
+        id,
+        name: product['name'],
+        brand: product['brand'],
+        model: product['model'],
+        specs: product['specs'],
+        ...(Number.isFinite(catId) && catId > 0 ? { category: { id: catId } } : {}),
+        imageUrl1: product['imageUrl1'],
+        imageUrl2: product['imageUrl2'],
+        imageUrl3: product['imageUrl3'],
+        imageUrl4: product['imageUrl4']
+      }
+      const response = await fetch(`${API_BASE_URL}/api/product/${id}`, {
+        method: 'PUT',
+        headers: {
+          'Content-Type': 'application/json',
+          'Accept': 'application/json',
+        },
+        body: JSON.stringify(minimalPayload),
+      })
+
+      if (response.ok) {
+        console.log('[updateProduct] succeeded with minimal JSON payload')
+        return this.handleResponse<Record<string, unknown>>(response)
+      } else {
+        const text = await response.text().catch(() => '')
+        console.warn('[updateProduct] minimal JSON failed:', response.status, text)
+      }
+    } catch (e) {
+      console.warn('[updateProduct] minimal JSON error:', e)
+    }
+
+    // Fallback: x-www-form-urlencoded
+    const params = new URLSearchParams()
+    const safeGet = (key: string) => {
+      const v = product[key]
+      return v === null || v === undefined ? '' : String(v)
+    }
+    params.set('name', safeGet('name'))
+    params.set('brand', safeGet('brand'))
+    params.set('model', safeGet('model'))
+    params.set('specs', safeGet('specs'))
+    const catId = Number(product['category_id'] ?? product['categoryId'] ?? (product['category'] as any)?.id ?? 0)
+    if (Number.isFinite(catId) && catId > 0) {
+      params.set('category_id', String(catId))
+      params.set('categoryId', String(catId))
+      params.set('category.id', String(catId))
+    }
+    params.set('imageUrl1', safeGet('imageUrl1'))
+    params.set('imageUrl2', safeGet('imageUrl2'))
+    params.set('imageUrl3', safeGet('imageUrl3'))
+    params.set('imageUrl4', safeGet('imageUrl4'))
+
+    const fallbackResp = await fetch(`${API_BASE_URL}/api/product/${id}`, {
       method: 'PUT',
       headers: {
-        'Content-Type': 'application/json',
+        'Content-Type': 'application/x-www-form-urlencoded',
+        'Accept': 'application/json',
       },
-      body: JSON.stringify(product),
+      body: (() => {
+        // include id in body for controllers expecting full entity
+        params.set('id', String(id))
+        return params.toString()
+      })(),
     })
 
-    return this.handleResponse<Record<string, unknown>>(response)
+    if (fallbackResp.ok) {
+      return this.handleResponse<Record<string, unknown>>(fallbackResp)
+    } else {
+      const text = await fallbackResp.text().catch(() => '')
+      console.error('[updateProduct] Form fallback failed:', fallbackResp.status, text)
+      throw new Error(text || `HTTP ${fallbackResp.status}`)
+    }
   }
 
   static async deleteProduct(id: number): Promise<void> {
@@ -1793,6 +1947,94 @@ export class ApiService {
     if (!response.ok) {
       const errorData = await response.json().catch(() => ({}))
       throw new Error(errorData?.message || 'Có lỗi xảy ra khi xóa feedback')
+    }
+  }
+
+  static async createOrderFeedback(data: { orderId: number; rating: number; comment: string; userId?: number; createdAt?: string }): Promise<Record<string, unknown>> {
+    try {
+      const response = await fetch(`${API_BASE_URL}/api/order-feedback`, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify(data),
+      })
+
+      if (!response.ok) {
+        const errorData = await response.json().catch(() => ({}))
+        throw new Error(errorData?.message || 'Có lỗi xảy ra khi tạo feedback')
+      }
+
+      return await this.handleResponse<Record<string, unknown>>(response)
+    } catch (error) {
+      console.error('Error creating order feedback:', error)
+      throw error
+    }
+  }
+
+  static async updateOrderFeedback(id: number, data: { orderId?: number; rating?: number; comment?: string; createdAt?: string }): Promise<Record<string, unknown>> {
+    try {
+      const response = await fetch(`${API_BASE_URL}/api/order-feedback/${id}`, {
+        method: 'PUT',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify(data),
+      })
+
+      if (!response.ok) {
+        const errorData = await response.json().catch(() => ({}))
+        throw new Error(errorData?.message || 'Có lỗi xảy ra khi cập nhật feedback')
+      }
+
+      return await this.handleResponse<Record<string, unknown>>(response)
+    } catch (error) {
+      console.error('Error updating order feedback:', error)
+      throw error
+    }
+  }
+
+  static async createServiceFeedback(data: { serviceId: number; rating: number; comment: string; userId?: number; createdAt?: string }): Promise<Record<string, unknown>> {
+    try {
+      const response = await fetch(`${API_BASE_URL}/api/service-feedback`, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify(data),
+      })
+
+      if (!response.ok) {
+        const errorData = await response.json().catch(() => ({}))
+        throw new Error(errorData?.message || 'Có lỗi xảy ra khi tạo feedback')
+      }
+
+      return await this.handleResponse<Record<string, unknown>>(response)
+    } catch (error) {
+      console.error('Error creating service feedback:', error)
+      throw error
+    }
+  }
+
+  static async updateServiceFeedback(id: number, data: { serviceId?: number; rating?: number; comment?: string; createdAt?: string }): Promise<Record<string, unknown>> {
+    try {
+      const response = await fetch(`${API_BASE_URL}/api/service-feedback/${id}`, {
+        method: 'PUT',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify(data),
+      })
+
+      if (!response.ok) {
+        const errorData = await response.json().catch(() => ({}))
+        throw new Error(errorData?.message || 'Có lỗi xảy ra khi cập nhật feedback')
+      }
+
+      return await this.handleResponse<Record<string, unknown>>(response)
+    } catch (error) {
+      console.error('Error updating service feedback:', error)
+      throw error
     }
   }
 

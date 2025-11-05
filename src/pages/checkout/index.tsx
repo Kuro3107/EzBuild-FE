@@ -169,6 +169,21 @@ function CheckoutPage() {
                 <span>Tạm tính</span>
                 <span style={{ color: '#60a5fa' }}>{totalPrice.toLocaleString('vi-VN')} VND</span>
               </div>
+              <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: '12px' }}>
+                <span>Đặt cọc</span>
+                <span style={{ color: '#34d399', fontWeight: 700 }}>50.000 VND</span>
+              </div>
+              <div style={{
+                background: 'rgba(34,197,94,0.1)',
+                border: '1px solid rgba(34,197,94,0.3)',
+                borderRadius: '8px',
+                padding: '8px',
+                marginBottom: '12px',
+                fontSize: '12px',
+                color: 'rgba(255,255,255,0.8)'
+              }}>
+                Bạn chỉ cần thanh toán trước 50.000đ để xác nhận đơn. Số còn lại sẽ được thanh toán sau khi cửa hàng xác nhận.
+              </div>
               <button
                 disabled={isSubmitting}
                 onClick={handlePlaceOrder}
@@ -178,7 +193,7 @@ function CheckoutPage() {
                   cursor: isSubmitting ? 'not-allowed' : 'pointer'
                 }}
               >
-                {isSubmitting ? 'Đang xử lý...' : 'Thanh toán'}
+                {isSubmitting ? 'Đang xử lý...' : 'Đặt cọc 50.000đ'}
               </button>
               <button
                 onClick={() => navigate('/pcbuilder')}
