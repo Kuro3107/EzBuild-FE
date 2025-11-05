@@ -1,11 +1,15 @@
 {
   "buildCommand": "npm run build",
   "env": {
-    "ROLLUP_SKIP_NODE_JS_NATIVE": "true"
+    "ROLLUP_SKIP_NODE_JS_NATIVE": "true",
+    "LIGHTNINGCSS_IGNORE_NODE": "1",
+    "TAILWIND_DISABLE_LIGHTNINGCSS": "1"
   },
   "build": {
     "env": {
-      "ROLLUP_SKIP_NODE_JS_NATIVE": "true"
+      "ROLLUP_SKIP_NODE_JS_NATIVE": "true",
+      "LIGHTNINGCSS_IGNORE_NODE": "1",
+      "TAILWIND_DISABLE_LIGHTNINGCSS": "1"
     }
   }
 }

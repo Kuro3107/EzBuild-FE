@@ -8,7 +8,7 @@
   },
   "scripts": {
     "dev": "vite",
-    "build": "cross-env ROLLUP_SKIP_NODE_JS_NATIVE=true tsc -b && vite build",
+    "build": "cross-env ROLLUP_SKIP_NODE_JS_NATIVE=true LIGHTNINGCSS_IGNORE_NODE=1 TAILWIND_DISABLE_LIGHTNINGCSS=1 tsc -b && vite build",
     "lint": "eslint .",
     "preview": "vite preview"
   },
