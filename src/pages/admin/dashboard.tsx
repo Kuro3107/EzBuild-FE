@@ -1,4 +1,4 @@
-import { useEffect, useState } from 'react'
+import { useEffect, useMemo, useState } from 'react'
 import { Link } from 'react-router-dom'
 import { ApiService } from '../../services/api'
 import '../../Homepage.css'
@@ -11,6 +11,48 @@ interface AdminDashboardStats {
   totalRevenue: number
   recentActivity: Array<Record<string, unknown>>
 }
+
+type PaymentLike = {
+  status?: string
+  amount?: number | string
+  paidAt?: string
+  updatedAt?: string
+  createdAt?: string
+}
+
+// Lightweight SVG bar chart (no deps)
+function BarChart({ labels, values, color = '#3b82f6' }: { labels: string[]; values: number[]; color?: string }) {
+  const max = Math.max(1, ...values)
+  const barWidth = 100 / Math.max(1, values.length)
+  return (
+    <svg viewBox="0 0 100 60" preserveAspectRatio="none" className="w-full h-40">
+      {values.map((v, i) => {
+        const h = (v / max) * 48
+        return (
+          <g key={i}>
+            <rect x={i * barWidth + 4 * 0.01} y={55 - h} width={barWidth * 0.9} height={h} fill={color} rx={1.5} />
+            {/* Số lượng trên mỗi cột */}
+            <text
+              x={i * barWidth + barWidth * 0.45}
+              y={Math.max(6, 55 - h - 2)}
+              fontSize="3"
+              textAnchor="middle"
+              fill="#111827"
+            >
+              {v}
+            </text>
+            <text x={i * barWidth + (barWidth * 0.45)} y={58.5} fontSize="3" textAnchor="middle" fill="#6b7280">
+              {labels[i]}
+            </text>
+          </g>
+        )
+      })}
+      <line x1="0" y1="55" x2="100" y2="55" stroke="#e5e7eb" strokeWidth="0.5" />
+    </svg>
+  )
+}
+
+// (Đã chuyển sang dùng BarChart cho doanh thu theo tháng)
 
 function AdminDashboardPage() {
   const [stats, setStats] = useState<AdminDashboardStats>({
@@ -27,6 +69,9 @@ function AdminDashboardPage() {
   useEffect(() => {
     loadDashboardData()
   }, [])
+
+  const [ordersDataForChart, setOrdersDataForChart] = useState<Array<Record<string, unknown>>>([])
+  const [paymentsDataForChart, setPaymentsDataForChart] = useState<Array<Record<string, unknown>>>([])
 
   const loadDashboardData = async () => {
     try {
@@ -50,8 +95,8 @@ function AdminDashboardPage() {
       
       // Calculate stats
       const totalRevenue = payments
-        .filter(p => p.status === 'PAID')
-        .reduce((sum, p) => sum + (Number(p.amount) || 0), 0)
+        .filter(p => (p as PaymentLike).status === 'PAID')
+        .reduce((sum, p) => sum + (Number((p as PaymentLike).amount) || 0), 0)
       
       setStats({
         totalUsers: users.length,
@@ -61,6 +106,8 @@ function AdminDashboardPage() {
         totalRevenue,
         recentActivity: []
       })
+      setOrdersDataForChart(orders)
+      setPaymentsDataForChart(payments)
     } catch (err) {
       setError('Không thể tải dữ liệu dashboard')
       console.error('Error loading dashboard data:', err)
@@ -68,6 +115,44 @@ function AdminDashboardPage() {
       setLoading(false)
     }
   }
+
+  // Chart datasets
+  const orderStatusChart = useMemo(() => {
+    const statuses = ['PENDING', 'DEPOSITED', 'SHIPPING', 'PAID', 'DONE', 'CANCEL']
+    const counts = statuses.map(s => ordersDataForChart.filter(o => (o as any).status === s).length)
+    return { labels: statuses.map(s => s.replace('PENDING', 'PEND').replace('DEPOSITED', 'DEP')), values: counts }
+  }, [ordersDataForChart])
+
+  const revenueByMonth = useMemo(() => {
+    const map = new Map<string, number>()
+    paymentsDataForChart
+      .filter(p => (p as PaymentLike).status === 'PAID')
+      .forEach(p => {
+        const pay = p as PaymentLike
+        const d = pay.paidAt || pay.updatedAt || pay.createdAt
+        const key = d ? new Date(d).toLocaleDateString('vi-VN', { month: '2-digit', year: '2-digit' }) : '??'
+        map.set(key, (map.get(key) || 0) + (Number(pay.amount) || 0))
+      })
+    const entries = Array.from(map.entries()).sort((a, b) => {
+      const [ma, ya] = a[0].split('/').map(Number)
+      const [mb, yb] = b[0].split('/').map(Number)
+      return ya === yb ? ma - mb : ya - yb
+    })
+    return entries.map(([k, v]) => ({ x: k, y: v }))
+  }, [paymentsDataForChart])
+
+  // Dữ liệu cho biểu đồ cột doanh thu theo tháng (Earnings style)
+  const revenueBarData = useMemo(() => {
+    return {
+      labels: revenueByMonth.map(p => p.x),
+      values: revenueByMonth.map(p => p.y)
+    }
+  }, [revenueByMonth])
+
+  // Tổng doanh thu tháng hiện tại và % thay đổi so với tháng trước
+  const currentMonthRevenue = revenueByMonth.length > 0 ? revenueByMonth[revenueByMonth.length - 1].y : 0
+  const prevMonthRevenue = revenueByMonth.length > 1 ? revenueByMonth[revenueByMonth.length - 2].y : 0
+  const revenueChangePercent = prevMonthRevenue > 0 ? ((currentMonthRevenue - prevMonthRevenue) / prevMonthRevenue) * 100 : 0
 
   if (loading) {
     return (
@@ -180,6 +265,33 @@ function AdminDashboardPage() {
                 {new Intl.NumberFormat('vi-VN', { style: 'currency', currency: 'VND' }).format(stats.totalRevenue)}
               </p>
               <p className="text-xs text-gray-500 mt-1">Tổng doanh thu</p>
+            </div>
+          </div>
+
+          {/* Charts */}
+          <div className="grid grid-cols-1 lg:grid-cols-2 gap-6 mb-8">
+            <div className="bg-white rounded-lg border border-black/10 p-6">
+              <h3 className="font-semibold text-gray-900 mb-3">Đơn hàng theo trạng thái</h3>
+              <BarChart labels={orderStatusChart.labels} values={orderStatusChart.values} />
+            </div>
+            <div className="bg-white rounded-lg border border-black/10 p-6">
+              <h3 className="font-semibold text-gray-900 mb-2">Doanh thu theo tháng</h3>
+              <div className="flex items-end gap-3 mb-3">
+                <div className="text-3xl font-bold text-gray-900">
+                  {new Intl.NumberFormat('vi-VN', { style: 'currency', currency: 'VND' }).format(currentMonthRevenue)}
+                </div>
+                <div className={`text-sm font-medium ${revenueChangePercent >= 0 ? 'text-green-600' : 'text-red-600'}`}>
+                  <span className="inline-flex items-center gap-1">
+                    {revenueChangePercent >= 0 ? (
+                      <svg className="w-4 h-4" viewBox="0 0 20 20" fill="currentColor"><path d="M3 12l7-7 7 7H3z"/></svg>
+                    ) : (
+                      <svg className="w-4 h-4" viewBox="0 0 20 20" fill="currentColor"><path d="M17 8l-7 7-7-7h14z"/></svg>
+                    )}
+                    {Math.abs(revenueChangePercent).toFixed(1)}%
+                  </span>
+                </div>
+              </div>
+              <BarChart labels={revenueBarData.labels} values={revenueBarData.values} color="#3b82f6" />
             </div>
           </div>
 
