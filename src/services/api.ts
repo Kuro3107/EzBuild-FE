@@ -1,4 +1,15 @@
-const API_BASE_URL = import.meta.env?.VITE_API_BASE_URL || 'http://localhost:8080'
+// Prefer env; in dev (Vite on 5173) default to '/api' to use vite proxy and avoid CORS
+const API_BASE_URL = ((): string => {
+  const envBase = (import.meta as ImportMeta).env?.VITE_API_BASE_URL as string | undefined
+  if (envBase && typeof envBase === 'string') return envBase
+  try {
+    const isViteDev = typeof window !== 'undefined' && window.location?.host?.includes('localhost:5173')
+    // In dev, return empty base so endpoint '/api/...' remains '/api/...'
+    return isViteDev ? '' : 'http://localhost:8080'
+  } catch {
+    return 'http://localhost:8080'
+  }
+})()
 
 export interface LoginRequest {
   identifier: string // email or username
@@ -1534,7 +1545,29 @@ export class ApiService {
     console.log('Payment ID:', id)
     console.log('Update data:', payment)
     
-    const response = await fetch(`${API_BASE_URL}/api/payment/${id}`, {
+    // Prefer PUT (the backend expects PUT for update). Fallback to PATCH if necessary.
+    try {
+      const putResp = await fetch(`${API_BASE_URL}/api/payment/${id}`, {
+        method: 'PUT',
+        headers: {
+          'Content-Type': 'application/json',
+          'Accept': 'application/json',
+          ...(token ? { 'Authorization': `Bearer ${token}` } : {})
+        },
+        body: JSON.stringify(payment)
+      })
+      console.log('[updatePayment] PUT status:', putResp.status)
+      if (putResp.ok) {
+        return await this.handleResponse<Record<string, unknown>>(putResp)
+      }
+      // If backend rejects PUT (405/415 etc.), try PATCH as a compatibility fallback
+      const text = await putResp.text().catch(() => '')
+      console.warn('[updatePayment] PUT failed, falling back to PATCH:', putResp.status, text)
+    } catch (err) {
+      console.warn('[updatePayment] PUT error, falling back to PATCH:', err)
+    }
+
+    const patchResp = await fetch(`${API_BASE_URL}/api/payment/${id}`, {
       method: 'PATCH',
       headers: {
         'Content-Type': 'application/json',
@@ -1543,16 +1576,12 @@ export class ApiService {
       },
       body: JSON.stringify(payment)
     })
-
-    console.log('Response status:', response.status)
-
-    if (!response.ok) {
-      const errorText = await response.text()
-      console.log('Error response:', errorText)
-      throw new Error(`HTTP ${response.status}: ${errorText}`)
+    console.log('[updatePayment] PATCH status:', patchResp.status)
+    if (!patchResp.ok) {
+      const errorText = await patchResp.text().catch(() => '')
+      throw new Error(errorText || `HTTP ${patchResp.status}`)
     }
-
-    return await this.handleResponse<Record<string, unknown>>(response)
+    return await this.handleResponse<Record<string, unknown>>(patchResp)
   }
 
   static async getAllPayments(): Promise<Array<Record<string, unknown>>> {
