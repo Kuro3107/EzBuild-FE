@@ -1,0 +1,15 @@
+{
+  "buildCommand": "npm run build",
+  "env": {
+    "ROLLUP_SKIP_NODE_JS_NATIVE": "true"
+  },
+  "functions": {
+    "**/*": {
+      "environment": {
+        "ROLLUP_SKIP_NODE_JS_NATIVE": "true"
+      }
+    }
+  }
+}
+
+
