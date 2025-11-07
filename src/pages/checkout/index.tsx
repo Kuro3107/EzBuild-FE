@@ -6,6 +6,7 @@ function CheckoutPage() {
   const navigate = useNavigate()
   const [cartBuild, setCartBuild] = useState<{ components?: Array<{ name?: string; model?: string; priceValue?: number }> } | null>(null)
   const [isSubmitting, setIsSubmitting] = useState(false)
+  const depositAmount = 50000
 
   useEffect(() => {
     try {
@@ -19,6 +20,20 @@ function CheckoutPage() {
     } catch {
       setCartBuild(null)
     }
+    
+    // Xóa các flag checkout cũ khi vào trang (để tránh bị chặn)
+    const user = ApiService.getCurrentUser()
+    if (user) {
+      const userId = Number(user?.id || user?.userId || 0)
+      if (userId > 0) {
+        const checkoutCreatingKey = `checkout_creating_${userId}`
+        const existingFlag = sessionStorage.getItem(checkoutCreatingKey)
+        if (existingFlag) {
+          console.log('Xóa flag checkout cũ:', checkoutCreatingKey)
+          sessionStorage.removeItem(checkoutCreatingKey)
+        }
+      }
+    }
   }, [])
 
   const totalPrice = useMemo(() => {
@@ -27,14 +42,25 @@ function CheckoutPage() {
   }, [cartBuild])
 
   async function handlePlaceOrder() {
-    if (!cartBuild) return
+    console.log('=== BUTTON CLICKED ===')
+    console.log('cartBuild:', cartBuild)
+    console.log('isSubmitting:', isSubmitting)
+    
+    if (!cartBuild) {
+      console.log('No cartBuild, returning early')
+      alert('Chưa có cấu hình để thanh toán. Vui lòng quay lại PC Builder.')
+      return
+    }
+    
     setIsSubmitting(true)
+    console.log('Starting checkout process...')
     try {
       // 1) Lấy user hiện tại
       const user = ApiService.getCurrentUser()
       if (!user) {
         alert('Vui lòng đăng nhập trước khi thanh toán')
         navigate('/login', { state: { from: '/checkout' } } as unknown as { state: { from: string } })
+        setIsSubmitting(false)
         return
       }
 
@@ -48,18 +74,43 @@ function CheckoutPage() {
       if (!userId || userId === 0) {
         alert('Không thể xác định thông tin người dùng. Vui lòng đăng nhập lại.')
         navigate('/login')
+        setIsSubmitting(false)
         return
       }
 
       // Kiểm tra nếu đang có tiến trình checkout khác
       const checkoutCreatingKey = `checkout_creating_${userId}`
-      if (sessionStorage.getItem(checkoutCreatingKey)) {
-        console.log('Checkout is being processed, please wait...')
-        return
+      const existingFlag = sessionStorage.getItem(checkoutCreatingKey)
+      if (existingFlag) {
+        // Kiểm tra thời gian - nếu flag cũ hơn 30 giây thì xóa và cho phép tiếp tục
+        try {
+          const flagTime = parseInt(existingFlag)
+          if (!isNaN(flagTime)) {
+            const now = Date.now()
+            const elapsed = now - flagTime
+            if (elapsed > 30000) { // 30 giây
+              console.log('Flag cũ hơn 30 giây, xóa và tiếp tục')
+              sessionStorage.removeItem(checkoutCreatingKey)
+            } else {
+              console.log('Checkout is being processed, please wait...')
+              setIsSubmitting(false)
+              return
+            }
+          } else {
+            // Flag không phải timestamp, xóa và tiếp tục
+            console.log('Flag không hợp lệ, xóa và tiếp tục')
+            sessionStorage.removeItem(checkoutCreatingKey)
+          }
+        } catch {
+          // Lỗi khi parse, xóa và tiếp tục
+          console.log('Lỗi khi kiểm tra flag, xóa và tiếp tục')
+          sessionStorage.removeItem(checkoutCreatingKey)
+        }
       }
 
-      // Đánh dấu đang tạo order
-      sessionStorage.setItem(checkoutCreatingKey, 'true')
+      // Đánh dấu đang tạo order với timestamp
+      sessionStorage.setItem(checkoutCreatingKey, String(Date.now()))
+      console.log('Đã set flag checkout:', checkoutCreatingKey)
 
       // 2) Lấy buildId từ build có sẵn của user
       let buildId: number | undefined
@@ -93,13 +144,81 @@ function CheckoutPage() {
 
       console.log('Order created:', order)
 
+      const orderId = Number(order?.id)
+      if (!Number.isFinite(orderId) || orderId <= 0) {
+        throw new Error('Không nhận được mã đơn hàng hợp lệ')
+      }
+
+      // 4) Tạo payment cho đơn hàng với trạng thái PENDING
+      const payment = await ApiService.createPayment({
+        orderId: orderId,
+        amount: depositAmount,
+        method: 'QR_CODE',
+        status: 'PENDING'
+      })
+
+      console.log('Payment created:', payment)
+
+      const paymentId = Number((payment as { id?: number | string; paymentId?: number | string }).id ?? (payment as { paymentId?: number | string }).paymentId ?? 0)
+      
+      // Kiểm tra paymentId có hợp lệ không
+      if (!Number.isFinite(paymentId) || paymentId <= 0) {
+        throw new Error('Không nhận được mã thanh toán hợp lệ')
+      }
+
+      // Lấy paymentUrl từ response của createPayment (backend đã trả về sẵn)
+      let qrString: string | undefined
+      let qrPayload: unknown = undefined
+      
+      // Kiểm tra paymentUrl trong response
+      const paymentUrl = (payment as { paymentUrl?: string }).paymentUrl
+      if (paymentUrl && typeof paymentUrl === 'string' && paymentUrl.trim()) {
+        qrString = paymentUrl.trim()
+        qrPayload = payment
+        console.log('QR URL từ payment response:', qrString)
+      } else {
+        // Fallback: Nếu không có paymentUrl, thử gọi API getPaymentQr
+        try {
+          const qrResponse = await ApiService.getPaymentQr(paymentId)
+          qrString = qrResponse.qrString
+          qrPayload = qrResponse.payload
+          console.log('QR data từ API:', qrResponse)
+        } catch (qrError) {
+          console.error('Không thể lấy QR cho payment:', qrError)
+          // Vẫn tiếp tục navigate dù không có QR
+        }
+      }
+
       // Xóa flag sau khi tạo thành công
       sessionStorage.removeItem(checkoutCreatingKey)
 
-      // 4) Chuyển hướng đến trang payment với orderId và amount
-      navigate(`/payment?orderId=${order.id}&amount=${totalPrice}`)
+      // 5) Chuẩn bị query để có thể reload trang payment trực tiếp
+      const params = new URLSearchParams()
+      if (Number.isFinite(orderId) && orderId > 0) params.set('orderId', String(orderId))
+      params.set('amount', String(totalPrice))
+      if (Number.isFinite(paymentId) && paymentId > 0) params.set('paymentId', String(paymentId))
+      params.set('deposit', String(depositAmount))
+
+      console.log('Navigating to payment page with:', {
+        orderId,
+        paymentId,
+        qrString: qrString ? 'Có QR' : 'Không có QR'
+      })
+
+      // 6) Điều hướng tới trang payment cùng state để hiển thị QR ngay lập tức
+      navigate(`/payment?${params.toString()}`, {
+        state: {
+          orderId,
+          orderTotal: totalPrice,
+          depositAmount,
+          paymentId,
+          payment,
+          qrString,
+          qrPayload
+        }
+      })
       
-      // 5) Xóa checkout data sau khi tạo order thành công
+      // 7) Xóa checkout data sau khi tạo order thành công
       localStorage.removeItem('ezbuild-checkout')
     } catch (e) {
       console.error(e)
@@ -186,11 +305,20 @@ function CheckoutPage() {
               </div>
               <button
                 disabled={isSubmitting}
-                onClick={handlePlaceOrder}
+                onClick={(e) => {
+                  e.preventDefault()
+                  e.stopPropagation()
+                  console.log('Button clicked, calling handlePlaceOrder')
+                  handlePlaceOrder().catch(err => {
+                    console.error('Error in handlePlaceOrder:', err)
+                    setIsSubmitting(false)
+                  })
+                }}
                 style={{
                   width: '100%', background: '#1e3a8a', border: 'none',
                   borderRadius: '8px', padding: '12px', color: 'white', fontWeight: 600,
-                  cursor: isSubmitting ? 'not-allowed' : 'pointer'
+                  cursor: isSubmitting ? 'not-allowed' : 'pointer',
+                  opacity: isSubmitting ? 0.6 : 1
                 }}
               >
                 {isSubmitting ? 'Đang xử lý...' : 'Đặt cọc 50.000đ'}
