@@ -36,12 +36,23 @@ function StaffOrdersPage() {
   const [filterStatus, setFilterStatus] = useState<string>('ALL')
 
   useEffect(() => {
-    loadData()
+    loadData(true) // Lần đầu tiên set loading = true
+    
+    // Polling để tự động refresh data mỗi 5 giây
+    const pollInterval = setInterval(() => {
+      loadData(false) // Các lần sau không set loading để tránh flicker
+    }, 5000)
+    
+    return () => {
+      clearInterval(pollInterval)
+    }
   }, [])
 
-  const loadData = async () => {
+  const loadData = async (showLoading = true) => {
     try {
-      setLoading(true)
+      if (showLoading) {
+        setLoading(true)
+      }
       setError(null)
       
       // Load orders và payments
@@ -50,13 +61,60 @@ function StaffOrdersPage() {
         ApiService.getAllPayments()
       ])
       
-      setOrders(ordersData as unknown as Order[])
-      setPayments(paymentsData as unknown as Payment[])
+      const orders = ordersData as unknown as Order[]
+      const payments = paymentsData as unknown as Payment[]
+      
+      // Tự động cập nhật order status từ PENDING sang DEPOSITED nếu payment status là SUCCESS/PAID/COMPLETED
+      const ordersToUpdate: Array<{ orderId: number; newStatus: string }> = []
+      
+      for (const order of orders) {
+        if (order.status === 'PENDING') {
+          // Tìm payment liên quan đến order này
+          const orderPayments = payments.filter(p => p.orderId === order.id)
+          
+          // Kiểm tra xem có payment nào đã SUCCESS/PAID/COMPLETED không
+          const hasSuccessPayment = orderPayments.some(p => {
+            const paymentStatus = (p.status || '').toUpperCase()
+            return paymentStatus === 'SUCCESS' || paymentStatus === 'PAID' || paymentStatus === 'COMPLETED'
+          })
+          
+          if (hasSuccessPayment) {
+            ordersToUpdate.push({ orderId: order.id, newStatus: 'DEPOSITED' })
+          }
+        }
+      }
+      
+      // Cập nhật các order cần thiết
+      if (ordersToUpdate.length > 0) {
+        console.log(`Tự động cập nhật ${ordersToUpdate.length} order từ PENDING sang DEPOSITED...`)
+        
+        for (const { orderId, newStatus } of ordersToUpdate) {
+          try {
+            await ApiService.updateOrderStatus(orderId, newStatus)
+            console.log(`Đã cập nhật order ${orderId} thành ${newStatus}`)
+          } catch (updateError) {
+            console.error(`Lỗi khi cập nhật order ${orderId}:`, updateError)
+          }
+        }
+        
+        // Reload lại data sau khi cập nhật
+        const [updatedOrdersData] = await Promise.all([
+          ApiService.getOrders()
+        ])
+        
+        setOrders(updatedOrdersData as unknown as Order[])
+        setPayments(payments)
+      } else {
+        setOrders(orders)
+        setPayments(payments)
+      }
     } catch (err) {
       setError('Không thể tải dữ liệu')
       console.error('Error loading data:', err)
     } finally {
-      setLoading(false)
+      if (showLoading) {
+        setLoading(false)
+      }
     }
   }
 
@@ -81,7 +139,6 @@ function StaffOrdersPage() {
     switch (status) {
       case 'PENDING': return 'bg-yellow-100 text-yellow-800'
       case 'DEPOSITED': return 'bg-blue-100 text-blue-800'
-      case 'PAID 25%': return 'bg-orange-100 text-orange-800'
       case 'SHIPPING': return 'bg-purple-100 text-purple-800'
       case 'PAID': return 'bg-green-100 text-green-800'
       case 'DONE': return 'bg-emerald-100 text-emerald-800'
@@ -127,7 +184,7 @@ function StaffOrdersPage() {
             <div className="text-red-500 text-6xl mb-4">⚠️</div>
             <p className="text-red-600 mb-4">{error}</p>
             <button 
-              onClick={loadData}
+              onClick={() => loadData(true)}
               className="px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700"
             >
               Thử lại
@@ -159,7 +216,7 @@ function StaffOrdersPage() {
           >
             Tất cả ({orders.length})
           </button>
-          {['PENDING', 'DEPOSITED', 'PAID 25%', 'SHIPPING', 'PAID', 'DONE', 'CANCEL'].map(status => {
+          {['PENDING', 'DEPOSITED', 'SHIPPING', 'PAID', 'DONE', 'CANCEL'].map(status => {
             const count = orders.filter(o => o.status === status).length
             return (
               <button
@@ -178,7 +235,7 @@ function StaffOrdersPage() {
           </div>
           
           <button
-            onClick={loadData}
+            onClick={() => loadData(true)}
             className="px-4 py-2 bg-green-600 text-white rounded-lg hover:bg-green-700 transition-colors flex items-center gap-2"
           >
             <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -259,14 +316,6 @@ function StaffOrdersPage() {
                           </button>
                         )}
                         {order.status === 'DEPOSITED' && (
-                          <button
-                            onClick={() => updateOrderStatus(order.id, 'PAID 25%')}
-                            className="text-orange-600 hover:text-orange-900"
-                          >
-                            Cọc 25%
-                          </button>
-                        )}
-                        {order.status === 'PAID 25%' && (
                           <button
                             onClick={() => updateOrderStatus(order.id, 'SHIPPING')}
                             className="text-green-600 hover:text-green-900"

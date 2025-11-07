@@ -1,15 +1,64 @@
 // Prefer env; in dev (Vite on 5173) default to '/api' to use vite proxy and avoid CORS
+// Hỗ trợ chuyển đổi server thông qua localStorage
 const API_BASE_URL = ((): string => {
+  // Ưu tiên 1: Server được chọn từ localStorage (cho dropdown chọn server)
+  if (typeof window !== 'undefined') {
+    const selectedServer = localStorage.getItem('selectedApiServer')
+    if (selectedServer && selectedServer.trim() !== '') {
+      return selectedServer.trim()
+    }
+  }
+
+  // Ưu tiên 2: Biến môi trường
   const envBase = (import.meta as ImportMeta).env?.VITE_API_BASE_URL as string | undefined
   if (envBase && typeof envBase === 'string') return envBase
+
+  // Ưu tiên 3: Logic tự động
   try {
     const isViteDev = typeof window !== 'undefined' && window.location?.host?.includes('localhost:5173')
     // In dev, return empty base so endpoint '/api/...' remains '/api/...'
-    return isViteDev ? '' : 'http://localhost:8080'
+    if (isViteDev) return ''
+    
+    // Production: mặc định dùng Render server
+    return 'https://exe201-ezbuildvn-be.onrender.com'
   } catch {
-    return 'http://localhost:8080'
+    // Fallback: Render production server
+    return 'https://exe201-ezbuildvn-be.onrender.com'
   }
 })()
+
+// Danh sách các server có sẵn
+export const AVAILABLE_SERVERS = [
+  { 
+    url: 'https://exe201-ezbuildvn-be.onrender.com', 
+    label: 'Render Production Server',
+    description: 'https://exe201-ezbuildvn-be.onrender.com - Render Production Server'
+  },
+  { 
+    url: 'http://localhost:8080', 
+    label: 'Local Development Server',
+    description: 'http://localhost:8080 - Local Development Server'
+  },
+  { 
+    url: '', 
+    label: 'Vite Proxy (Dev)',
+    description: 'Vite Proxy - Use /api proxy in development'
+  }
+]
+
+// Function để thay đổi server
+export const setApiServer = (serverUrl: string): void => {
+  if (typeof window !== 'undefined') {
+    localStorage.setItem('selectedApiServer', serverUrl)
+    // Reload page để áp dụng server mới
+    window.location.reload()
+  }
+}
+
+// Function để lấy server hiện tại
+export const getCurrentApiServer = (): string => {
+  return API_BASE_URL
+}
 
 export interface LoginRequest {
   identifier: string // email or username
@@ -846,7 +895,7 @@ export class ApiService {
 
   static async createProduct(product: Record<string, unknown>): Promise<Record<string, unknown>> {
     // Backend expects JSON body mapped to Product with category object
-    const catId = Number(product['category_id'] ?? product['categoryId'] ?? (product['category'] as any)?.id ?? 0)
+    const catId = Number(product['category_id'] ?? product['categoryId'] ?? (product['category'] as Record<string, unknown> | undefined)?.id ?? 0)
     const payload: Record<string, unknown> = {
       name: product['name'],
       brand: product['brand'],
@@ -895,7 +944,7 @@ export class ApiService {
 
     // Try JSON with category object
     try {
-      const catId = Number(product['category_id'] ?? product['categoryId'] ?? (product['category'] as any)?.id ?? 0)
+      const catId = Number(product['category_id'] ?? product['categoryId'] ?? (product['category'] as Record<string, unknown> | undefined)?.id ?? 0)
       const jsonWithCategory = {
         id,
         ...product,
@@ -922,7 +971,7 @@ export class ApiService {
 
     // Try MINIMAL JSON (whitelisted fields only) to avoid UnrecognizedPropertyException
     try {
-      const catId = Number(product['category_id'] ?? product['categoryId'] ?? (product['category'] as any)?.id ?? 0)
+      const catId = Number(product['category_id'] ?? product['categoryId'] ?? (product['category'] as Record<string, unknown> | undefined)?.id ?? 0)
       const minimalPayload: Record<string, unknown> = {
         id,
         name: product['name'],
@@ -965,7 +1014,7 @@ export class ApiService {
     params.set('brand', safeGet('brand'))
     params.set('model', safeGet('model'))
     params.set('specs', safeGet('specs'))
-    const catId = Number(product['category_id'] ?? product['categoryId'] ?? (product['category'] as any)?.id ?? 0)
+    const catId = Number(product['category_id'] ?? product['categoryId'] ?? (product['category'] as Record<string, unknown> | undefined)?.id ?? 0)
     if (Number.isFinite(catId) && catId > 0) {
       params.set('category_id', String(catId))
       params.set('categoryId', String(catId))
@@ -1525,6 +1574,59 @@ export class ApiService {
     return await this.handleResponse<Record<string, unknown>>(response)
   }
 
+  static async getPaymentQr(paymentId: number): Promise<{ qrString?: string; payload: unknown }> {
+    const token = localStorage.getItem('authToken')
+    const response = await fetch(`${API_BASE_URL}/api/payment/${paymentId}/qr`, {
+      method: 'GET',
+      headers: {
+        'Accept': 'application/json, text/plain,*/*',
+        ...(token ? { 'Authorization': `Bearer ${token}` } : {})
+      }
+    })
+
+    if (!response.ok) {
+      const errorText = await response.text().catch(() => '')
+      throw new Error(errorText || `HTTP ${response.status}`)
+    }
+
+    const contentType = response.headers.get('content-type') || ''
+
+    const searchCandidate = (value: unknown, depth = 0): string | undefined => {
+      if (!value || depth > 6) return undefined
+      if (typeof value === 'string') {
+        const trimmed = value.trim()
+        if (trimmed.length > 0) {
+          return trimmed
+        }
+        return undefined
+      }
+      if (typeof value === 'object') {
+        const objValue = value as Record<string, unknown>
+        const preferredKeys = ['qrUrl', 'qrImage', 'qrCode', 'qr_code', 'qr', 'url', 'image', 'imageUrl', 'dataUrl', 'data', 'deeplink']
+        for (const key of preferredKeys) {
+          if (Object.prototype.hasOwnProperty.call(objValue, key)) {
+            const found = searchCandidate(objValue[key], depth + 1)
+            if (found) return found
+          }
+        }
+        for (const nested of Object.values(objValue)) {
+          const found = searchCandidate(nested, depth + 1)
+          if (found) return found
+        }
+      }
+      return undefined
+    }
+
+    if (contentType.includes('application/json')) {
+      const json = await response.json()
+      const candidate = searchCandidate(json)
+      return { qrString: candidate, payload: json }
+    }
+
+    const textPayload = await response.text()
+    return { qrString: textPayload.trim() || undefined, payload: textPayload }
+  }
+
   static async getPaymentById(id: number): Promise<Record<string, unknown>> {
     const token = localStorage.getItem('authToken')
     const response = await fetch(`${API_BASE_URL}/api/payment/${id}`, {
@@ -1534,6 +1636,27 @@ export class ApiService {
         ...(token ? { 'Authorization': `Bearer ${token}` } : {})
       }
     })
+
+    return this.handleResponse<Record<string, unknown>>(response)
+  }
+
+  static async updatePaymentStatus(id: number, status: string): Promise<Record<string, unknown>> {
+    const token = localStorage.getItem('authToken')
+
+    const response = await fetch(`${API_BASE_URL}/api/payment/${id}/status`, {
+      method: 'PATCH',
+      headers: {
+        'Content-Type': 'application/json',
+        'Accept': 'application/json',
+        ...(token ? { 'Authorization': `Bearer ${token}` } : {})
+      },
+      body: JSON.stringify({ status })
+    })
+
+    if (!response.ok) {
+      const errorText = await response.text().catch(() => '')
+      throw new Error(errorText || `HTTP ${response.status}`)
+    }
 
     return this.handleResponse<Record<string, unknown>>(response)
   }
@@ -1622,9 +1745,9 @@ export class ApiService {
     console.log('New Status:', status)
     
     try {
-      // Sử dụng PATCH để cập nhật order status
+      // Sử dụng PUT để cập nhật order status
       const response = await fetch(`${API_BASE_URL}/api/order/${orderId}`, {
-        method: 'PATCH',
+        method: 'PUT',
         headers: {
           'Content-Type': 'application/json',
           'Accept': 'application/json',
@@ -1708,16 +1831,22 @@ export class ApiService {
       const now = new Date()
       const threeDaysAgo = new Date(now.getTime() - (3 * 24 * 60 * 60 * 1000))
 
-      for (const order of orders as any[]) {
+      for (const order of orders as Array<Record<string, unknown>>) {
         // Check if order is PAID and has been PAID for more than 3 days
         if (order.status === 'PAID' && order.updatedAt) {
-          const updatedAt = new Date(order.updatedAt)
-          if (updatedAt < threeDaysAgo) {
-            try {
-              await this.updateOrderStatus(order.id, 'DONE')
-              console.log(`Auto-updated order ${order.id} to DONE after 3 days`)
-            } catch (error) {
-              console.error(`Error auto-updating order ${order.id} to DONE:`, error)
+          const updatedAtValue = order.updatedAt
+          if (typeof updatedAtValue === 'string' || updatedAtValue instanceof Date) {
+            const updatedAt = new Date(updatedAtValue)
+            if (updatedAt < threeDaysAgo) {
+              try {
+                const orderId = Number(order.id)
+                if (Number.isFinite(orderId) && orderId > 0) {
+                  await this.updateOrderStatus(orderId, 'DONE')
+                  console.log(`Auto-updated order ${orderId} to DONE after 3 days`)
+                }
+              } catch (error) {
+                console.error(`Error auto-updating order ${order.id} to DONE:`, error)
+              }
             }
           }
         }
@@ -2329,7 +2458,7 @@ export class ApiService {
         if (response.ok) {
           return await this.handleResponse<Record<string, unknown>[]>(response)
         }
-      } catch (err) {
+      } catch {
         console.log(`Endpoint ${endpoint} failed, trying next...`)
       }
     }
