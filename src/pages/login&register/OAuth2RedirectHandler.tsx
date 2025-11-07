@@ -56,7 +56,7 @@ function OAuth2RedirectHandler() {
           console.log('Received authorization code, exchanging for token...')
           try {
             // Gọi API để exchange authorization code thành token
-            const response = await fetch(`http://localhost:8080/oauth2/token`, {
+            const response = await fetch(`https://exe201-ezbuildvn-be.onrender.com/oauth2/token`, {
               method: 'POST',
               headers: {
                 'Content-Type': 'application/x-www-form-urlencoded',

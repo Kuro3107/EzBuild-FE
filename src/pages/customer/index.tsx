@@ -86,7 +86,7 @@ function CustomerProfilePage() {
       setIsLoading(false)
 
       // 2) Cập nhật nền từ API /api/user/{id}
-      const base = import.meta.env?.VITE_API_BASE_URL || 'http://localhost:8080'
+      const base = import.meta.env?.VITE_API_BASE_URL || 'https://exe201-ezbuildvn-be.onrender.com'
       const token = localStorage.getItem('authToken') || ''
       const rawId = String(currentUser.id || currentUser.userId)
       const cleanedId = (rawId.match(/\d+/)?.[0] || rawId).replace(/^0+(?=\d)/, '')

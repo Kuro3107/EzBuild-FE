@@ -27,7 +27,7 @@ function ChatDebugPage() {
     }
 
     // Test WebSocket connection
-    const apiBase = (import.meta as any).env?.VITE_API_BASE_URL || 'http://localhost:8080'
+    const apiBase = (import.meta as any).env?.VITE_API_BASE_URL || 'https://exe201-ezbuildvn-be.onrender.com'
     addLog(`API Base: ${apiBase}`)
     
     if (user && user.userId) {
@@ -60,7 +60,7 @@ function ChatDebugPage() {
 
   const testApiCall = async () => {
     try {
-      const apiBase = (import.meta as any).env?.VITE_API_BASE_URL || 'http://localhost:8080'
+      const apiBase = (import.meta as any).env?.VITE_API_BASE_URL || 'https://exe201-ezbuildvn-be.onrender.com'
       const response = await fetch(`${apiBase}/api/chat/history/${userInfo?.userId}`)
       addLog(`API call status: ${response.status}`)
       

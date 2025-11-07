@@ -60,7 +60,7 @@ function StaffProductsPage() {
         const categoriesData = await ApiService.getCategories()
         
         // Fetch trực tiếp như builder - có thể API trả về category khi fetch trực tiếp
-        const response = await fetch(`${import.meta.env?.VITE_API_BASE_URL || 'http://localhost:8080'}/api/product`, {
+        const response = await fetch(`${import.meta.env?.VITE_API_BASE_URL || 'https://exe201-ezbuildvn-be.onrender.com'}/api/product`, {
           method: 'GET',
           headers: { 'Content-Type': 'application/json' },
         })

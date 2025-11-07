@@ -9,9 +9,9 @@ export default defineConfig({
   server: {
     proxy: {
       '/api': {
-        target: 'http://localhost:8080',
+        target: 'https://exe201-ezbuildvn-be.onrender.com',
         changeOrigin: true,
-        secure: false,
+        secure: true,
         // giữ nguyên path /api -> /api ở backend (Spring đang dùng prefix /api)
         // nếu backend không có prefix /api, thêm: rewrite: (p) => p.replace(/^\/api/, '')
       },
