@@ -18,7 +18,7 @@ interface Conversation {
 }
 
 function UserChatPage() {
-  const apiBase = (import.meta as any).env?.VITE_API_BASE_URL || 'http://localhost:8080'
+  const apiBase = (import.meta as any).env?.VITE_API_BASE_URL || 'https://exe201-ezbuildvn-be.onrender.com'
   const currentUser = ApiService.getCurrentUser() as Record<string, unknown>
   const userId = Number(currentUser?.id || currentUser?.userId || 0)
   const [staffId] = useState<number>(0) // optional: nếu chưa có staff cụ thể

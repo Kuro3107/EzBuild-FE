@@ -55,7 +55,7 @@ function CustomerBuildsPage() {
         const withItems = await Promise.all(
           (data as unknown as BuildDTO[]).map(async (b) => {
             try {
-              const detail = await fetch(`${import.meta.env?.VITE_API_BASE_URL || 'http://localhost:8080'}/api/build/${b.id}`).then(r => r.json())
+              const detail = await fetch(`${import.meta.env?.VITE_API_BASE_URL || 'https://exe201-ezbuildvn-be.onrender.com'}/api/build/${b.id}`).then(r => r.json())
               return { ...b, items: detail.items } as BuildDTO
             } catch {
               return b

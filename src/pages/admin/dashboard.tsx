@@ -93,9 +93,12 @@ function AdminDashboardPage() {
       const products = productsData as Array<Record<string, unknown>>
       const payments = paymentsData as Array<Record<string, unknown>>
       
-      // Calculate stats
+      // Calculate stats - tính cả PAID và SUCCESS
       const totalRevenue = payments
-        .filter(p => (p as PaymentLike).status === 'PAID')
+        .filter(p => {
+          const status = (p as PaymentLike).status
+          return status === 'PAID' || status === 'SUCCESS'
+        })
         .reduce((sum, p) => sum + (Number((p as PaymentLike).amount) || 0), 0)
       
       setStats({
@@ -119,14 +122,17 @@ function AdminDashboardPage() {
   // Chart datasets
   const orderStatusChart = useMemo(() => {
     const statuses = ['PENDING', 'DEPOSITED', 'SHIPPING', 'PAID', 'DONE', 'CANCEL']
-    const counts = statuses.map(s => ordersDataForChart.filter(o => (o as any).status === s).length)
+    const counts = statuses.map(s => ordersDataForChart.filter(o => (o as Record<string, unknown>).status === s).length)
     return { labels: statuses.map(s => s.replace('PENDING', 'PEND').replace('DEPOSITED', 'DEP')), values: counts }
   }, [ordersDataForChart])
 
   const revenueByMonth = useMemo(() => {
     const map = new Map<string, number>()
     paymentsDataForChart
-      .filter(p => (p as PaymentLike).status === 'PAID')
+      .filter(p => {
+        const status = (p as PaymentLike).status
+        return status === 'PAID' || status === 'SUCCESS'
+      })
       .forEach(p => {
         const pay = p as PaymentLike
         const d = pay.paidAt || pay.updatedAt || pay.createdAt

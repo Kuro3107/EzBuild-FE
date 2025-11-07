@@ -13,13 +13,9 @@ const API_BASE_URL = ((): string => {
   const envBase = (import.meta as ImportMeta).env?.VITE_API_BASE_URL as string | undefined
   if (envBase && typeof envBase === 'string') return envBase
 
-  // Ưu tiên 3: Logic tự động
+  // Ưu tiên 3: Logic tự động - Luôn dùng Render server
   try {
-    const isViteDev = typeof window !== 'undefined' && window.location?.host?.includes('localhost:5173')
-    // In dev, return empty base so endpoint '/api/...' remains '/api/...'
-    if (isViteDev) return ''
-    
-    // Production: mặc định dùng Render server
+    // Luôn dùng Render server, không phân biệt dev/prod
     return 'https://exe201-ezbuildvn-be.onrender.com'
   } catch {
     // Fallback: Render production server
@@ -637,70 +633,60 @@ export class ApiService {
   // Product APIs
   static async getAllProducts(): Promise<Record<string, unknown>[]> {
     try {
-      // Thử nhiều cách để lấy tất cả products
-      let allProducts: Record<string, unknown>[] = []
+      // Chỉ gọi 1 request duy nhất với timeout để tránh treo
+      const controller = new AbortController()
+      const timeoutId = setTimeout(() => controller.abort(), 10000) // 10s timeout
       
-      // Thử 1: API bình thường
       try {
+        // Thử với limit cao trước
+        const response = await fetch(`${API_BASE_URL}/api/product?limit=1000`, {
+          method: 'GET',
+          headers: { 'Content-Type': 'application/json' },
+          signal: controller.signal
+        })
+        clearTimeout(timeoutId)
+        
+        if (response.ok) {
+          const products = await this.handleResponse<Record<string, unknown>[]>(response)
+          console.log('✅ Loaded products:', products.length)
+          return products
+        }
+      } catch (err) {
+        clearTimeout(timeoutId)
+        if ((err as Error).name === 'AbortError') {
+          console.warn('⚠️ Request timeout, trying fallback...')
+        } else {
+          console.warn('⚠️ Request failed, trying fallback:', err)
+        }
+      }
+      
+      // Fallback: thử API bình thường không có params
+      try {
+        const fallbackController = new AbortController()
+        const fallbackTimeout = setTimeout(() => fallbackController.abort(), 5000)
+        
         const response = await fetch(`${API_BASE_URL}/api/product`, {
           method: 'GET',
           headers: { 'Content-Type': 'application/json' },
+          signal: fallbackController.signal
         })
+        clearTimeout(fallbackTimeout)
+        
         if (response.ok) {
-          allProducts = await this.handleResponse<Record<string, unknown>[]>(response)
-          console.log('API bình thường:', allProducts.length, 'products')
+          const products = await this.handleResponse<Record<string, unknown>[]>(response)
+          console.log('✅ Loaded products (fallback):', products.length)
+          return products
         }
       } catch (err) {
-        console.log('API bình thường lỗi:', err)
+        console.error('❌ Fallback also failed:', err)
       }
       
-      // Thử 2: API với limit cao
-      const limitParams = ['limit=1000', 'limit=9999', 'size=1000', 'size=9999']
-      for (const param of limitParams) {
-        try {
-          const response = await fetch(`${API_BASE_URL}/api/product?${param}`, {
-            method: 'GET',
-            headers: { 'Content-Type': 'application/json' },
-          })
-          if (response.ok) {
-            const products = await this.handleResponse<Record<string, unknown>[]>(response)
-            if (products.length > allProducts.length) {
-              allProducts = products
-              console.log(`API với ${param}:`, allProducts.length, 'products')
-            }
-          }
-        } catch (err) {
-          console.log(`API với ${param} lỗi:`, err)
-        }
-      }
-      
-      // Thử 3: API với page=all hoặc page=0
-      const pageParams = ['page=all', 'page=0', 'page=1&size=1000', 'offset=0&limit=1000']
-      for (const param of pageParams) {
-        try {
-          const response = await fetch(`${API_BASE_URL}/api/product?${param}`, {
-            method: 'GET',
-            headers: { 'Content-Type': 'application/json' },
-          })
-          if (response.ok) {
-            const products = await this.handleResponse<Record<string, unknown>[]>(response)
-            if (products.length > allProducts.length) {
-              allProducts = products
-              console.log(`API với ${param}:`, allProducts.length, 'products')
-            }
-          }
-        } catch (err) {
-          console.log(`API với ${param} lỗi:`, err)
-        }
-      }
-
-      console.log('=== KẾT QUẢ CUỐI CÙNG ===')
-      console.log('Tổng số products từ API:', allProducts.length)
-      
-      return allProducts
+      // Nếu cả 2 đều fail, trả về mảng rỗng
+      console.warn('⚠️ All product requests failed, returning empty array')
+      return []
     } catch (error) {
       console.error('Error fetching products from backend:', error)
-      throw error
+      return []
     }
   }
 
