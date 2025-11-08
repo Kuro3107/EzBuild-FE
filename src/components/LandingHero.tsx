@@ -33,9 +33,9 @@ const LandingHero: React.FC<LandingHeroProps> = ({ currentUser }) => {
               lineHeight: 1.1,
               marginTop: 0
             }}>
-              Build Your Dream PC
+              Xây Dựng PC Mơ Ước Của Bạn
               <br />
-              <span style={{ color: '#ffd700' }}>With EzBuild</span>
+              <span style={{ color: '#ffd700' }}>Với EzBuild</span>
             </h1>
             
             <p style={{ 
@@ -45,9 +45,9 @@ const LandingHero: React.FC<LandingHeroProps> = ({ currentUser }) => {
               marginBottom: '40px',
               maxWidth: '520px'
             }}>
-              Create the perfect PC build with our advanced compatibility checker, 
-              real-time price comparison, and expert recommendations. 
-              From gaming rigs to workstations, we've got you covered.
+              Tạo build PC hoàn hảo với công cụ kiểm tra tương thích tiên tiến, 
+              so sánh giá theo thời gian thực và đề xuất chuyên gia. 
+              Từ máy gaming đến workstation, chúng tôi có đầy đủ cho bạn.
             </p>
             
             <div style={{ display: 'flex', gap: '16px', flexWrap: 'wrap', marginBottom: '24px' }}>
@@ -82,7 +82,7 @@ const LandingHero: React.FC<LandingHeroProps> = ({ currentUser }) => {
                   <path d="M5 12h14"/>
                   <path d="M12 5l7 7-7 7"/>
                 </svg>
-                Start Building
+                Bắt Đầu Xây Dựng
               </Link>
               
               <button 
@@ -113,14 +113,14 @@ const LandingHero: React.FC<LandingHeroProps> = ({ currentUser }) => {
                 <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
                   <polygon points="5,3 19,12 5,21"/>
                 </svg>
-                Watch Demo
+                Xem Demo
               </button>
             </div>
             
             {!currentUser && (
               <div style={{ display: 'flex', gap: '16px', alignItems: 'center' }}>
                 <span style={{ color: 'rgba(255,255,255,0.7)', fontSize: '14px' }}>
-                  Already have an account?
+                  Đã có tài khoản?
                 </span>
                 <Link 
                   to="/login"
@@ -135,7 +135,7 @@ const LandingHero: React.FC<LandingHeroProps> = ({ currentUser }) => {
                     fontSize: '14px'
                   }}
                 >
-                  Sign In
+                  Đăng nhập
                 </Link>
               </div>
             )}
@@ -175,7 +175,7 @@ const LandingHero: React.FC<LandingHeroProps> = ({ currentUser }) => {
                 fontWeight: 700,
                 margin: '0 0 16px 0'
               }}>
-                Interactive PC Builder
+                PC Builder Tương Tác
               </h3>
               <p style={{ 
                 color: 'rgba(255,255,255,0.8)', 
@@ -183,7 +183,7 @@ const LandingHero: React.FC<LandingHeroProps> = ({ currentUser }) => {
                 fontSize: '16px',
                 lineHeight: 1.5
               }}>
-                Drag, drop, and customize your perfect build
+                Kéo, thả và tùy chỉnh build hoàn hảo của bạn
               </p>
             </div>
           </div>

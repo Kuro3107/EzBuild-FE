@@ -122,13 +122,13 @@ function StaffPage() {
                   <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                     <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M16 7a4 4 0 11-8 0 4 4 0 018 0zM12 14a7 7 0 00-7 7h14a7 7 0 00-7-7z" />
                   </svg>
-                  Profile
+                  Hồ sơ
                 </Link>
                 <button className="w-full px-4 py-3 text-left text-gray-700 hover:bg-gray-50 transition-colors text-sm flex items-center gap-3">
                   <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                     <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4.318 6.318a4.5 4.5 0 000 6.364L12 20.364l7.682-7.682a4.5 4.5 0 00-6.364-6.364L12 7.636l-1.318-1.318a4.5 4.5 0 00-6.364 0z" />
                   </svg>
-                  Favorites
+                  Yêu thích
                 </button>
                 <hr className="my-2 border-gray-200" />
                 <button 
@@ -138,7 +138,7 @@ function StaffPage() {
                   <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                     <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M17 16l4-4m0 0l-4-4m4 4H7m6 4v1a3 3 0 01-3 3H6a3 3 0 01-3-3V7a3 3 0 013-3h4a3 3 0 013 3v1" />
                   </svg>
-                  Log out
+                  Đăng xuất
                 </button>
               </div>
             )}
@@ -152,26 +152,26 @@ function StaffPage() {
           <div className="flex items-center justify-between px-2 mb-6">
             <div className="flex items-center gap-2">
               <div className="size-6 rounded-lg bg-green-600" />
-              <span className="font-semibold">Staff Panel</span>
+              <span className="font-semibold">Bảng điều khiển Staff</span>
             </div>
           </div>
 
           <div>
-            <div className="sidebar-group">Staff Management</div>
-            <Link className="nav-item" to="/staff/dashboard">Dashboard</Link>
-            <Link className="nav-item" to="/staff/orders">Order Management</Link>
-            <Link className="nav-item" to="/staff/payments">Payment Management</Link>
-            <Link className="nav-item" to="/staff/products">Product Management</Link>
-            <Link className="nav-item" to="/staff/services">Service Management</Link>
-            <Link className="nav-item" to="/staff/games">Game Management</Link>
-            <Link className="nav-item" to="/staff/feedbacks">Feedback Management</Link>
-            <Link className="nav-item" to="/staff/debug">Debug</Link>
+            <div className="sidebar-group">Quản lý Staff</div>
+            <Link className="nav-item" to="/staff/dashboard">Bảng điều khiển</Link>
+            <Link className="nav-item" to="/staff/orders">Quản lý đơn hàng</Link>
+            <Link className="nav-item" to="/staff/payments">Quản lý thanh toán</Link>
+            <Link className="nav-item" to="/staff/products">Quản lý sản phẩm</Link>
+            <Link className="nav-item" to="/staff/services">Quản lý dịch vụ</Link>
+            <Link className="nav-item" to="/staff/games">Quản lý game</Link>
+            <Link className="nav-item" to="/staff/feedbacks">Quản lý phản hồi</Link>
+            <Link className="nav-item" to="/staff/debug">Gỡ lỗi</Link>
           </div>
 
           <div>
-            <div className="sidebar-group">Navigation</div>
-            <Link className="nav-item" to="/">Back to Home</Link>
-            <Link className="nav-item" to="/products">Products</Link>
+            <div className="sidebar-group">Điều hướng</div>
+            <Link className="nav-item" to="/">Về trang chủ</Link>
+            <Link className="nav-item" to="/products">Sản phẩm</Link>
           </div>
         </aside>
 
@@ -183,7 +183,7 @@ function StaffPage() {
               <div className="flex items-center justify-between px-2 mb-6">
                 <div className="flex items-center gap-2">
                   <div className="size-6 rounded-lg bg-green-600" />
-                  <span className="font-semibold">Staff Panel</span>
+                  <span className="font-semibold">Bảng điều khiển Staff</span>
                 </div>
                 <button
                   onClick={() => setIsSidebarOpen(false)}
@@ -196,21 +196,21 @@ function StaffPage() {
               </div>
 
               <div>
-                <div className="sidebar-group">Staff Management</div>
-                <Link className="nav-item" to="/staff/dashboard" onClick={() => setIsSidebarOpen(false)}>Dashboard</Link>
-                <Link className="nav-item" to="/staff/orders" onClick={() => setIsSidebarOpen(false)}>Order Management</Link>
-                <Link className="nav-item" to="/staff/payments" onClick={() => setIsSidebarOpen(false)}>Payment Management</Link>
-                <Link className="nav-item" to="/staff/products" onClick={() => setIsSidebarOpen(false)}>Product Management</Link>
-                <Link className="nav-item" to="/staff/services" onClick={() => setIsSidebarOpen(false)}>Service Management</Link>
-                <Link className="nav-item" to="/staff/games" onClick={() => setIsSidebarOpen(false)}>Game Management</Link>
-                <Link className="nav-item" to="/staff/feedbacks" onClick={() => setIsSidebarOpen(false)}>Feedback Management</Link>
-                <Link className="nav-item" to="/staff/debug" onClick={() => setIsSidebarOpen(false)}>Debug</Link>
+                <div className="sidebar-group">Quản lý Staff</div>
+                <Link className="nav-item" to="/staff/dashboard" onClick={() => setIsSidebarOpen(false)}>Bảng điều khiển</Link>
+                <Link className="nav-item" to="/staff/orders" onClick={() => setIsSidebarOpen(false)}>Quản lý đơn hàng</Link>
+                <Link className="nav-item" to="/staff/payments" onClick={() => setIsSidebarOpen(false)}>Quản lý thanh toán</Link>
+                <Link className="nav-item" to="/staff/products" onClick={() => setIsSidebarOpen(false)}>Quản lý sản phẩm</Link>
+                <Link className="nav-item" to="/staff/services" onClick={() => setIsSidebarOpen(false)}>Quản lý dịch vụ</Link>
+                <Link className="nav-item" to="/staff/games" onClick={() => setIsSidebarOpen(false)}>Quản lý game</Link>
+                <Link className="nav-item" to="/staff/feedbacks" onClick={() => setIsSidebarOpen(false)}>Quản lý phản hồi</Link>
+                <Link className="nav-item" to="/staff/debug" onClick={() => setIsSidebarOpen(false)}>Gỡ lỗi</Link>
               </div>
 
               <div>
-                <div className="sidebar-group">Navigation</div>
-                <Link className="nav-item" to="/" onClick={() => setIsSidebarOpen(false)}>Back to Home</Link>
-                <Link className="nav-item" to="/products" onClick={() => setIsSidebarOpen(false)}>Products</Link>
+                <div className="sidebar-group">Điều hướng</div>
+                <Link className="nav-item" to="/" onClick={() => setIsSidebarOpen(false)}>Về trang chủ</Link>
+                <Link className="nav-item" to="/products" onClick={() => setIsSidebarOpen(false)}>Sản phẩm</Link>
               </div>
             </aside>
           </>
@@ -219,7 +219,7 @@ function StaffPage() {
         {/* Main Content */}
         <main className="main">
           <div className="mb-6">
-            <h1 className="text-3xl font-bold text-gray-900 mb-2">Staff Dashboard</h1>
+            <h1 className="text-3xl font-bold text-gray-900 mb-2">Bảng điều khiển Staff</h1>
             <p className="text-gray-600">Quản lý hệ thống từ góc độ nhân viên</p>
           </div>
 
@@ -231,7 +231,7 @@ function StaffPage() {
                     <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 19v-6a2 2 0 00-2-2H5a2 2 0 00-2 2v6a2 2 0 002 2h2a2 2 0 002-2zm0 0V9a2 2 0 012-2h2a2 2 0 012 2v10m-6 0a2 2 0 002 2h2a2 2 0 002-2m0 0V5a2 2 0 012-2h2a2 2 0 012 2v14a2 2 0 01-2 2h-2a2 2 0 01-2-2z" />
                   </svg>
                 </div>
-                <h3 className="text-lg font-semibold">Dashboard</h3>
+                <h3 className="text-lg font-semibold">Bảng điều khiển</h3>
               </div>
               <p className="text-gray-600 text-sm mb-4">Tổng quan hoạt động và thống kê</p>
               <Link to="/staff/dashboard" className="text-blue-600 text-sm font-medium hover:underline">
@@ -246,7 +246,7 @@ function StaffPage() {
                     <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M16 11V7a4 4 0 00-8 0v4M5 9h14l1 12H4L5 9z" />
                   </svg>
                 </div>
-                <h3 className="text-lg font-semibold">Order Management</h3>
+                <h3 className="text-lg font-semibold">Quản lý đơn hàng</h3>
               </div>
               <p className="text-gray-600 text-sm mb-4">Xử lý đơn hàng, giao dịch và vận chuyển</p>
               <Link to="/staff/orders" className="text-blue-600 text-sm font-medium hover:underline">
@@ -261,7 +261,7 @@ function StaffPage() {
                     <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M18.364 5.636l-3.536 3.536m0 5.656l3.536 3.536M9.172 9.172L5.636 5.636m3.536 9.192L5.636 18.364M12 2.25a9.75 9.75 0 100 19.5 9.75 9.75 0 000-19.5z" />
                   </svg>
                 </div>
-                <h3 className="text-lg font-semibold">Customer Support</h3>
+                <h3 className="text-lg font-semibold">Hỗ trợ khách hàng</h3>
               </div>
               <p className="text-gray-600 text-sm mb-4">Hỗ trợ khách hàng, xử lý khiếu nại</p>
               <Link to="/staff/customers" className="text-blue-600 text-sm font-medium hover:underline">
@@ -276,7 +276,7 @@ function StaffPage() {
                     <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M20 7l-8-4-8 4m16 0l-8 4m8-4v10l-8 4m0-10L4 7m8 4v10M4 7v10l8 4" />
                   </svg>
                 </div>
-                <h3 className="text-lg font-semibold">Inventory Management</h3>
+                <h3 className="text-lg font-semibold">Quản lý kho</h3>
               </div>
               <p className="text-gray-600 text-sm mb-4">Quản lý kho hàng, nhập xuất tồn kho</p>
               <Link to="/staff/inventory" className="text-blue-600 text-sm font-medium hover:underline">
@@ -291,7 +291,7 @@ function StaffPage() {
                     <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 11H5m14 0a2 2 0 012 2v6a2 2 0 01-2 2H5a2 2 0 01-2-2v-6a2 2 0 012-2m14 0V9a2 2 0 00-2-2M5 11V9a2 2 0 012-2m0 0V5a2 2 0 012-2h6a2 2 0 012 2v2M7 7h10" />
                   </svg>
                 </div>
-                <h3 className="text-lg font-semibold">Product Management</h3>
+                <h3 className="text-lg font-semibold">Quản lý sản phẩm</h3>
               </div>
               <p className="text-gray-600 text-sm mb-4">Quản lý sản phẩm, giá cả, mô tả</p>
               <Link to="/staff/products" className="text-blue-600 text-sm font-medium hover:underline">
@@ -306,7 +306,7 @@ function StaffPage() {
                     <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 8c-1.657 0-3 .895-3 2s1.343 2 3 2 3 .895 3 2-1.343 2-3 2m0-8c1.11 0 2.08.402 2.599 1M12 8V7m0 1v8m0 0v1m0-1c-1.11 0-2.08-.402-2.599-1" />
                   </svg>
                 </div>
-                <h3 className="text-lg font-semibold">Sales Management</h3>
+                <h3 className="text-lg font-semibold">Quản lý bán hàng</h3>
               </div>
               <p className="text-gray-600 text-sm mb-4">Quản lý bán hàng, khuyến mãi, doanh thu</p>
               <Link to="/staff/sales" className="text-blue-600 text-sm font-medium hover:underline">
@@ -321,7 +321,7 @@ function StaffPage() {
                     <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 17v-2m3 2v-4m3 4v-6m2 10H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" />
                   </svg>
                 </div>
-                <h3 className="text-lg font-semibold">Reports & Analytics</h3>
+                <h3 className="text-lg font-semibold">Báo cáo & Phân tích</h3>
               </div>
               <p className="text-gray-600 text-sm mb-4">Báo cáo chi tiết, phân tích dữ liệu</p>
               <Link to="/staff/reports" className="text-blue-600 text-sm font-medium hover:underline">
@@ -336,7 +336,7 @@ function StaffPage() {
                     <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 17h5l-5 5v-5zM4.828 7l2.586 2.586a2 2 0 002.828 0L12 7M4.828 7H9a2 2 0 012 2v9.172M4.828 7L2.414 4.586A2 2 0 014.828 3H9a2 2 0 012 2v2" />
                   </svg>
                 </div>
-                <h3 className="text-lg font-semibold">Notifications</h3>
+                <h3 className="text-lg font-semibold">Thông báo</h3>
               </div>
               <p className="text-gray-600 text-sm mb-4">Thông báo hệ thống, cảnh báo</p>
               <Link to="/staff/notifications" className="text-blue-600 text-sm font-medium hover:underline">

@@ -18,29 +18,29 @@ function AppShell() {
 
   const menuItems = [
     { key: 'home', label: 'PC Builder', link: '/pcbuilder' },
-    { key: 'products', label: 'Products', children: [
+    { key: 'products', label: 'Sản phẩm', children: [
       { key: 'case', label: 'Case', link: '/products/case' },
       { key: 'cpu', label: 'CPU', link: '/products/cpu' },
       { key: 'mainboard', label: 'Mainboard', link: '/products/mainboard' },
       { key: 'gpu', label: 'GPU', link: '/products/gpu' },
       { key: 'ram', label: 'RAM', link: '/products/ram' },
-      { key: 'storage', label: 'Storage', link: '/products/storage' },
-      { key: 'psu', label: 'Power Supply', link: '/products/psu' },
-      { key: 'cooling', label: 'Cooling', link: '/products/cooling' },
-      { key: 'headset', label: 'Headset/Speaker', link: '/products/headset-speaker' },
-      { key: 'monitor', label: 'Monitor', link: '/products/monitor' },
-      { key: 'mouse', label: 'Mouse', link: '/products/mouse' },
-      { key: 'keyboard', label: 'Keyboard', link: '/products/keyboard' },
+      { key: 'storage', label: 'Ổ cứng', link: '/products/storage' },
+      { key: 'psu', label: 'Nguồn', link: '/products/psu' },
+      { key: 'cooling', label: 'Tản nhiệt', link: '/products/cooling' },
+      { key: 'headset', label: 'Tai nghe/Loa', link: '/products/headset-speaker' },
+      { key: 'monitor', label: 'Màn hình', link: '/products/monitor' },
+      { key: 'mouse', label: 'Chuột', link: '/products/mouse' },
+      { key: 'keyboard', label: 'Bàn phím', link: '/products/keyboard' },
     ]},
-    { key: 'sales', label: 'Sales', link: '/sales' },
-    { key: 'compare', label: 'Compare', link: '/compare' },
-    { key: 'gallery', label: 'PC Part Gallery' },
-    { key: 'builds', label: 'My Builds', link: '/builds' },
-    { key: 'updates', label: 'Updates' },
-    { key: 'setup', label: 'Setup Builder' },
-    { key: 'chat', label: 'Chat', link: '/chat' },
-    ...(ApiService.isStaff() && !ApiService.isAdmin() ? [{ key: 'staff', label: 'Staff Panel', link: '/staff' }, { key: 'staffchat', label: 'Staff Chat', link: '/staff/chat' }] : []),
-    ...(ApiService.isAdmin() ? [{ key: 'admin', label: 'Admin Panel', link: '/admin' }] : []),
+    { key: 'sales', label: 'Khuyến mãi', link: '/sales' },
+    { key: 'compare', label: 'So sánh', link: '/compare' },
+    { key: 'gallery', label: 'Thư viện linh kiện' },
+    { key: 'builds', label: 'Build của tôi', link: '/builds' },
+    { key: 'updates', label: 'Cập nhật' },
+    { key: 'setup', label: 'Thiết lập Builder' },
+    { key: 'chat', label: 'Trò chuyện', link: '/chat' },
+    ...(ApiService.isStaff() && !ApiService.isAdmin() ? [{ key: 'staff', label: 'Bảng điều khiển Staff', link: '/staff' }, { key: 'staffchat', label: 'Chat Staff', link: '/staff/chat' }] : []),
+    ...(ApiService.isAdmin() ? [{ key: 'admin', label: 'Bảng điều khiển Admin', link: '/admin' }] : []),
   ]
 
   useEffect(() => {
@@ -142,7 +142,7 @@ function AppShell() {
             </div>
             <div className="flex flex-col">
               <span className="text-lg font-bold text-gray-800">EzBuild</span>
-              <span className="text-xs text-gray-500 -mt-1">Build your dream</span>
+              <span className="text-xs text-gray-500 -mt-1">Xây dựng giấc mơ của bạn</span>
             </div>
           </div>
         </Link>
@@ -180,11 +180,11 @@ function AppShell() {
                 <div className="py-2">
                   <Link to="/profile" className="w-full px-6 py-3 text-left text-blue-400 hover:bg-gray-800 transition-colors text-sm flex items-center gap-4 group" onClick={() => setIsUserMenuOpen(false)}>
                     <svg className="w-5 h-5 text-blue-400" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M16 7a4 4 0 11-8 0 4 4 0 018 0zM12 14a7 7 0 00-7 7h14a7 7 0 00-7-7z" /></svg>
-                    <span className="font-medium">Profile</span>
+                    <span className="font-medium">Hồ sơ</span>
                   </Link>
                   <button onClick={handleLogout} className="w-full px-6 py-3 text-left text-red-400 hover:bg-gray-800 transition-colors text-sm flex items-center gap-4 group">
                     <svg className="w-5 h-5 text-red-400" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M17 16l4-4m0 0l-4-4m4 4H7m6 4v1a3 3 0 01-3 3H6a3 3 0 01-3-3V7a3 3 0 013-3h4a3 3 0 013 3v1" /></svg>
-                    <span className="font-medium">Log out</span>
+                    <span className="font-medium">Đăng xuất</span>
                   </button>
                 </div>
               </div>
@@ -193,7 +193,7 @@ function AppShell() {
         ) : (
           <Link to="/login" className="flex items-center gap-2 bg-white/95 backdrop-blur-sm border border-black/10 rounded-2xl px-4 py-2 shadow-lg hover:shadow-xl transition-all duration-200">
             <svg className="w-5 h-5 text-gray-600" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M11 16l-4-4m0 0l4-4m-4 4h14m-5 4v1a3 3 0 01-3 3H6a3 3 0 01-3-3V7a3 3 0 013-3h7a3 3 0 013 3v1" /></svg>
-            <span className="text-sm font-medium text-gray-800">Sign In</span>
+            <span className="text-sm font-medium text-gray-800">Đăng nhập</span>
           </Link>
         )}
       </header>
@@ -244,8 +244,8 @@ function AppShell() {
               </nav>
               <div style={{ position: 'absolute', bottom: '16px', left: '16px', right: '16px', fontSize: '12px', color: '#8c8c8c' }}>
                 <div style={{ display: 'flex', gap: '12px' }}>
-                  <a href="#" style={{ color: '#60a5fa' }}>Contact</a>
-                  <a href="#" style={{ color: '#60a5fa' }}>FAQ</a>
+                  <a href="#" style={{ color: '#60a5fa' }}>Liên hệ</a>
+                  <a href="#" style={{ color: '#60a5fa' }}>Câu hỏi thường gặp</a>
                 </div>
               </div>
             </aside>

@@ -161,10 +161,10 @@ function AdminStaffPage() {
   if (loading) {
     return (
       <div className="page bg-grid bg-radial">
-        <div className="flex items-center justify-center h-64">
+        <div className="flex items-center justify-center min-h-screen">
           <div className="text-center">
-            <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-blue-600 mx-auto mb-4"></div>
-            <p className="text-gray-600">Đang tải dữ liệu...</p>
+            <div className="animate-spin rounded-full h-16 w-16 border-4 border-blue-500 border-t-transparent mx-auto mb-4"></div>
+            <p className="text-white text-lg">Đang tải dữ liệu...</p>
           </div>
         </div>
       </div>
@@ -174,12 +174,13 @@ function AdminStaffPage() {
   if (error) {
     return (
       <div className="page bg-grid bg-radial">
-        <div className="flex items-center justify-center h-64">
-          <div className="text-center">
-            <p className="text-red-600 mb-4">{error}</p>
+        <div className="flex items-center justify-center min-h-screen">
+          <div className="text-center bg-white/10 backdrop-blur-lg rounded-2xl p-8 border border-white/20">
+            <div className="text-red-400 text-6xl mb-4">⚠️</div>
+            <p className="text-red-300 mb-6 text-xl">{error}</p>
             <button 
               onClick={loadData}
-              className="px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700"
+              className="px-6 py-3 bg-gradient-to-r from-blue-500 to-cyan-500 text-white rounded-xl hover:from-blue-600 hover:to-cyan-600 transition-all shadow-lg hover:shadow-xl"
             >
               Thử lại
             </button>
@@ -190,124 +191,153 @@ function AdminStaffPage() {
   }
 
   return (
-    <div className="page bg-grid bg-radial">
-      <div className="mb-6">
-        <div className="flex items-center justify-between">
-          <div>
-            <h1 className="text-3xl font-bold text-gray-900 mb-2">Staff Management</h1>
-            <p className="text-gray-600">Quản lý nhân viên, phân quyền và giám sát hoạt động</p>
+    <div className="page bg-grid bg-radial p-6">
+      <div className="max-w-7xl mx-auto">
+        {/* Header */}
+        <div className="mb-8">
+          <div className="flex items-center justify-between mb-4">
+            <div>
+              <h1 className="text-4xl font-bold text-white mb-2 flex items-center gap-3">
+                <span className="bg-gradient-to-r from-green-400 to-emerald-400 bg-clip-text text-transparent">
+                  Quản lý nhân viên
+                </span>
+              </h1>
+              <p className="text-gray-300 text-lg">Quản lý nhân viên, phân quyền và giám sát hoạt động</p>
+            </div>
+            <Link 
+              to="/admin" 
+              className="px-4 py-2 bg-white/10 backdrop-blur-lg text-white rounded-xl hover:bg-white/20 transition-all border border-white/20"
+            >
+              ← Quay lại
+            </Link>
           </div>
-          <Link to="/admin" className="text-blue-600 hover:underline">← Quay lại Admin</Link>
         </div>
-      </div>
 
-      {/* Stats */}
-      <div className="mb-4 flex gap-4">
-        <div className="bg-white px-4 py-3 rounded-lg border border-gray-200 shadow-sm">
-          <div className="text-sm text-gray-600">Tổng Staff</div>
-          <div className="text-2xl font-bold text-gray-900">{staff.length}</div>
+        {/* Stats Cards */}
+        <div className="grid grid-cols-1 md:grid-cols-2 gap-4 mb-8">
+          <div className="bg-white/10 backdrop-blur-lg rounded-2xl p-6 border border-white/20 hover:border-white/40 transition-all shadow-lg hover:shadow-xl">
+            <div className="flex items-center justify-between">
+              <div>
+                <p className="text-gray-300 text-sm mb-2">Tổng Staff</p>
+                <p className="text-3xl font-bold text-white">{staff.length}</p>
+              </div>
+              <div className="w-14 h-14 rounded-xl bg-gradient-to-br from-green-500 to-emerald-500 flex items-center justify-center text-2xl shadow-lg">
+                👔
+              </div>
+            </div>
+          </div>
+          <div className="bg-white/10 backdrop-blur-lg rounded-2xl p-6 border border-white/20 hover:border-white/40 transition-all shadow-lg hover:shadow-xl">
+            <div className="flex items-center justify-between">
+              <div>
+                <p className="text-gray-300 text-sm mb-2">Đang hiển thị</p>
+                <p className="text-3xl font-bold text-blue-400">{filteredStaff.length}</p>
+              </div>
+              <div className="w-14 h-14 rounded-xl bg-gradient-to-br from-purple-500 to-pink-500 flex items-center justify-center text-2xl shadow-lg">
+                👁️
+              </div>
+            </div>
+          </div>
         </div>
-        <div className="bg-white px-4 py-3 rounded-lg border border-gray-200 shadow-sm">
-          <div className="text-sm text-gray-600">Đang hiển thị</div>
-          <div className="text-2xl font-bold text-blue-600">{filteredStaff.length}</div>
-        </div>
-      </div>
 
-      {/* Search and Filter */}
-      <div className="mb-6">
-        <div className="flex gap-4 mb-4">
-          <input
-            type="text"
-            placeholder="Tìm kiếm staff..."
-            value={searchTerm}
-            onChange={(e) => setSearchTerm(e.target.value)}
-            className="flex-1 px-4 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
-          />
-          <button
-            onClick={() => setIsAddModalOpen(true)}
-            className="px-6 py-2 bg-green-100 text-green-700 font-medium rounded-lg hover:bg-green-200 transition-colors flex items-center gap-2 shadow-md border border-green-300"
-          >
-            <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 4v16m8-8H4" />
-            </svg>
-            <span>Thêm Staff</span>
-          </button>
-          <button
-            onClick={loadData}
-            className="px-4 py-2 bg-blue-100 text-blue-700 font-medium rounded-lg hover:bg-blue-200 transition-colors flex items-center gap-2 shadow-md border border-blue-300"
-          >
-            <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15" />
-            </svg>
-            <span>Refresh</span>
-          </button>
+        {/* Search and Filter */}
+        <div className="mb-6">
+          <div className="bg-white/10 backdrop-blur-lg rounded-2xl p-4 border border-white/20">
+            <div className="flex flex-col md:flex-row gap-4">
+              <input
+                type="text"
+                placeholder="Tìm kiếm staff theo email, tên, username..."
+                value={searchTerm}
+                onChange={(e) => setSearchTerm(e.target.value)}
+                className="flex-1 px-5 py-3 bg-white/5 border border-white/10 rounded-xl text-white placeholder-gray-400 focus:outline-none focus:ring-2 focus:ring-green-500 focus:border-transparent"
+              />
+              <button
+                onClick={() => setIsAddModalOpen(true)}
+                className="px-6 py-3 bg-gradient-to-r from-green-500 to-emerald-500 text-white rounded-xl hover:from-green-600 hover:to-emerald-600 transition-all shadow-lg hover:shadow-xl flex items-center justify-center gap-2"
+              >
+                <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 4v16m8-8H4" />
+                </svg>
+                Thêm Staff
+              </button>
+              <button
+                onClick={loadData}
+                className="px-6 py-3 bg-gradient-to-r from-blue-500 to-cyan-500 text-white rounded-xl hover:from-blue-600 hover:to-cyan-600 transition-all shadow-lg hover:shadow-xl flex items-center justify-center gap-2"
+              >
+                <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15" />
+                </svg>
+                Làm mới
+              </button>
+            </div>
+          </div>
         </div>
-      </div>
 
-      {/* Staff Table */}
-      <div className="bg-white rounded-lg border border-black/10 overflow-hidden">
-        <div className="overflow-x-auto">
-          <table className="w-full">
-            <thead className="bg-gray-50">
-              <tr>
-                <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">ID</th>
-                <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Email</th>
-                <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Họ tên</th>
-                <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Username</th>
-                <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Số điện thoại</th>
-                <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Hành động</th>
-              </tr>
-            </thead>
-            <tbody className="bg-white divide-y divide-gray-200">
-              {filteredStaff.length === 0 ? (
-                <tr>
-                  <td colSpan={6} className="px-6 py-12 text-center">
-                    <div className="text-gray-500">
-                      <svg className="mx-auto h-12 w-12 text-gray-400 mb-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M17 20h5v-2a3 3 0 00-5.356-1.857M17 20H7m10 0v-2c0-.656-.126-1.283-.356-1.857M7 20H2v-2a3 3 0 015.356-1.857M7 20v-2c0-.656.126-1.283.356-1.857m0 0a5.002 5.002 0 019.288 0M15 7a3 3 0 11-6 0 3 3 0 016 0zm6 3a2 2 0 11-4 0 2 2 0 014 0zM7 10a2 2 0 11-4 0 2 2 0 014 0z" />
-                      </svg>
-                      <p className="text-lg font-medium mb-2">
-                        {staff.length === 0 ? 'Chưa có dữ liệu staff' : 'Không tìm thấy staff nào'}
-                      </p>
-                      {staff.length === 0 && (
-                        <p className="text-sm text-orange-600 mt-2">
-                          ⚠️ Chưa có staff nào. Staff là users có role = "Staff". Backend cần có endpoint <code className="bg-gray-100 px-2 py-1 rounded">GET /api/user/all</code>
-                        </p>
-                      )}
-                    </div>
-                  </td>
+        {/* Staff Table */}
+        <div className="bg-white/10 backdrop-blur-lg rounded-2xl border border-white/20 overflow-hidden shadow-2xl">
+          <div className="overflow-x-auto">
+            <table className="w-full">
+              <thead>
+                <tr className="bg-white/5 border-b border-white/10">
+                  <th className="px-6 py-4 text-left text-xs font-semibold text-gray-300 uppercase tracking-wider">ID</th>
+                  <th className="px-6 py-4 text-left text-xs font-semibold text-gray-300 uppercase tracking-wider">Email</th>
+                  <th className="px-6 py-4 text-left text-xs font-semibold text-gray-300 uppercase tracking-wider">Họ tên</th>
+                  <th className="px-6 py-4 text-left text-xs font-semibold text-gray-300 uppercase tracking-wider">Username</th>
+                  <th className="px-6 py-4 text-left text-xs font-semibold text-gray-300 uppercase tracking-wider">Số điện thoại</th>
+                  <th className="px-6 py-4 text-left text-xs font-semibold text-gray-300 uppercase tracking-wider">Hành động</th>
                 </tr>
-              ) : (
-                filteredStaff.map((s) => (
-                  <tr key={s.id} className="hover:bg-gray-50">
-                    <td className="px-6 py-4 whitespace-nowrap text-sm font-medium text-gray-900">#{s.id}</td>
-                    <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-900">{s.email}</td>
-                    <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-900">{s.fullname || '-'}</td>
-                    <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-900">{s.username || '-'}</td>
-                    <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-900">{s.phone || '-'}</td>
-                    <td className="px-6 py-4 whitespace-nowrap text-sm font-medium">
-                      <div className="flex gap-2">
-                        <button
-                          onClick={() => openEditModal(s)}
-                          className="text-blue-600 hover:text-blue-900"
-                        >
-                          Sửa
-                        </button>
-                        <button
-                          onClick={() => openDeleteModal(s)}
-                          className="text-red-600 hover:text-red-900"
-                        >
-                          Xóa
-                        </button>
+              </thead>
+              <tbody className="divide-y divide-white/10">
+                {filteredStaff.length === 0 ? (
+                  <tr>
+                    <td colSpan={6} className="px-6 py-12 text-center">
+                      <div className="text-gray-400">
+                        <svg className="mx-auto h-16 w-16 text-gray-500 mb-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M17 20h5v-2a3 3 0 00-5.356-1.857M17 20H7m10 0v-2c0-.656-.126-1.283-.356-1.857M7 20H2v-2a3 3 0 015.356-1.857M7 20v-2c0-.656.126-1.283.356-1.857m0 0a5.002 5.002 0 019.288 0M15 7a3 3 0 11-6 0 3 3 0 016 0zm6 3a2 2 0 11-4 0 2 2 0 014 0zM7 10a2 2 0 11-4 0 2 2 0 014 0z" />
+                        </svg>
+                        <p className="text-lg font-medium mb-2">
+                          {staff.length === 0 ? 'Chưa có dữ liệu staff' : 'Không tìm thấy staff nào'}
+                        </p>
+                        {staff.length === 0 && (
+                          <p className="text-sm text-orange-400 mt-2">
+                            ⚠️ Chưa có staff nào. Staff là users có role = "Staff"
+                          </p>
+                        )}
                       </div>
                     </td>
                   </tr>
-                ))
-              )}
-            </tbody>
-          </table>
+                ) : (
+                  filteredStaff.map((s) => (
+                    <tr key={s.id} className="hover:bg-white/5 transition-colors">
+                      <td className="px-6 py-4 whitespace-nowrap">
+                        <span className="text-white font-semibold">#{s.id}</span>
+                      </td>
+                      <td className="px-6 py-4 whitespace-nowrap text-white">{s.email}</td>
+                      <td className="px-6 py-4 whitespace-nowrap text-white">{s.fullname || '-'}</td>
+                      <td className="px-6 py-4 whitespace-nowrap text-gray-300">{s.username || '-'}</td>
+                      <td className="px-6 py-4 whitespace-nowrap text-gray-300">{s.phone || '-'}</td>
+                      <td className="px-6 py-4 whitespace-nowrap">
+                        <div className="flex gap-2">
+                          <button
+                            onClick={() => openEditModal(s)}
+                            className="px-4 py-2 bg-gradient-to-r from-blue-500 to-cyan-500 text-white rounded-lg hover:from-blue-600 hover:to-cyan-600 transition-all text-sm font-medium shadow-md"
+                          >
+                            Sửa
+                          </button>
+                          <button
+                            onClick={() => openDeleteModal(s)}
+                            className="px-4 py-2 bg-gradient-to-r from-red-500 to-rose-500 text-white rounded-lg hover:from-red-600 hover:to-rose-600 transition-all text-sm font-medium shadow-md"
+                          >
+                            Xóa
+                          </button>
+                        </div>
+                      </td>
+                    </tr>
+                  ))
+                )}
+              </tbody>
+            </table>
+          </div>
         </div>
-      </div>
 
       {/* Add Staff Modal */}
       {isAddModalOpen && (
@@ -854,6 +884,7 @@ function AdminStaffPage() {
           </div>
         </div>
       )}
+      </div>
     </div>
   )
 }
