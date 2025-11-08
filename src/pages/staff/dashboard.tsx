@@ -38,7 +38,6 @@ function StaffDashboardPage() {
   const [ordersForChart, setOrdersForChart] = useState<Array<Record<string, unknown>>>([])
   const [paymentsForChart, setPaymentsForChart] = useState<Array<Record<string, unknown>>>([])
 
-  // Compute chart data with stable hook order (declare before any conditional returns)
   const revenuePoints = useMemo(() => {
     const map = new Map<string, number>()
     paymentsForChart
@@ -68,7 +67,6 @@ function StaffDashboardPage() {
       setLoading(true)
       setError(null)
       
-      // Load orders và payments
       const [ordersData, paymentsData] = await Promise.all([
         ApiService.getOrders(),
         ApiService.getAllPayments()
@@ -77,7 +75,6 @@ function StaffDashboardPage() {
       const orders = ordersData as Array<Record<string, unknown>>
       const payments = paymentsData as Array<Record<string, unknown>>
       
-      // Calculate stats
       const newStats: DashboardStats = {
         totalOrders: orders.length,
         pendingOrders: orders.filter(o => o.status === 'PENDING').length,
@@ -109,10 +106,10 @@ function StaffDashboardPage() {
   if (loading) {
     return (
       <div className="page bg-grid bg-radial">
-        <div className="flex items-center justify-center h-64">
+        <div className="flex items-center justify-center min-h-screen">
           <div className="text-center">
-            <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-blue-600 mx-auto mb-4"></div>
-            <p className="text-gray-600">Đang tải dữ liệu...</p>
+            <div className="animate-spin rounded-full h-16 w-16 border-4 border-blue-500 border-t-transparent mx-auto mb-4"></div>
+            <p className="text-white text-lg">Đang tải dữ liệu...</p>
           </div>
         </div>
       </div>
@@ -122,13 +119,13 @@ function StaffDashboardPage() {
   if (error) {
     return (
       <div className="page bg-grid bg-radial">
-        <div className="flex items-center justify-center h-64">
-          <div className="text-center">
-            <div className="text-red-500 text-6xl mb-4">⚠️</div>
-            <p className="text-red-600 mb-4">{error}</p>
+        <div className="flex items-center justify-center min-h-screen">
+          <div className="text-center bg-white/10 backdrop-blur-lg rounded-2xl p-8 border border-white/20">
+            <div className="text-red-400 text-6xl mb-4">⚠️</div>
+            <p className="text-red-300 mb-6 text-xl">{error}</p>
             <button 
               onClick={loadDashboardData}
-              className="px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700"
+              className="px-6 py-3 bg-gradient-to-r from-blue-500 to-cyan-500 text-white rounded-xl hover:from-blue-600 hover:to-cyan-600 transition-all shadow-lg hover:shadow-xl"
             >
               Thử lại
             </button>
@@ -139,224 +136,167 @@ function StaffDashboardPage() {
   }
 
   return (
-    <div className="page bg-grid bg-radial">
-      <div className="mb-6">
-        <h1 className="text-3xl font-bold text-gray-900 mb-2">Dashboard</h1>
-        <p className="text-gray-600">Tổng quan hoạt động hệ thống</p>
-      </div>
+    <div className="page bg-grid bg-radial p-6">
+      <div className="max-w-7xl mx-auto">
+        {/* Header */}
+        <div className="mb-8">
+          <h1 className="text-4xl font-bold text-white mb-2 flex items-center gap-3">
+            <span className="bg-gradient-to-r from-blue-400 to-cyan-400 bg-clip-text text-transparent">
+              Bảng điều khiển
+            </span>
+          </h1>
+          <p className="text-gray-300 text-lg">Tổng quan hoạt động hệ thống</p>
+        </div>
 
-      {/* Stats Grid */}
-      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6 mb-8">
         {/* Orders Stats */}
-        <div className="bg-white rounded-lg border border-black/10 p-6">
+        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4 mb-6">
+          {[
+            { label: 'Tổng đơn hàng', value: stats.totalOrders, color: 'from-blue-500 to-cyan-500', icon: '📦', link: '/staff/orders' },
+            { label: 'Chờ xử lý', value: stats.pendingOrders, color: 'from-amber-500 to-orange-500', icon: '⏳' },
+            { label: 'Đã cọc', value: stats.depositedOrders, color: 'from-blue-500 to-indigo-500', icon: '💰' },
+            { label: 'Đang giao', value: stats.shippingOrders, color: 'from-purple-500 to-pink-500', icon: '🚚' },
+          ].map((stat, idx) => (
+            <div key={idx} className="bg-white/10 backdrop-blur-lg rounded-2xl p-6 border border-white/20 hover:border-white/40 transition-all shadow-lg hover:shadow-xl">
+              <div className="flex items-center justify-between mb-4">
+                <div>
+                  <p className="text-gray-300 text-sm mb-2">{stat.label}</p>
+                  <p className="text-3xl font-bold text-white">{stat.value}</p>
+                </div>
+                <div className={`w-14 h-14 rounded-xl bg-gradient-to-br ${stat.color} flex items-center justify-center text-2xl shadow-lg`}>
+                  {stat.icon}
+                </div>
+              </div>
+              {stat.link && (
+                <Link 
+                  to={stat.link}
+                  className="text-blue-400 text-sm font-medium hover:text-blue-300 transition-colors"
+                >
+                  Xem chi tiết →
+                </Link>
+              )}
+            </div>
+          ))}
+        </div>
+
+        {/* Payment Stats */}
+        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4 mb-8">
+          {[
+            { label: 'Tổng thanh toán', value: stats.totalPayments, color: 'from-green-500 to-emerald-500', icon: '💳', link: '/staff/payments' },
+            { label: 'Chờ thanh toán', value: stats.pendingPayments, color: 'from-amber-500 to-orange-500', icon: '⏳' },
+            { label: 'Đã cọc 25%', value: stats.paid25PercentPayments, color: 'from-blue-500 to-cyan-500', icon: '💰' },
+            { label: 'Đã thanh toán', value: stats.paidPayments, color: 'from-green-500 to-emerald-500', icon: '✅' },
+          ].map((stat, idx) => (
+            <div key={idx} className="bg-white/10 backdrop-blur-lg rounded-2xl p-6 border border-white/20 hover:border-white/40 transition-all shadow-lg hover:shadow-xl">
+              <div className="flex items-center justify-between mb-4">
+                <div>
+                  <p className="text-gray-300 text-sm mb-2">{stat.label}</p>
+                  <p className="text-3xl font-bold text-white">{stat.value}</p>
+                </div>
+                <div className={`w-14 h-14 rounded-xl bg-gradient-to-br ${stat.color} flex items-center justify-center text-2xl shadow-lg`}>
+                  {stat.icon}
+                </div>
+              </div>
+              {stat.link && (
+                <Link 
+                  to={stat.link}
+                  className="text-green-400 text-sm font-medium hover:text-green-300 transition-colors"
+                >
+                  Xem chi tiết →
+                </Link>
+              )}
+            </div>
+          ))}
+        </div>
+
+        {/* Revenue Card */}
+        <div className="bg-gradient-to-r from-emerald-500 to-teal-500 rounded-2xl p-6 mb-8 border border-white/20 shadow-2xl">
           <div className="flex items-center justify-between">
             <div>
-              <p className="text-sm font-medium text-gray-600">Tổng đơn hàng</p>
-              <p className="text-2xl font-bold text-gray-900">{stats.totalOrders}</p>
+              <p className="text-white/90 text-sm mb-2">Tổng doanh thu</p>
+              <p className="text-4xl font-bold text-white">
+                {new Intl.NumberFormat('vi-VN', {
+                  style: 'currency',
+                  currency: 'VND'
+                }).format(stats.totalRevenue)}
+              </p>
             </div>
-            <div className="w-12 h-12 bg-blue-100 rounded-lg flex items-center justify-center">
-              <svg className="w-6 h-6 text-blue-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M16 11V7a4 4 0 00-8 0v4M5 9h14l1 12H4L5 9z" />
-              </svg>
-            </div>
-          </div>
-          <div className="mt-4">
-            <Link 
-              to="/staff/orders" 
-              className="text-blue-600 text-sm font-medium hover:underline"
-            >
-              Xem chi tiết →
-            </Link>
-          </div>
-        </div>
-
-        <div className="bg-white rounded-lg border border-black/10 p-6">
-          <div className="flex items-center justify-between">
-            <div>
-              <p className="text-sm font-medium text-gray-600">Đơn chờ xử lý</p>
-              <p className="text-2xl font-bold text-yellow-600">{stats.pendingOrders}</p>
-            </div>
-            <div className="w-12 h-12 bg-yellow-100 rounded-lg flex items-center justify-center">
-              <svg className="w-6 h-6 text-yellow-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z" />
-              </svg>
+            <div className="w-16 h-16 rounded-xl bg-white/20 backdrop-blur-sm flex items-center justify-center text-3xl">
+              💰
             </div>
           </div>
         </div>
 
-        <div className="bg-white rounded-lg border border-black/10 p-6">
-          <div className="flex items-center justify-between">
-            <div>
-              <p className="text-sm font-medium text-gray-600">Đơn đã cọc</p>
-              <p className="text-2xl font-bold text-blue-600">{stats.depositedOrders}</p>
-            </div>
-            <div className="w-12 h-12 bg-blue-100 rounded-lg flex items-center justify-center">
-              <svg className="w-6 h-6 text-blue-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 8c-1.657 0-3 .895-3 2s1.343 2 3 2 3 .895 3 2-1.343 2-3 2m0-8c1.11 0 2.08.402 2.599 1M12 8V7m0 1v8m0 0v1m0-1c-1.11 0-2.08-.402-2.599-1" />
-              </svg>
-            </div>
+        {/* Charts */}
+        <div className="grid grid-cols-1 lg:grid-cols-2 gap-6 mb-8">
+          <div className="bg-white/10 backdrop-blur-lg rounded-2xl p-6 border border-white/20 shadow-xl">
+            <h3 className="font-semibold text-white mb-4 text-lg">Đơn hàng theo trạng thái</h3>
+            <BarChart
+              labels={['PEND', 'DEP', 'SHIP', 'PAID', 'DONE', 'CANC']}
+              values={[
+                ordersForChart.filter(o => (o as Record<string, unknown>)['status'] === 'PENDING').length,
+                ordersForChart.filter(o => (o as Record<string, unknown>)['status'] === 'DEPOSITED').length,
+                ordersForChart.filter(o => (o as Record<string, unknown>)['status'] === 'SHIPPING').length,
+                ordersForChart.filter(o => (o as Record<string, unknown>)['status'] === 'PAID').length,
+                ordersForChart.filter(o => (o as Record<string, unknown>)['status'] === 'DONE').length,
+                ordersForChart.filter(o => (o as Record<string, unknown>)['status'] === 'CANCEL').length,
+              ]}
+            />
+          </div>
+          <div className="bg-white/10 backdrop-blur-lg rounded-2xl p-6 border border-white/20 shadow-xl">
+            <h3 className="font-semibold text-white mb-4 text-lg">Doanh thu (ngày gần đây)</h3>
+            <LineChart points={revenuePoints} />
           </div>
         </div>
 
-        <div className="bg-white rounded-lg border border-black/10 p-6">
-          <div className="flex items-center justify-between">
-            <div>
-              <p className="text-sm font-medium text-gray-600">Đơn đang giao</p>
-              <p className="text-2xl font-bold text-purple-600">{stats.shippingOrders}</p>
+        {/* Quick Actions */}
+        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+          <Link 
+            to="/staff/orders"
+            className="bg-white/10 backdrop-blur-lg rounded-2xl p-6 border border-white/20 hover:border-white/40 transition-all shadow-lg hover:shadow-xl group"
+          >
+            <div className="flex items-center gap-4 mb-4">
+              <div className="w-12 h-12 rounded-xl bg-gradient-to-br from-blue-500 to-cyan-500 flex items-center justify-center text-xl shadow-lg group-hover:scale-110 transition-transform">
+                📦
+              </div>
+              <h3 className="text-lg font-semibold text-white">Quản lý đơn hàng</h3>
             </div>
-            <div className="w-12 h-12 bg-purple-100 rounded-lg flex items-center justify-center">
-              <svg className="w-6 h-6 text-purple-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M20 7l-8-4-8 4m16 0l-8 4m8-4v10l-8 4m0-10L4 7m8 4v10M4 7v10l8 4" />
-              </svg>
+            <p className="text-gray-300 text-sm mb-4">Xử lý đơn hàng, cập nhật trạng thái</p>
+            <div className="text-blue-400 text-sm font-medium group-hover:text-blue-300 transition-colors">Xem chi tiết →</div>
+          </Link>
+
+          <Link 
+            to="/staff/payments"
+            className="bg-white/10 backdrop-blur-lg rounded-2xl p-6 border border-white/20 hover:border-white/40 transition-all shadow-lg hover:shadow-xl group"
+          >
+            <div className="flex items-center gap-4 mb-4">
+              <div className="w-12 h-12 rounded-xl bg-gradient-to-br from-green-500 to-emerald-500 flex items-center justify-center text-xl shadow-lg group-hover:scale-110 transition-transform">
+                💳
+              </div>
+              <h3 className="text-lg font-semibold text-white">Quản lý thanh toán</h3>
             </div>
-          </div>
+            <p className="text-gray-300 text-sm mb-4">Xử lý giao dịch, xác nhận thanh toán</p>
+            <div className="text-green-400 text-sm font-medium group-hover:text-green-300 transition-colors">Xem chi tiết →</div>
+          </Link>
+
+          <Link 
+            to="/staff/products"
+            className="bg-white/10 backdrop-blur-lg rounded-2xl p-6 border border-white/20 hover:border-white/40 transition-all shadow-lg hover:shadow-xl group"
+          >
+            <div className="flex items-center gap-4 mb-4">
+              <div className="w-12 h-12 rounded-xl bg-gradient-to-br from-purple-500 to-pink-500 flex items-center justify-center text-xl shadow-lg group-hover:scale-110 transition-transform">
+                🎮
+              </div>
+              <h3 className="text-lg font-semibold text-white">Quản lý sản phẩm</h3>
+            </div>
+            <p className="text-gray-300 text-sm mb-4">Thêm, sửa, xóa sản phẩm</p>
+            <div className="text-purple-400 text-sm font-medium group-hover:text-purple-300 transition-colors">Xem chi tiết →</div>
+          </Link>
         </div>
-      </div>
-
-      {/* Payment Stats */}
-      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6 mb-8">
-        <div className="bg-white rounded-lg border border-black/10 p-6">
-          <div className="flex items-center justify-between">
-            <div>
-              <p className="text-sm font-medium text-gray-600">Tổng thanh toán</p>
-              <p className="text-2xl font-bold text-gray-900">{stats.totalPayments}</p>
-            </div>
-            <div className="w-12 h-12 bg-green-100 rounded-lg flex items-center justify-center">
-              <svg className="w-6 h-6 text-green-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M3 10h18M7 15h1m4 0h1m-7 4h12a3 3 0 003-3V8a3 3 0 00-3-3H6a3 3 0 00-3 3v8a3 3 0 003 3z" />
-              </svg>
-            </div>
-          </div>
-          <div className="mt-4">
-            <Link 
-              to="/staff/payments" 
-              className="text-green-600 text-sm font-medium hover:underline"
-            >
-              Xem chi tiết →
-            </Link>
-          </div>
-        </div>
-
-        <div className="bg-white rounded-lg border border-black/10 p-6">
-          <div className="flex items-center justify-between">
-            <div>
-              <p className="text-sm font-medium text-gray-600">Chờ thanh toán</p>
-              <p className="text-2xl font-bold text-yellow-600">{stats.pendingPayments}</p>
-            </div>
-            <div className="w-12 h-12 bg-yellow-100 rounded-lg flex items-center justify-center">
-              <svg className="w-6 h-6 text-yellow-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z" />
-              </svg>
-            </div>
-          </div>
-        </div>
-
-        <div className="bg-white rounded-lg border border-black/10 p-6">
-          <div className="flex items-center justify-between">
-            <div>
-              <p className="text-sm font-medium text-gray-600">Đã cọc 25%</p>
-              <p className="text-2xl font-bold text-blue-600">{stats.paid25PercentPayments}</p>
-            </div>
-            <div className="w-12 h-12 bg-blue-100 rounded-lg flex items-center justify-center">
-              <svg className="w-6 h-6 text-blue-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 8c-1.657 0-3 .895-3 2s1.343 2 3 2 3 .895 3 2-1.343 2-3 2m0-8c1.11 0 2.08.402 2.599 1M12 8V7m0 1v8m0 0v1m0-1c-1.11 0-2.08-.402-2.599-1" />
-              </svg>
-            </div>
-          </div>
-        </div>
-
-        <div className="bg-white rounded-lg border border-black/10 p-6">
-          <div className="flex items-center justify-between">
-            <div>
-              <p className="text-sm font-medium text-gray-600">Đã thanh toán</p>
-              <p className="text-2xl font-bold text-green-600">{stats.paidPayments}</p>
-            </div>
-            <div className="w-12 h-12 bg-green-100 rounded-lg flex items-center justify-center">
-              <svg className="w-6 h-6 text-green-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z" />
-              </svg>
-            </div>
-          </div>
-        </div>
-      </div>
-
-      {/* Charts */}
-      <div className="grid grid-cols-1 lg:grid-cols-2 gap-6 mb-8">
-        <div className="bg-white rounded-lg border border-black/10 p-6">
-          <h3 className="font-semibold text-gray-900 mb-3">Đơn hàng theo trạng thái</h3>
-          <BarChart
-            labels={['PEND', 'DEP', 'SHIP', 'PAID', 'DONE', 'CANC']}
-            values={[
-              ordersForChart.filter(o => (o as Record<string, unknown>)['status'] === 'PENDING').length,
-              ordersForChart.filter(o => (o as Record<string, unknown>)['status'] === 'DEPOSITED').length,
-              ordersForChart.filter(o => (o as Record<string, unknown>)['status'] === 'SHIPPING').length,
-              ordersForChart.filter(o => (o as Record<string, unknown>)['status'] === 'PAID').length,
-              ordersForChart.filter(o => (o as Record<string, unknown>)['status'] === 'DONE').length,
-              ordersForChart.filter(o => (o as Record<string, unknown>)['status'] === 'CANCEL').length,
-            ]}
-          />
-        </div>
-        <div className="bg-white rounded-lg border border-black/10 p-6">
-          <h3 className="font-semibold text-gray-900 mb-3">Doanh thu (ngày gần đây)</h3>
-          <LineChart points={revenuePoints} />
-        </div>
-      </div>
-
-      {/* Quick Actions */}
-      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-        <Link 
-          to="/staff/orders"
-          className="bg-white rounded-lg border border-black/10 p-6 hover:shadow-md transition-shadow"
-        >
-          <div className="flex items-center gap-3 mb-4">
-            <div className="w-10 h-10 bg-blue-100 rounded-lg flex items-center justify-center">
-              <svg className="w-6 h-6 text-blue-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M16 11V7a4 4 0 00-8 0v4M5 9h14l1 12H4L5 9z" />
-              </svg>
-            </div>
-            <h3 className="text-lg font-semibold">Quản lý đơn hàng</h3>
-          </div>
-          <p className="text-gray-600 text-sm mb-4">Xử lý đơn hàng, cập nhật trạng thái</p>
-          <div className="text-blue-600 text-sm font-medium">Xem chi tiết →</div>
-        </Link>
-
-        <Link 
-          to="/staff/payments"
-          className="bg-white rounded-lg border border-black/10 p-6 hover:shadow-md transition-shadow"
-        >
-          <div className="flex items-center gap-3 mb-4">
-            <div className="w-10 h-10 bg-green-100 rounded-lg flex items-center justify-center">
-              <svg className="w-6 h-6 text-green-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M3 10h18M7 15h1m4 0h1m-7 4h12a3 3 0 003-3V8a3 3 0 00-3-3H6a3 3 0 00-3 3v8a3 3 0 003 3z" />
-              </svg>
-            </div>
-            <h3 className="text-lg font-semibold">Quản lý thanh toán</h3>
-          </div>
-          <p className="text-gray-600 text-sm mb-4">Xử lý giao dịch, xác nhận thanh toán</p>
-          <div className="text-green-600 text-sm font-medium">Xem chi tiết →</div>
-        </Link>
-
-        <Link 
-          to="/staff/customers"
-          className="bg-white rounded-lg border border-black/10 p-6 hover:shadow-md transition-shadow"
-        >
-          <div className="flex items-center gap-3 mb-4">
-            <div className="w-10 h-10 bg-purple-100 rounded-lg flex items-center justify-center">
-              <svg className="w-6 h-6 text-purple-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M18.364 5.636l-3.536 3.536m0 5.656l3.536 3.536M9.172 9.172L5.636 5.636m3.536 9.192L5.636 18.364M12 2.25a9.75 9.75 0 100 19.5 9.75 9.75 0 000-19.5z" />
-              </svg>
-            </div>
-            <h3 className="text-lg font-semibold">Hỗ trợ khách hàng</h3>
-          </div>
-          <p className="text-gray-600 text-sm mb-4">Xử lý khiếu nại, hỗ trợ khách hàng</p>
-          <div className="text-purple-600 text-sm font-medium">Xem chi tiết →</div>
-        </Link>
       </div>
     </div>
   )
 }
 
-// Reuse lightweight charts
 function BarChart({ labels, values, color = '#6366f1' }: { labels: string[]; values: number[]; color?: string }) {
   const max = Math.max(1, ...values)
   const barWidth = 100 / Math.max(1, values.length)
@@ -367,13 +307,13 @@ function BarChart({ labels, values, color = '#6366f1' }: { labels: string[]; val
         return (
           <g key={i}>
             <rect x={i * barWidth + 4 * 0.01} y={55 - h} width={barWidth * 0.9} height={h} fill={color} rx={1.5} />
-            <text x={i * barWidth + (barWidth * 0.45)} y={58.5} fontSize="3" textAnchor="middle" fill="#6b7280">
+            <text x={i * barWidth + (barWidth * 0.45)} y={58.5} fontSize="3" textAnchor="middle" fill="#9ca3af">
               {labels[i]}
             </text>
           </g>
         )
       })}
-      <line x1="0" y1="55" x2="100" y2="55" stroke="#e5e7eb" strokeWidth="0.5" />
+      <line x1="0" y1="55" x2="100" y2="55" stroke="#374151" strokeWidth="0.5" />
     </svg>
   )
 }
@@ -387,7 +327,7 @@ function LineChart({ points, color = '#10b981' }: { points: Array<{ x: string; y
       {points.map((p, i) => (
         <circle key={i} cx={i * stepX} cy={55 - (p.y / maxY) * 48} r={1.2} fill={color} />
       ))}
-      <line x1="0" y1="55" x2="100" y2="55" stroke="#e5e7eb" strokeWidth="0.5" />
+      <line x1="0" y1="55" x2="100" y2="55" stroke="#374151" strokeWidth="0.5" />
     </svg>
   )
 }

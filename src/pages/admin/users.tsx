@@ -188,10 +188,10 @@ function AdminUsersPage() {
   if (loading) {
     return (
       <div className="page bg-grid bg-radial">
-        <div className="flex items-center justify-center h-64">
+        <div className="flex items-center justify-center min-h-screen">
           <div className="text-center">
-            <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-blue-600 mx-auto mb-4"></div>
-            <p className="text-gray-600">Đang tải dữ liệu...</p>
+            <div className="animate-spin rounded-full h-16 w-16 border-4 border-blue-500 border-t-transparent mx-auto mb-4"></div>
+            <p className="text-white text-lg">Đang tải dữ liệu...</p>
           </div>
         </div>
       </div>
@@ -201,12 +201,13 @@ function AdminUsersPage() {
   if (error) {
     return (
       <div className="page bg-grid bg-radial">
-        <div className="flex items-center justify-center h-64">
-          <div className="text-center">
-            <p className="text-red-600 mb-4">{error}</p>
+        <div className="flex items-center justify-center min-h-screen">
+          <div className="text-center bg-white/10 backdrop-blur-lg rounded-2xl p-8 border border-white/20">
+            <div className="text-red-400 text-6xl mb-4">⚠️</div>
+            <p className="text-red-300 mb-6 text-xl">{error}</p>
             <button 
               onClick={loadData}
-              className="px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700"
+              className="px-6 py-3 bg-gradient-to-r from-blue-500 to-cyan-500 text-white rounded-xl hover:from-blue-600 hover:to-cyan-600 transition-all shadow-lg hover:shadow-xl"
             >
               Thử lại
             </button>
@@ -216,386 +217,301 @@ function AdminUsersPage() {
     )
   }
 
+  const getRoleColor = (role?: string) => {
+    switch (role) {
+      case 'Admin': return 'bg-gradient-to-r from-red-500 to-rose-500 text-white'
+      case 'Staff': return 'bg-gradient-to-r from-green-500 to-emerald-500 text-white'
+      case 'Customer': return 'bg-gradient-to-r from-blue-500 to-cyan-500 text-white'
+      default: return 'bg-gray-500 text-white'
+    }
+  }
+
   return (
-    <div className="page bg-grid bg-radial">
-      <div className="mb-6">
-        <div className="flex items-center justify-between">
-          <div>
-            <h1 className="text-3xl font-bold text-gray-900 mb-2">User Management</h1>
-            <p className="text-gray-600">Quản lý người dùng, phân quyền và kiểm soát truy cập</p>
+    <div className="page bg-grid bg-radial p-6">
+      <div className="max-w-7xl mx-auto">
+        {/* Header */}
+        <div className="mb-8">
+          <div className="flex items-center justify-between mb-4">
+            <div>
+              <h1 className="text-4xl font-bold text-white mb-2 flex items-center gap-3">
+                <span className="bg-gradient-to-r from-blue-400 to-cyan-400 bg-clip-text text-transparent">
+                  Quản lý người dùng
+                </span>
+              </h1>
+              <p className="text-gray-300 text-lg">Quản lý người dùng, phân quyền và kiểm soát truy cập</p>
+            </div>
+            <Link 
+              to="/admin" 
+              className="px-4 py-2 bg-white/10 backdrop-blur-lg text-white rounded-xl hover:bg-white/20 transition-all border border-white/20"
+            >
+              ← Quay lại
+            </Link>
           </div>
-          <Link to="/admin" className="text-blue-600 hover:underline">← Quay lại Admin</Link>
         </div>
-      </div>
 
-      {/* Stats */}
-      <div className="mb-4 flex gap-4">
-        <div className="bg-white px-4 py-3 rounded-lg border border-gray-200 shadow-sm">
-          <div className="text-sm text-gray-600">Tổng Users</div>
-          <div className="text-2xl font-bold text-gray-900">{users.length}</div>
+        {/* Stats Cards */}
+        <div className="grid grid-cols-1 md:grid-cols-2 gap-4 mb-8">
+          <div className="bg-white/10 backdrop-blur-lg rounded-2xl p-6 border border-white/20 hover:border-white/40 transition-all shadow-lg hover:shadow-xl">
+            <div className="flex items-center justify-between">
+              <div>
+                <p className="text-gray-300 text-sm mb-2">Tổng Users</p>
+                <p className="text-3xl font-bold text-white">{users.length}</p>
+              </div>
+              <div className="w-14 h-14 rounded-xl bg-gradient-to-br from-blue-500 to-cyan-500 flex items-center justify-center text-2xl shadow-lg">
+                👥
+              </div>
+            </div>
+          </div>
+          <div className="bg-white/10 backdrop-blur-lg rounded-2xl p-6 border border-white/20 hover:border-white/40 transition-all shadow-lg hover:shadow-xl">
+            <div className="flex items-center justify-between">
+              <div>
+                <p className="text-gray-300 text-sm mb-2">Đang hiển thị</p>
+                <p className="text-3xl font-bold text-blue-400">{filteredUsers.length}</p>
+              </div>
+              <div className="w-14 h-14 rounded-xl bg-gradient-to-br from-purple-500 to-pink-500 flex items-center justify-center text-2xl shadow-lg">
+                👁️
+              </div>
+            </div>
+          </div>
         </div>
-        <div className="bg-white px-4 py-3 rounded-lg border border-gray-200 shadow-sm">
-          <div className="text-sm text-gray-600">Đang hiển thị</div>
-          <div className="text-2xl font-bold text-blue-600">{filteredUsers.length}</div>
-        </div>
-      </div>
 
-      {/* Search and Filter */}
-      <div className="mb-6">
-        <div className="flex gap-4 mb-4">
-          <input
-            type="text"
-            placeholder="Tìm kiếm user..."
-            value={searchTerm}
-            onChange={(e) => setSearchTerm(e.target.value)}
-            className="flex-1 px-4 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
-          />
-          <select
-            value={filterRole}
-            onChange={(e) => setFilterRole(e.target.value)}
-            className="px-4 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 bg-white text-gray-900"
-          >
-            <option value="all">Tất cả roles</option>
-            <option value="Customer">Customer</option>
-            <option value="Staff">Staff</option>
-            <option value="Admin">Admin</option>
-          </select>
-          <button
-            onClick={() => setIsAddModalOpen(true)}
-            className="px-6 py-2 bg-green-100 text-green-700 font-medium rounded-lg hover:bg-green-200 transition-colors flex items-center gap-2 shadow-md border border-green-300"
-          >
-            <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 4v16m8-8H4" />
-            </svg>
-            <span>Thêm User</span>
-          </button>
-          <button
-            onClick={loadData}
-            className="px-4 py-2 bg-blue-100 text-blue-700 font-medium rounded-lg hover:bg-blue-200 transition-colors flex items-center gap-2 shadow-md border border-blue-300"
-          >
-            <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15" />
-            </svg>
-            <span>Refresh</span>
-          </button>
+        {/* Search and Filter */}
+        <div className="mb-6">
+          <div className="bg-white/10 backdrop-blur-lg rounded-2xl p-4 border border-white/20">
+            <div className="flex flex-col md:flex-row gap-4">
+              <input
+                type="text"
+                placeholder="Tìm kiếm user theo email, tên, username..."
+                value={searchTerm}
+                onChange={(e) => setSearchTerm(e.target.value)}
+                className="flex-1 px-5 py-3 bg-white/5 border border-white/10 rounded-xl text-white placeholder-gray-400 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+              />
+              <select
+                value={filterRole}
+                onChange={(e) => setFilterRole(e.target.value)}
+                className="px-5 py-3 bg-white/5 border border-white/10 rounded-xl text-white focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+              >
+                <option value="all" className="bg-gray-800">Tất cả roles</option>
+                <option value="Customer" className="bg-gray-800">Customer</option>
+                <option value="Staff" className="bg-gray-800">Staff</option>
+                <option value="Admin" className="bg-gray-800">Admin</option>
+              </select>
+              <button
+                onClick={() => setIsAddModalOpen(true)}
+                className="px-6 py-3 bg-gradient-to-r from-green-500 to-emerald-500 text-white rounded-xl hover:from-green-600 hover:to-emerald-600 transition-all shadow-lg hover:shadow-xl flex items-center justify-center gap-2"
+              >
+                <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 4v16m8-8H4" />
+                </svg>
+                Thêm User
+              </button>
+              <button
+                onClick={loadData}
+                className="px-6 py-3 bg-gradient-to-r from-blue-500 to-cyan-500 text-white rounded-xl hover:from-blue-600 hover:to-cyan-600 transition-all shadow-lg hover:shadow-xl flex items-center justify-center gap-2"
+              >
+                <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15" />
+                </svg>
+                Làm mới
+              </button>
+            </div>
+          </div>
         </div>
-      </div>
 
-      {/* Users Table */}
-      <div className="bg-white rounded-lg border border-black/10 overflow-hidden">
-        <div className="overflow-x-auto">
-          <table className="w-full">
-            <thead className="bg-gray-50">
-              <tr>
-                <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">ID</th>
-                <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Email</th>
-                <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Họ tên</th>
-                <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Username</th>
-                <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Role</th>
-                <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Số điện thoại</th>
-                <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Hành động</th>
-              </tr>
-            </thead>
-            <tbody className="bg-white divide-y divide-gray-200">
-              {filteredUsers.length === 0 ? (
-                <tr>
-                  <td colSpan={7} className="px-6 py-12 text-center">
-                    <div className="text-gray-500">
-                      <svg className="mx-auto h-12 w-12 text-gray-400 mb-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 4.354a4 4 0 110 5.292M15 21H3v-1a6 6 0 0112 0v1zm0 0h6v-1a6 6 0 00-9-5.197m13.5-9a2.5 2.5 0 11-5 0 2.5 2.5 0 015 0z" />
-                      </svg>
-                      <p className="text-lg font-medium mb-2">
-                        {users.length === 0 ? 'Chưa có dữ liệu users' : 'Không tìm thấy user nào'}
-                      </p>
-                      {users.length === 0 && (
-                        <p className="text-sm text-orange-600 mt-2">
-                          ⚠️ Backend cần implement endpoint để lấy tất cả users (có thể dùng <code className="bg-gray-100 px-2 py-1 rounded">GET /api/user/all</code> hoặc tương tự). Users sẽ được lọc theo role: Customer, Staff, Admin.
-                        </p>
-                      )}
-                    </div>
-                  </td>
+        {/* Users Table */}
+        <div className="bg-white/10 backdrop-blur-lg rounded-2xl border border-white/20 overflow-hidden shadow-2xl">
+          <div className="overflow-x-auto">
+            <table className="w-full">
+              <thead>
+                <tr className="bg-white/5 border-b border-white/10">
+                  <th className="px-6 py-4 text-left text-xs font-semibold text-gray-300 uppercase tracking-wider">ID</th>
+                  <th className="px-6 py-4 text-left text-xs font-semibold text-gray-300 uppercase tracking-wider">Email</th>
+                  <th className="px-6 py-4 text-left text-xs font-semibold text-gray-300 uppercase tracking-wider">Họ tên</th>
+                  <th className="px-6 py-4 text-left text-xs font-semibold text-gray-300 uppercase tracking-wider">Username</th>
+                  <th className="px-6 py-4 text-left text-xs font-semibold text-gray-300 uppercase tracking-wider">Role</th>
+                  <th className="px-6 py-4 text-left text-xs font-semibold text-gray-300 uppercase tracking-wider">Số điện thoại</th>
+                  <th className="px-6 py-4 text-left text-xs font-semibold text-gray-300 uppercase tracking-wider">Hành động</th>
                 </tr>
-              ) : (
-                filteredUsers.map((user) => (
-                  <tr key={user.id} className="hover:bg-gray-50">
-                    <td className="px-6 py-4 whitespace-nowrap text-sm font-medium text-gray-900">#{user.id}</td>
-                    <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-900">{user.email}</td>
-                    <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-900">{user.fullname || '-'}</td>
-                    <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-900">{user.username || '-'}</td>
-                    <td className="px-6 py-4 whitespace-nowrap">
-                      <span className={`px-2 py-1 text-xs font-semibold rounded-full ${
-                        user.role === 'Admin' ? 'bg-red-100 text-red-800' :
-                        user.role === 'Staff' ? 'bg-green-100 text-green-800' :
-                        user.role === 'Customer' ? 'bg-blue-100 text-blue-800' :
-                        'bg-gray-100 text-gray-800'
-                      }`}>
-                        {user.role || 'Customer'}
-                      </span>
-                    </td>
-                    <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-900">{user.phone || '-'}</td>
-                    <td className="px-6 py-4 whitespace-nowrap text-sm font-medium">
-                      <div className="flex gap-2">
-                        <button
-                          onClick={() => openEditModal(user)}
-                          className="text-blue-600 hover:text-blue-900"
-                        >
-                          Sửa
-                        </button>
-                        <button
-                          onClick={() => openDeleteModal(user)}
-                          className="text-red-600 hover:text-red-900"
-                        >
-                          Xóa
-                        </button>
+              </thead>
+              <tbody className="divide-y divide-white/10">
+                {filteredUsers.length === 0 ? (
+                  <tr>
+                    <td colSpan={7} className="px-6 py-12 text-center">
+                      <div className="text-gray-400">
+                        <svg className="mx-auto h-16 w-16 text-gray-500 mb-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 4.354a4 4 0 110 5.292M15 21H3v-1a6 6 0 0112 0v1zm0 0h6v-1a6 6 0 00-9-5.197m13.5-9a2.5 2.5 0 11-5 0 2.5 2.5 0 015 0z" />
+                        </svg>
+                        <p className="text-lg font-medium mb-2">
+                          {users.length === 0 ? 'Chưa có dữ liệu users' : 'Không tìm thấy user nào'}
+                        </p>
+                        {users.length === 0 && (
+                          <p className="text-sm text-orange-400 mt-2">
+                            ⚠️ Backend cần implement endpoint để lấy tất cả users
+                          </p>
+                        )}
                       </div>
                     </td>
                   </tr>
-                ))
-              )}
-            </tbody>
-          </table>
+                ) : (
+                  filteredUsers.map((user) => (
+                    <tr key={user.id} className="hover:bg-white/5 transition-colors">
+                      <td className="px-6 py-4 whitespace-nowrap">
+                        <span className="text-white font-semibold">#{user.id}</span>
+                      </td>
+                      <td className="px-6 py-4 whitespace-nowrap text-white">{user.email}</td>
+                      <td className="px-6 py-4 whitespace-nowrap text-white">{user.fullname || '-'}</td>
+                      <td className="px-6 py-4 whitespace-nowrap text-gray-300">{user.username || '-'}</td>
+                      <td className="px-6 py-4 whitespace-nowrap">
+                        <span className={`inline-flex items-center px-3 py-1.5 rounded-lg text-xs font-semibold ${getRoleColor(user.role)} shadow-lg`}>
+                          {user.role || 'Customer'}
+                        </span>
+                      </td>
+                      <td className="px-6 py-4 whitespace-nowrap text-gray-300">{user.phone || '-'}</td>
+                      <td className="px-6 py-4 whitespace-nowrap">
+                        <div className="flex gap-2">
+                          <button
+                            onClick={() => openEditModal(user)}
+                            className="px-4 py-2 bg-gradient-to-r from-blue-500 to-cyan-500 text-white rounded-lg hover:from-blue-600 hover:to-cyan-600 transition-all text-sm font-medium shadow-md"
+                          >
+                            Sửa
+                          </button>
+                          <button
+                            onClick={() => openDeleteModal(user)}
+                            className="px-4 py-2 bg-gradient-to-r from-red-500 to-rose-500 text-white rounded-lg hover:from-red-600 hover:to-rose-600 transition-all text-sm font-medium shadow-md"
+                          >
+                            Xóa
+                          </button>
+                        </div>
+                      </td>
+                    </tr>
+                  ))
+                )}
+              </tbody>
+            </table>
+          </div>
         </div>
-      </div>
 
       {/* Add User Modal */}
       {isAddModalOpen && (
-        <div style={{
-          position: 'fixed',
-          top: 0,
-          left: 0,
-          right: 0,
-          bottom: 0,
-          backgroundColor: 'rgba(0, 0, 0, 0.5)',
-          display: 'flex',
-          alignItems: 'center',
-          justifyContent: 'center',
-          zIndex: 10000,
-          padding: '20px'
-        }}>
-          <div style={{
-            backgroundColor: '#1f2937',
-            border: '1px solid rgba(255, 255, 255, 0.2)',
-            borderRadius: '12px',
-            maxWidth: '600px',
-            width: '100%',
-            maxHeight: '80vh',
-            overflowY: 'auto',
-            padding: '24px'
-          }}>
-            <div style={{
-              display: 'flex',
-              justifyContent: 'space-between',
-              alignItems: 'flex-start',
-              marginBottom: '24px'
-            }}>
-              <h2 style={{ color: 'white', fontSize: '24px', fontWeight: 'bold', margin: 0 }}>Thêm User mới</h2>
+        <div className="fixed inset-0 bg-black/70 backdrop-blur-sm flex items-center justify-center z-50 p-4">
+          <div className="bg-gradient-to-br from-gray-900 to-gray-800 rounded-2xl p-8 max-w-3xl w-full max-h-[90vh] overflow-y-auto border border-white/20 shadow-2xl">
+            <div className="flex justify-between items-center mb-6">
+              <h2 className="text-2xl font-bold text-white">Thêm User mới</h2>
               <button
                 onClick={() => {
                   setIsAddModalOpen(false)
                   resetForm()
                 }}
-                style={{
-                  background: 'none',
-                  border: 'none',
-                  color: 'rgba(255, 255, 255, 0.6)',
-                  fontSize: '24px',
-                  cursor: 'pointer',
-                  padding: '4px'
-                }}
+                className="text-gray-400 hover:text-white text-2xl font-bold w-10 h-10 flex items-center justify-center rounded-lg hover:bg-white/10 transition-all"
               >
                 ×
               </button>
             </div>
             
-            <div style={{ display: 'flex', flexDirection: 'column', gap: '16px' }}>
+            <div className="space-y-4">
               <div>
-                <label style={{ color: 'white', fontSize: '14px', fontWeight: '500', marginBottom: '8px', display: 'block' }}>Email *</label>
+                <label className="block text-sm font-semibold text-gray-300 mb-2">Email *</label>
                 <input
                   type="email"
                   value={formData.email}
                   onChange={(e) => setFormData({ ...formData, email: e.target.value })}
-                  style={{
-                    width: '100%',
-                    padding: '10px 12px',
-                    backgroundColor: '#374151',
-                    border: '1px solid rgba(255, 255, 255, 0.2)',
-                    borderRadius: '8px',
-                    color: 'white',
-                    fontSize: '14px'
-                  }}
+                  className="w-full px-4 py-3 bg-white/5 border border-white/10 rounded-xl text-white placeholder-gray-400 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent"
                   required
                 />
               </div>
               
               <div>
-                <label style={{ color: 'white', fontSize: '14px', fontWeight: '500', marginBottom: '8px', display: 'block' }}>Password *</label>
+                <label className="block text-sm font-semibold text-gray-300 mb-2">Password *</label>
                 <input
                   type="password"
                   value={formData.password}
                   onChange={(e) => setFormData({ ...formData, password: e.target.value })}
-                  style={{
-                    width: '100%',
-                    padding: '10px 12px',
-                    backgroundColor: '#374151',
-                    border: '1px solid rgba(255, 255, 255, 0.2)',
-                    borderRadius: '8px',
-                    color: 'white',
-                    fontSize: '14px'
-                  }}
+                  className="w-full px-4 py-3 bg-white/5 border border-white/10 rounded-xl text-white placeholder-gray-400 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent"
                   required
                 />
               </div>
 
-              <div>
-                <label style={{ color: 'white', fontSize: '14px', fontWeight: '500', marginBottom: '8px', display: 'block' }}>Họ tên</label>
-                <input
-                  type="text"
-                  value={formData.fullname}
-                  onChange={(e) => setFormData({ ...formData, fullname: e.target.value })}
-                  style={{
-                    width: '100%',
-                    padding: '10px 12px',
-                    backgroundColor: '#374151',
-                    border: '1px solid rgba(255, 255, 255, 0.2)',
-                    borderRadius: '8px',
-                    color: 'white',
-                    fontSize: '14px'
-                  }}
-                />
-              </div>
-
-              <div>
-                <label style={{ color: 'white', fontSize: '14px', fontWeight: '500', marginBottom: '8px', display: 'block' }}>Username</label>
-                <input
-                  type="text"
-                  value={formData.username}
-                  onChange={(e) => setFormData({ ...formData, username: e.target.value })}
-                  style={{
-                    width: '100%',
-                    padding: '10px 12px',
-                    backgroundColor: '#374151',
-                    border: '1px solid rgba(255, 255, 255, 0.2)',
-                    borderRadius: '8px',
-                    color: 'white',
-                    fontSize: '14px'
-                  }}
-                />
-              </div>
-
-              <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '16px' }}>
+              <div className="grid grid-cols-2 gap-4">
                 <div>
-                  <label style={{ color: 'white', fontSize: '14px', fontWeight: '500', marginBottom: '8px', display: 'block' }}>Số điện thoại</label>
+                  <label className="block text-sm font-semibold text-gray-300 mb-2">Họ tên</label>
                   <input
                     type="text"
-                    value={formData.phone}
-                    onChange={(e) => setFormData({ ...formData, phone: e.target.value })}
-                    style={{
-                      width: '100%',
-                      padding: '10px 12px',
-                      backgroundColor: '#374151',
-                      border: '1px solid rgba(255, 255, 255, 0.2)',
-                      borderRadius: '8px',
-                      color: 'white',
-                      fontSize: '14px'
-                    }}
+                    value={formData.fullname}
+                    onChange={(e) => setFormData({ ...formData, fullname: e.target.value })}
+                    className="w-full px-4 py-3 bg-white/5 border border-white/10 rounded-xl text-white placeholder-gray-400 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent"
                   />
                 </div>
 
                 <div>
-                  <label style={{ color: 'white', fontSize: '14px', fontWeight: '500', marginBottom: '8px', display: 'block' }}>Role</label>
+                  <label className="block text-sm font-semibold text-gray-300 mb-2">Username</label>
+                  <input
+                    type="text"
+                    value={formData.username}
+                    onChange={(e) => setFormData({ ...formData, username: e.target.value })}
+                    className="w-full px-4 py-3 bg-white/5 border border-white/10 rounded-xl text-white placeholder-gray-400 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                  />
+                </div>
+              </div>
+
+              <div className="grid grid-cols-2 gap-4">
+                <div>
+                  <label className="block text-sm font-semibold text-gray-300 mb-2">Số điện thoại</label>
+                  <input
+                    type="text"
+                    value={formData.phone}
+                    onChange={(e) => setFormData({ ...formData, phone: e.target.value })}
+                    className="w-full px-4 py-3 bg-white/5 border border-white/10 rounded-xl text-white placeholder-gray-400 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                  />
+                </div>
+
+                <div>
+                  <label className="block text-sm font-semibold text-gray-300 mb-2">Role</label>
                   <select
                     value={formData.role}
                     onChange={(e) => setFormData({ ...formData, role: e.target.value })}
-                    style={{
-                      width: '100%',
-                      padding: '10px 12px',
-                      backgroundColor: '#374151',
-                      border: '1px solid rgba(255, 255, 255, 0.2)',
-                      borderRadius: '8px',
-                      color: 'white',
-                      fontSize: '14px'
-                    }}
+                    className="w-full px-4 py-3 bg-white/5 border border-white/10 rounded-xl text-white focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent"
                   >
-                    <option value="Customer" style={{ backgroundColor: '#374151' }}>Customer</option>
-                    <option value="Staff" style={{ backgroundColor: '#374151' }}>Staff</option>
-                    <option value="Admin" style={{ backgroundColor: '#374151' }}>Admin</option>
+                    <option value="Customer" className="bg-gray-800">Customer</option>
+                    <option value="Staff" className="bg-gray-800">Staff</option>
+                    <option value="Admin" className="bg-gray-800">Admin</option>
                   </select>
                 </div>
               </div>
 
               <div>
-                <label style={{ color: 'white', fontSize: '14px', fontWeight: '500', marginBottom: '8px', display: 'block' }}>Ngày sinh</label>
+                <label className="block text-sm font-semibold text-gray-300 mb-2">Ngày sinh</label>
                 <input
                   type="date"
                   value={formData.dob}
                   onChange={(e) => setFormData({ ...formData, dob: e.target.value })}
-                  style={{
-                    width: '100%',
-                    padding: '10px 12px',
-                    backgroundColor: '#374151',
-                    border: '1px solid rgba(255, 255, 255, 0.2)',
-                    borderRadius: '8px',
-                    color: 'white',
-                    fontSize: '14px'
-                  }}
+                  className="w-full px-4 py-3 bg-white/5 border border-white/10 rounded-xl text-white focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent"
                 />
               </div>
 
               <div>
-                <label style={{ color: 'white', fontSize: '14px', fontWeight: '500', marginBottom: '8px', display: 'block' }}>Địa chỉ</label>
+                <label className="block text-sm font-semibold text-gray-300 mb-2">Địa chỉ</label>
                 <textarea
                   value={formData.address}
                   onChange={(e) => setFormData({ ...formData, address: e.target.value })}
-                  style={{
-                    width: '100%',
-                    padding: '10px 12px',
-                    backgroundColor: '#374151',
-                    border: '1px solid rgba(255, 255, 255, 0.2)',
-                    borderRadius: '8px',
-                    color: 'white',
-                    fontSize: '14px',
-                    minHeight: '80px'
-                  }}
+                  className="w-full px-4 py-3 bg-white/5 border border-white/10 rounded-xl text-white placeholder-gray-400 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent"
                   rows={3}
                 />
               </div>
             </div>
             
-            <div style={{ display: 'flex', justifyContent: 'flex-end', gap: '12px', marginTop: '24px' }}>
+            <div className="flex justify-end gap-3 pt-6">
               <button
                 onClick={() => {
                   setIsAddModalOpen(false)
                   resetForm()
                 }}
-                style={{
-                  padding: '10px 24px',
-                  backgroundColor: '#374151',
-                  border: '1px solid rgba(255, 255, 255, 0.2)',
-                  borderRadius: '8px',
-                  color: 'white',
-                  cursor: 'pointer',
-                  fontSize: '14px',
-                  fontWeight: '500'
-                }}
-                onMouseOver={(e) => e.currentTarget.style.backgroundColor = '#4b5563'}
-                onMouseOut={(e) => e.currentTarget.style.backgroundColor = '#374151'}
+                className="px-6 py-3 bg-white/5 border border-white/10 text-white rounded-xl hover:bg-white/10 transition-all font-medium"
               >
                 Hủy
               </button>
               <button
                 onClick={handleAddUser}
-                style={{
-                  padding: '10px 24px',
-                  backgroundColor: '#10b981',
-                  border: 'none',
-                  borderRadius: '8px',
-                  color: 'white',
-                  cursor: 'pointer',
-                  fontSize: '14px',
-                  fontWeight: '500'
-                }}
-                onMouseOver={(e) => e.currentTarget.style.backgroundColor = '#059669'}
-                onMouseOut={(e) => e.currentTarget.style.backgroundColor = '#10b981'}
+                className="px-6 py-3 bg-gradient-to-r from-green-500 to-emerald-500 text-white rounded-xl hover:from-green-600 hover:to-emerald-600 transition-all font-medium shadow-lg"
               >
                 Thêm User
               </button>
@@ -606,147 +522,126 @@ function AdminUsersPage() {
 
       {/* Edit User Modal */}
       {isEditModalOpen && selectedUser && (
-        <div style={{
-          position: 'fixed',
-          top: 0,
-          left: 0,
-          right: 0,
-          bottom: 0,
-          backgroundColor: 'rgba(0, 0, 0, 0.5)',
-          display: 'flex',
-          alignItems: 'center',
-          justifyContent: 'center',
-          zIndex: 10000,
-          padding: '20px'
-        }}>
-          <div className="bg-white rounded-lg shadow-xl max-w-2xl w-full max-h-[90vh] overflow-hidden flex flex-col">
-            <div className="flex justify-between items-center p-6 border-b border-gray-200">
-              <h2 className="text-xl font-bold text-gray-900">Sửa User</h2>
+        <div className="fixed inset-0 bg-black/70 backdrop-blur-sm flex items-center justify-center z-50 p-4">
+          <div className="bg-gradient-to-br from-gray-900 to-gray-800 rounded-2xl p-8 max-w-3xl w-full max-h-[90vh] overflow-y-auto border border-white/20 shadow-2xl">
+            <div className="flex justify-between items-center mb-6">
+              <h2 className="text-2xl font-bold text-white">Sửa User #{selectedUser.id}</h2>
               <button
                 onClick={() => {
                   setIsEditModalOpen(false)
                   setSelectedUser(null)
                   resetForm()
                 }}
-                className="text-gray-400 hover:text-gray-600 transition-colors"
+                className="text-gray-400 hover:text-white text-2xl font-bold w-10 h-10 flex items-center justify-center rounded-lg hover:bg-white/10 transition-all"
               >
-                <svg className="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
-                </svg>
+                ×
               </button>
             </div>
-            <div className="p-6 overflow-y-auto flex-1">
             
             <div className="space-y-4">
               <div>
-                <label className="block text-sm font-medium text-black mb-1">Email *</label>
+                <label className="block text-sm font-semibold text-gray-300 mb-2">Email *</label>
                 <input
                   type="email"
                   value={formData.email}
                   onChange={(e) => setFormData({ ...formData, email: e.target.value })}
-                  className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 text-black bg-white"
+                  className="w-full px-4 py-3 bg-white/5 border border-white/10 rounded-xl text-white placeholder-gray-400 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent"
                   required
-                  style={{ color: '#000000' }}
                 />
               </div>
               
               <div>
-                <label className="block text-sm font-medium text-black mb-1">Password (để trống nếu không đổi)</label>
+                <label className="block text-sm font-semibold text-gray-300 mb-2">Password (để trống nếu không đổi)</label>
                 <input
                   type="password"
                   value={formData.password}
                   onChange={(e) => setFormData({ ...formData, password: e.target.value })}
-                  className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 text-black bg-white"
-                  style={{ color: '#000000' }}
-                />
-              </div>
-
-              <div>
-                <label className="block text-sm font-medium text-black mb-1">Họ tên</label>
-                <input
-                  type="text"
-                  value={formData.fullname}
-                  onChange={(e) => setFormData({ ...formData, fullname: e.target.value })}
-                  className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 text-black bg-white"
-                  style={{ color: '#000000' }}
-                />
-              </div>
-
-              <div>
-                <label className="block text-sm font-medium text-black mb-1">Username</label>
-                <input
-                  type="text"
-                  value={formData.username}
-                  onChange={(e) => setFormData({ ...formData, username: e.target.value })}
-                  className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 text-black bg-white"
-                  style={{ color: '#000000' }}
+                  className="w-full px-4 py-3 bg-white/5 border border-white/10 rounded-xl text-white placeholder-gray-400 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent"
                 />
               </div>
 
               <div className="grid grid-cols-2 gap-4">
                 <div>
-                  <label className="block text-sm font-medium text-black mb-1">Số điện thoại</label>
+                  <label className="block text-sm font-semibold text-gray-300 mb-2">Họ tên</label>
                   <input
                     type="text"
-                    value={formData.phone}
-                    onChange={(e) => setFormData({ ...formData, phone: e.target.value })}
-                    className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 text-black bg-white"
-                    style={{ color: '#000000' }}
+                    value={formData.fullname}
+                    onChange={(e) => setFormData({ ...formData, fullname: e.target.value })}
+                    className="w-full px-4 py-3 bg-white/5 border border-white/10 rounded-xl text-white placeholder-gray-400 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent"
                   />
                 </div>
 
                 <div>
-                  <label className="block text-sm font-medium text-black mb-1">Role</label>
+                  <label className="block text-sm font-semibold text-gray-300 mb-2">Username</label>
+                  <input
+                    type="text"
+                    value={formData.username}
+                    onChange={(e) => setFormData({ ...formData, username: e.target.value })}
+                    className="w-full px-4 py-3 bg-white/5 border border-white/10 rounded-xl text-white placeholder-gray-400 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                  />
+                </div>
+              </div>
+
+              <div className="grid grid-cols-2 gap-4">
+                <div>
+                  <label className="block text-sm font-semibold text-gray-300 mb-2">Số điện thoại</label>
+                  <input
+                    type="text"
+                    value={formData.phone}
+                    onChange={(e) => setFormData({ ...formData, phone: e.target.value })}
+                    className="w-full px-4 py-3 bg-white/5 border border-white/10 rounded-xl text-white placeholder-gray-400 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                  />
+                </div>
+
+                <div>
+                  <label className="block text-sm font-semibold text-gray-300 mb-2">Role</label>
                   <select
                     value={formData.role}
                     onChange={(e) => setFormData({ ...formData, role: e.target.value })}
-                    className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 text-black bg-white"
-                    style={{ color: '#000000' }}
+                    className="w-full px-4 py-3 bg-white/5 border border-white/10 rounded-xl text-white focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent"
                   >
-                    <option value="Customer" style={{ color: '#000000', backgroundColor: '#ffffff' }}>Customer</option>
-                    <option value="Staff" style={{ color: '#000000', backgroundColor: '#ffffff' }}>Staff</option>
-                    <option value="Admin" style={{ color: '#000000', backgroundColor: '#ffffff' }}>Admin</option>
+                    <option value="Customer" className="bg-gray-800">Customer</option>
+                    <option value="Staff" className="bg-gray-800">Staff</option>
+                    <option value="Admin" className="bg-gray-800">Admin</option>
                   </select>
                 </div>
               </div>
 
               <div>
-                <label className="block text-sm font-medium text-black mb-1">Ngày sinh</label>
+                <label className="block text-sm font-semibold text-gray-300 mb-2">Ngày sinh</label>
                 <input
                   type="date"
                   value={formData.dob}
                   onChange={(e) => setFormData({ ...formData, dob: e.target.value })}
-                  className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 text-black bg-white"
-                  style={{ color: '#000000' }}
+                  className="w-full px-4 py-3 bg-white/5 border border-white/10 rounded-xl text-white focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent"
                 />
               </div>
 
               <div>
-                <label className="block text-sm font-medium text-black mb-1">Địa chỉ</label>
+                <label className="block text-sm font-semibold text-gray-300 mb-2">Địa chỉ</label>
                 <textarea
                   value={formData.address}
                   onChange={(e) => setFormData({ ...formData, address: e.target.value })}
-                  className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 text-black bg-white"
+                  className="w-full px-4 py-3 bg-white/5 border border-white/10 rounded-xl text-white placeholder-gray-400 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent"
                   rows={3}
-                  style={{ color: '#000000' }}
                 />
               </div>
             </div>
-            </div>
-            <div className="flex justify-end gap-3 p-6 border-t border-gray-200 bg-gray-50">
+            
+            <div className="flex justify-end gap-3 pt-6">
               <button
                 onClick={() => {
                   setIsEditModalOpen(false)
                   setSelectedUser(null)
                   resetForm()
                 }}
-                className="px-6 py-2 border border-gray-300 rounded-lg hover:bg-gray-100 transition-colors font-medium"
+                className="px-6 py-3 bg-white/5 border border-white/10 text-white rounded-xl hover:bg-white/10 transition-all font-medium"
               >
                 Hủy
               </button>
               <button
                 onClick={handleEditUser}
-                className="px-6 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors font-medium"
+                className="px-6 py-3 bg-gradient-to-r from-blue-500 to-cyan-500 text-white rounded-xl hover:from-blue-600 hover:to-cyan-600 transition-all font-medium shadow-lg"
               >
                 Cập nhật
               </button>
@@ -757,62 +652,39 @@ function AdminUsersPage() {
 
       {/* Delete User Modal */}
       {isDeleteModalOpen && selectedUser && (
-        <div style={{
-          position: 'fixed',
-          top: 0,
-          left: 0,
-          right: 0,
-          bottom: 0,
-          backgroundColor: 'rgba(0, 0, 0, 0.5)',
-          display: 'flex',
-          alignItems: 'center',
-          justifyContent: 'center',
-          zIndex: 10000,
-          padding: '20px'
-        }}>
-          <div className="bg-white rounded-lg shadow-xl max-w-md w-full">
-            <div className="p-6">
-              <h2 style={{ color: '#dc2626', fontSize: '20px', fontWeight: 'bold', marginBottom: '16px' }}>Xác nhận xóa</h2>
-              <p style={{ color: '#000000', marginBottom: '16px', fontSize: '14px' }}>
-                Bạn có chắc chắn muốn xóa user <strong style={{ color: '#000000', fontWeight: '600' }}>{selectedUser.email}</strong> không?
-              </p>
-              <p style={{ color: '#000000', fontSize: '12px', marginBottom: '24px' }}>Hành động này không thể hoàn tác.</p>
-            </div>
-            <div className="flex justify-end gap-3 p-6 border-t border-gray-200 bg-gray-50">
+        <div className="fixed inset-0 bg-black/70 backdrop-blur-sm flex items-center justify-center z-50 p-4">
+          <div className="bg-gradient-to-br from-gray-900 to-gray-800 rounded-2xl p-8 max-w-md w-full border border-white/20 shadow-2xl">
+            <div className="flex justify-between items-center mb-6">
+              <h2 className="text-2xl font-bold text-white">Xác nhận xóa</h2>
               <button
                 onClick={() => {
                   setIsDeleteModalOpen(false)
                   setSelectedUser(null)
                 }}
-                style={{
-                  padding: '8px 24px',
-                  border: '1px solid #d1d5db',
-                  borderRadius: '8px',
-                  backgroundColor: '#ffffff',
-                  color: '#000000',
-                  fontWeight: '500',
-                  cursor: 'pointer',
-                  transition: 'background-color 0.2s'
+                className="text-gray-400 hover:text-white text-2xl font-bold w-10 h-10 flex items-center justify-center rounded-lg hover:bg-white/10 transition-all"
+              >
+                ×
+              </button>
+            </div>
+            
+            <p className="text-white mb-6">
+              Bạn có chắc chắn muốn xóa user <strong className="font-semibold">{selectedUser.email}</strong> không?
+            </p>
+            <p className="text-gray-400 text-sm mb-6">Hành động này không thể hoàn tác.</p>
+            
+            <div className="flex justify-end gap-3">
+              <button
+                onClick={() => {
+                  setIsDeleteModalOpen(false)
+                  setSelectedUser(null)
                 }}
-                onMouseOver={(e) => e.currentTarget.style.backgroundColor = '#f3f4f6'}
-                onMouseOut={(e) => e.currentTarget.style.backgroundColor = '#ffffff'}
+                className="px-6 py-3 bg-white/5 border border-white/10 text-white rounded-xl hover:bg-white/10 transition-all font-medium"
               >
                 Hủy
               </button>
               <button
                 onClick={handleDeleteUser}
-                style={{
-                  padding: '8px 24px',
-                  backgroundColor: '#dc2626',
-                  color: '#ffffff',
-                  borderRadius: '8px',
-                  fontWeight: '500',
-                  cursor: 'pointer',
-                  border: 'none',
-                  transition: 'background-color 0.2s'
-                }}
-                onMouseOver={(e) => e.currentTarget.style.backgroundColor = '#b91c1c'}
-                onMouseOut={(e) => e.currentTarget.style.backgroundColor = '#dc2626'}
+                className="px-6 py-3 bg-gradient-to-r from-red-500 to-rose-500 text-white rounded-xl hover:from-red-600 hover:to-rose-600 transition-all font-medium shadow-lg"
               >
                 Xóa User
               </button>
@@ -820,6 +692,7 @@ function AdminUsersPage() {
           </div>
         </div>
       )}
+      </div>
     </div>
   )
 }

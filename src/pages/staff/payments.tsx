@@ -38,7 +38,6 @@ function StaffPaymentsPage() {
       setLoading(true)
       setError(null)
       
-      // Load payments và orders
       const [paymentsData, ordersData] = await Promise.all([
         ApiService.getAllPayments(),
         ApiService.getOrders()
@@ -54,12 +53,19 @@ function StaffPaymentsPage() {
     }
   }
 
-
   const getStatusColor = (status: string) => {
     switch (status) {
-      case 'PENDING': return 'bg-yellow-100 text-yellow-800'
-      case 'PAID': return 'bg-green-100 text-green-800'
-      default: return 'bg-gray-100 text-gray-800'
+      case 'PENDING': return 'bg-gradient-to-r from-amber-500 to-orange-500 text-white'
+      case 'PAID': return 'bg-gradient-to-r from-green-500 to-emerald-500 text-white'
+      default: return 'bg-gray-500 text-white'
+    }
+  }
+
+  const getStatusIcon = (status: string) => {
+    switch (status) {
+      case 'PENDING': return '⏳'
+      case 'PAID': return '✅'
+      default: return '💰'
     }
   }
 
@@ -79,13 +85,23 @@ function StaffPaymentsPage() {
     return matchesStatus && matchesSearch
   })
 
+  const statusCounts = {
+    ALL: payments.length,
+    PENDING: payments.filter(p => p.status === 'PENDING').length,
+    PAID: payments.filter(p => p.status === 'PAID').length,
+  }
+
+  const totalRevenue = payments
+    .filter(p => p.status === 'PAID')
+    .reduce((sum, p) => sum + (Number(p.amount) || 0), 0)
+
   if (loading) {
     return (
       <div className="page bg-grid bg-radial">
-        <div className="flex items-center justify-center h-64">
+        <div className="flex items-center justify-center min-h-screen">
           <div className="text-center">
-            <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-blue-600 mx-auto mb-4"></div>
-            <p className="text-gray-600">Đang tải dữ liệu...</p>
+            <div className="animate-spin rounded-full h-16 w-16 border-4 border-blue-500 border-t-transparent mx-auto mb-4"></div>
+            <p className="text-white text-lg">Đang tải dữ liệu...</p>
           </div>
         </div>
       </div>
@@ -95,13 +111,13 @@ function StaffPaymentsPage() {
   if (error) {
     return (
       <div className="page bg-grid bg-radial">
-        <div className="flex items-center justify-center h-64">
-          <div className="text-center">
-            <div className="text-red-500 text-6xl mb-4">⚠️</div>
-            <p className="text-red-600 mb-4">{error}</p>
+        <div className="flex items-center justify-center min-h-screen">
+          <div className="text-center bg-white/10 backdrop-blur-lg rounded-2xl p-8 border border-white/20">
+            <div className="text-red-400 text-6xl mb-4">⚠️</div>
+            <p className="text-red-300 mb-6 text-xl">{error}</p>
             <button 
               onClick={loadData}
-              className="px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700"
+              className="px-6 py-3 bg-gradient-to-r from-blue-500 to-cyan-500 text-white rounded-xl hover:from-blue-600 hover:to-cyan-600 transition-all shadow-lg hover:shadow-xl"
             >
               Thử lại
             </button>
@@ -112,233 +128,296 @@ function StaffPaymentsPage() {
   }
 
   return (
-    <div className="page bg-grid bg-radial">
-      <div className="mb-6">
-        <h1 className="text-3xl font-bold text-gray-900 mb-2">Quản lý thanh toán</h1>
-        <p className="text-gray-600">Theo dõi các giao dịch thanh toán (chỉ xem, không chỉnh sửa)</p>
-      </div>
+    <div className="page bg-grid bg-radial p-6">
+      <div className="max-w-7xl mx-auto">
+        {/* Header */}
+        <div className="mb-8">
+          <div className="flex items-center justify-between mb-4">
+            <div>
+              <h1 className="text-4xl font-bold text-white mb-2 flex items-center gap-3">
+                <span className="bg-gradient-to-r from-green-400 to-emerald-400 bg-clip-text text-transparent">
+                  Quản lý thanh toán
+                </span>
+              </h1>
+              <p className="text-gray-300 text-lg">Theo dõi các giao dịch thanh toán trong hệ thống</p>
+            </div>
+            <button
+              onClick={loadData}
+              className="px-6 py-3 bg-gradient-to-r from-green-500 to-emerald-500 text-white rounded-xl hover:from-green-600 hover:to-emerald-600 transition-all shadow-lg hover:shadow-xl flex items-center gap-2"
+            >
+              <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15" />
+              </svg>
+              Làm mới
+            </button>
+          </div>
+        </div>
 
-      {/* Search and Filter */}
-      <div className="mb-6 space-y-4">
-        <div className="flex gap-4">
-          <div className="flex-1">
+        {/* Stats Cards */}
+        <div className="grid grid-cols-1 md:grid-cols-3 gap-4 mb-8">
+          <div className="bg-white/10 backdrop-blur-lg rounded-2xl p-6 border border-white/20 hover:border-white/40 transition-all shadow-lg hover:shadow-xl">
+            <div className="flex items-center justify-between">
+              <div>
+                <p className="text-gray-300 text-sm mb-2">Tổng thanh toán</p>
+                <p className="text-3xl font-bold text-white">{statusCounts.ALL}</p>
+              </div>
+              <div className="w-14 h-14 rounded-xl bg-gradient-to-br from-blue-500 to-cyan-500 flex items-center justify-center text-2xl shadow-lg">
+                💳
+              </div>
+            </div>
+          </div>
+          <div className="bg-white/10 backdrop-blur-lg rounded-2xl p-6 border border-white/20 hover:border-white/40 transition-all shadow-lg hover:shadow-xl">
+            <div className="flex items-center justify-between">
+              <div>
+                <p className="text-gray-300 text-sm mb-2">Chờ thanh toán</p>
+                <p className="text-3xl font-bold text-amber-400">{statusCounts.PENDING}</p>
+              </div>
+              <div className="w-14 h-14 rounded-xl bg-gradient-to-br from-amber-500 to-orange-500 flex items-center justify-center text-2xl shadow-lg">
+                ⏳
+              </div>
+            </div>
+          </div>
+          <div className="bg-white/10 backdrop-blur-lg rounded-2xl p-6 border border-white/20 hover:border-white/40 transition-all shadow-lg hover:shadow-xl">
+            <div className="flex items-center justify-between">
+              <div>
+                <p className="text-gray-300 text-sm mb-2">Tổng doanh thu</p>
+                <p className="text-2xl font-bold text-green-400">
+                  {new Intl.NumberFormat('vi-VN', {
+                    style: 'currency',
+                    currency: 'VND',
+                    notation: 'compact'
+                  }).format(totalRevenue)}
+                </p>
+              </div>
+              <div className="w-14 h-14 rounded-xl bg-gradient-to-br from-green-500 to-emerald-500 flex items-center justify-center text-2xl shadow-lg">
+                💰
+              </div>
+            </div>
+          </div>
+        </div>
+
+        {/* Search and Filter */}
+        <div className="mb-6 space-y-4">
+          <div className="bg-white/10 backdrop-blur-lg rounded-2xl p-4 border border-white/20">
             <input
               type="text"
-              placeholder="Tìm kiếm theo ID, email, tên khách hàng..."
+              placeholder="Tìm kiếm theo ID, email, tên khách hàng, transaction ID..."
               value={searchTerm}
               onChange={(e) => setSearchTerm(e.target.value)}
-              className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+              className="w-full px-5 py-3 bg-white/5 border border-white/10 rounded-xl text-white placeholder-gray-400 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent"
             />
           </div>
-        </div>
-        
-        <div className="flex justify-between items-center">
-          <div className="flex gap-2 flex-wrap">
-            <button
-              onClick={() => setFilterStatus('ALL')}
-              className={`px-4 py-2 rounded-lg text-sm font-medium transition-colors ${
-                filterStatus === 'ALL' 
-                  ? 'bg-blue-600 text-white' 
-                  : 'bg-white text-gray-700 border border-gray-300 hover:bg-gray-50'
-              }`}
-            >
-              Tất cả ({payments.length})
-            </button>
-          {['PENDING', 'PAID'].map(status => {
-            const count = payments.filter(p => p.status === status).length
-            return (
-              <button
-                key={status}
-                onClick={() => setFilterStatus(status)}
-                className={`px-4 py-2 rounded-lg text-sm font-medium transition-colors ${
-                  filterStatus === status 
-                    ? 'bg-blue-600 text-white' 
-                    : 'bg-white text-gray-700 border border-gray-300 hover:bg-gray-50'
-                }`}
-              >
-                {status} ({count})
-              </button>
-            )
-          })}
-          </div>
           
-          <button
-            onClick={loadData}
-            className="px-4 py-2 bg-green-600 text-white rounded-lg hover:bg-green-700 transition-colors flex items-center gap-2"
-          >
-            <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15" />
-            </svg>
-            Refresh
-          </button>
+          <div className="bg-white/10 backdrop-blur-lg rounded-2xl p-4 border border-white/20">
+            <div className="flex flex-wrap gap-3">
+              {['ALL', 'PENDING', 'PAID'].map(status => (
+                <button
+                  key={status}
+                  onClick={() => setFilterStatus(status)}
+                  className={`px-5 py-2.5 rounded-xl text-sm font-semibold transition-all ${
+                    filterStatus === status
+                      ? 'bg-gradient-to-r from-green-500 to-emerald-500 text-white shadow-lg scale-105'
+                      : 'bg-white/5 text-gray-300 hover:bg-white/10 border border-white/10'
+                  }`}
+                >
+                  {status === 'ALL' ? 'Tất cả' : status} ({statusCounts[status as keyof typeof statusCounts]})
+                </button>
+              ))}
+            </div>
+          </div>
         </div>
-      </div>
 
-      {/* Payments Table */}
-      <div className="bg-white rounded-lg border border-black/10 overflow-hidden">
-        <div className="overflow-x-auto">
-          <table className="w-full">
-            <thead className="bg-gray-50">
-              <tr>
-                <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                  ID
-                </th>
-                <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                  Đơn hàng
-                </th>
-                <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                  Khách hàng
-                </th>
-                <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                  Số tiền
-                </th>
-                <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                  Phương thức
-                </th>
-                <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                  Trạng thái
-                </th>
-                <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                  Ngày tạo
-                </th>
-                <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                  Hành động
-                </th>
-              </tr>
-            </thead>
-            <tbody className="bg-white divide-y divide-gray-200">
-              {filteredPayments.map((payment) => {
-                const orderInfo = getOrderInfo(payment.orderId)
-                return (
-                  <tr key={payment.id} className="hover:bg-gray-50">
-                    <td className="px-6 py-4 whitespace-nowrap text-sm font-medium text-gray-900">
-                      #{payment.id}
-                    </td>
-                    <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-900">
-                      <div>
-                        <div className="font-medium">Order #{payment.orderId}</div>
-                        <div className="text-gray-500">
-                          {orderInfo ? `Status: ${orderInfo.status}` : 'N/A'}
-                        </div>
-                      </div>
-                    </td>
-                    <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-900">
-                      <div>
-                        <div className="font-medium">{orderInfo?.user?.fullname || 'N/A'}</div>
-                        <div className="text-gray-500">{orderInfo?.user?.email || 'N/A'}</div>
-                      </div>
-                    </td>
-                    <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-900">
-                      {new Intl.NumberFormat('vi-VN', {
-                        style: 'currency',
-                        currency: 'VND'
-                      }).format(payment.amount)}
-                    </td>
-                    <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-900">
-                      {payment.method}
-                    </td>
-                    <td className="px-6 py-4 whitespace-nowrap">
-                      <span className={`inline-flex px-2 py-1 text-xs font-semibold rounded-full ${getStatusColor(payment.status)}`}>
-                        {payment.status}
-                      </span>
-                    </td>
-                    <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">
-                      {new Date(payment.createdAt).toLocaleDateString('vi-VN')}
-                    </td>
-                    <td className="px-6 py-4 whitespace-nowrap text-sm font-medium">
-                      <div className="flex gap-2">
-                        <button
-                          onClick={() => setSelectedPayment(payment)}
-                          className="text-blue-600 hover:text-blue-900"
-                        >
-                          Chi tiết
-                        </button>
+        {/* Payments Table */}
+        <div className="bg-white/10 backdrop-blur-lg rounded-2xl border border-white/20 overflow-hidden shadow-2xl">
+          <div className="overflow-x-auto">
+            <table className="w-full">
+              <thead>
+                <tr className="bg-white/5 border-b border-white/10">
+                  <th className="px-6 py-4 text-left text-xs font-semibold text-gray-300 uppercase tracking-wider">
+                    ID
+                  </th>
+                  <th className="px-6 py-4 text-left text-xs font-semibold text-gray-300 uppercase tracking-wider">
+                    Đơn hàng
+                  </th>
+                  <th className="px-6 py-4 text-left text-xs font-semibold text-gray-300 uppercase tracking-wider">
+                    Khách hàng
+                  </th>
+                  <th className="px-6 py-4 text-left text-xs font-semibold text-gray-300 uppercase tracking-wider">
+                    Số tiền
+                  </th>
+                  <th className="px-6 py-4 text-left text-xs font-semibold text-gray-300 uppercase tracking-wider">
+                    Phương thức
+                  </th>
+                  <th className="px-6 py-4 text-left text-xs font-semibold text-gray-300 uppercase tracking-wider">
+                    Trạng thái
+                  </th>
+                  <th className="px-6 py-4 text-left text-xs font-semibold text-gray-300 uppercase tracking-wider">
+                    Ngày tạo
+                  </th>
+                  <th className="px-6 py-4 text-left text-xs font-semibold text-gray-300 uppercase tracking-wider">
+                    Hành động
+                  </th>
+                </tr>
+              </thead>
+              <tbody className="divide-y divide-white/10">
+                {filteredPayments.length === 0 ? (
+                  <tr>
+                    <td colSpan={8} className="px-6 py-12 text-center">
+                      <div className="text-gray-400">
+                        <svg className="mx-auto h-16 w-16 text-gray-500 mb-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 8c-1.657 0-3 .895-3 2s1.343 2 3 2 3 .895 3 2-1.343 2-3 2m0-8c1.11 0 2.08.402 2.599 1M12 8V7m0 1v8m0 0v1m0-1c-1.11 0-2.08-.402-2.599-1" />
+                        </svg>
+                        <p className="text-lg font-medium">Không tìm thấy thanh toán nào</p>
                       </div>
                     </td>
                   </tr>
-                )
-              })}
-            </tbody>
-          </table>
+                ) : (
+                  filteredPayments.map((payment) => {
+                    const orderInfo = getOrderInfo(payment.orderId)
+                    return (
+                      <tr key={payment.id} className="hover:bg-white/5 transition-colors">
+                        <td className="px-6 py-4 whitespace-nowrap">
+                          <span className="text-white font-semibold">#{payment.id}</span>
+                        </td>
+                        <td className="px-6 py-4">
+                          <div>
+                            <div className="text-white font-medium">Order #{payment.orderId}</div>
+                            <div className="text-gray-400 text-sm">
+                              {orderInfo ? `Status: ${orderInfo.status}` : 'N/A'}
+                            </div>
+                          </div>
+                        </td>
+                        <td className="px-6 py-4">
+                          <div>
+                            <div className="text-white font-medium">{orderInfo?.user?.fullname || 'N/A'}</div>
+                            <div className="text-gray-400 text-sm">{orderInfo?.user?.email || 'N/A'}</div>
+                          </div>
+                        </td>
+                        <td className="px-6 py-4 whitespace-nowrap">
+                          <span className="text-white font-semibold">
+                            {new Intl.NumberFormat('vi-VN', {
+                              style: 'currency',
+                              currency: 'VND'
+                            }).format(payment.amount)}
+                          </span>
+                        </td>
+                        <td className="px-6 py-4 whitespace-nowrap">
+                          <span className="text-gray-300">{payment.method}</span>
+                        </td>
+                        <td className="px-6 py-4 whitespace-nowrap">
+                          <span className={`inline-flex items-center gap-2 px-3 py-1.5 rounded-lg text-xs font-semibold ${getStatusColor(payment.status)} shadow-lg`}>
+                            <span>{getStatusIcon(payment.status)}</span>
+                            {payment.status}
+                          </span>
+                        </td>
+                        <td className="px-6 py-4 whitespace-nowrap text-gray-300 text-sm">
+                          {new Date(payment.createdAt).toLocaleDateString('vi-VN')}
+                        </td>
+                        <td className="px-6 py-4 whitespace-nowrap">
+                          <button
+                            onClick={() => setSelectedPayment(payment)}
+                            className="px-4 py-2 bg-gradient-to-r from-blue-500 to-cyan-500 text-white rounded-lg hover:from-blue-600 hover:to-cyan-600 transition-all text-sm font-medium shadow-md"
+                          >
+                            Chi tiết
+                          </button>
+                        </td>
+                      </tr>
+                    )
+                  })
+                )}
+              </tbody>
+            </table>
+          </div>
         </div>
-      </div>
 
-      {/* Payment Detail Modal */}
-      {selectedPayment && (
-        <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
-          <div className="bg-white rounded-lg p-6 max-w-2xl w-full mx-4 max-h-[90vh] overflow-y-auto">
-            <div className="flex justify-between items-center mb-4">
-              <h3 className="text-lg font-semibold">Chi tiết thanh toán #{selectedPayment.id}</h3>
-              <button
-                onClick={() => setSelectedPayment(null)}
-                className="text-gray-400 hover:text-gray-600"
-              >
-                ✕
-              </button>
-            </div>
-            
-            <div className="space-y-4">
-              <div>
-                <label className="block text-sm font-medium text-gray-700">Đơn hàng</label>
-                <p className="mt-1 text-sm text-gray-900">Order #{selectedPayment.orderId}</p>
+        {/* Payment Detail Modal */}
+        {selectedPayment && (
+          <div className="fixed inset-0 bg-black/70 backdrop-blur-sm flex items-center justify-center z-50 p-4">
+            <div className="bg-gradient-to-br from-gray-900 to-gray-800 rounded-2xl p-8 max-w-3xl w-full max-h-[90vh] overflow-y-auto border border-white/20 shadow-2xl">
+              <div className="flex justify-between items-center mb-6">
+                <h3 className="text-2xl font-bold text-white flex items-center gap-3">
+                  <span className="bg-gradient-to-r from-green-400 to-emerald-400 bg-clip-text text-transparent">
+                    Chi tiết thanh toán #{selectedPayment.id}
+                  </span>
+                </h3>
+                <button
+                  onClick={() => setSelectedPayment(null)}
+                  className="text-gray-400 hover:text-white text-2xl font-bold w-10 h-10 flex items-center justify-center rounded-lg hover:bg-white/10 transition-all"
+                >
+                  ×
+                </button>
               </div>
               
-              <div>
-                <label className="block text-sm font-medium text-gray-700">Số tiền</label>
-                <p className="mt-1 text-sm text-gray-900">
-                  {new Intl.NumberFormat('vi-VN', {
-                    style: 'currency',
-                    currency: 'VND'
-                  }).format(selectedPayment.amount)}
-                </p>
-              </div>
-              
-              <div>
-                <label className="block text-sm font-medium text-gray-700">Phương thức</label>
-                <p className="mt-1 text-sm text-gray-900">{selectedPayment.method}</p>
-              </div>
-              
-              <div>
-                <label className="block text-sm font-medium text-gray-700">Trạng thái</label>
-                <span className={`inline-flex px-2 py-1 text-xs font-semibold rounded-full ${getStatusColor(selectedPayment.status)}`}>
-                  {selectedPayment.status}
-                </span>
-              </div>
-              
-              {selectedPayment.transactionId && (
-                <div>
-                  <label className="block text-sm font-medium text-gray-700">Transaction ID</label>
-                  <p className="mt-1 text-sm text-gray-900">{selectedPayment.transactionId}</p>
+              <div className="space-y-6">
+                <div className="grid grid-cols-2 gap-4">
+                  <div className="bg-white/5 rounded-xl p-4 border border-white/10">
+                    <label className="block text-sm font-semibold text-gray-400 mb-2">Đơn hàng</label>
+                    <p className="text-white font-medium text-lg">Order #{selectedPayment.orderId}</p>
+                  </div>
+                  
+                  <div className="bg-white/5 rounded-xl p-4 border border-white/10">
+                    <label className="block text-sm font-semibold text-gray-400 mb-2">Số tiền</label>
+                    <p className="text-white font-semibold text-lg">
+                      {new Intl.NumberFormat('vi-VN', {
+                        style: 'currency',
+                        currency: 'VND'
+                      }).format(selectedPayment.amount)}
+                    </p>
+                  </div>
                 </div>
-              )}
-              
-              <div>
-                <label className="block text-sm font-medium text-gray-700">Ngày tạo</label>
-                <p className="mt-1 text-sm text-gray-900">
-                  {new Date(selectedPayment.createdAt).toLocaleString('vi-VN')}
-                </p>
-              </div>
-              
-              {selectedPayment.paidAt && (
-                <div>
-                  <label className="block text-sm font-medium text-gray-700">Ngày thanh toán</label>
-                  <p className="mt-1 text-sm text-gray-900">
-                    {new Date(selectedPayment.paidAt).toLocaleString('vi-VN')}
-                  </p>
+                
+                <div className="grid grid-cols-2 gap-4">
+                  <div className="bg-white/5 rounded-xl p-4 border border-white/10">
+                    <label className="block text-sm font-semibold text-gray-400 mb-2">Phương thức</label>
+                    <p className="text-white">{selectedPayment.method}</p>
+                  </div>
+                  
+                  <div className="bg-white/5 rounded-xl p-4 border border-white/10">
+                    <label className="block text-sm font-semibold text-gray-400 mb-2">Trạng thái</label>
+                    <span className={`inline-flex items-center gap-2 px-4 py-2 rounded-lg text-sm font-semibold ${getStatusColor(selectedPayment.status)} shadow-lg`}>
+                      <span>{getStatusIcon(selectedPayment.status)}</span>
+                      {selectedPayment.status}
+                    </span>
+                  </div>
                 </div>
-              )}
-              
-              {/* Thông tin trạng thái */}
-              <div className="pt-4 border-t">
-                <div className="text-sm text-gray-600">
-                  <p><strong>Lưu ý:</strong> Thanh toán được cập nhật tự động khi khách hàng xác nhận thanh toán.</p>
-                  <p>Staff chỉ có thể xem thông tin thanh toán, không thể chỉnh sửa trạng thái.</p>
+                
+                {selectedPayment.transactionId && (
+                  <div className="bg-white/5 rounded-xl p-4 border border-white/10">
+                    <label className="block text-sm font-semibold text-gray-400 mb-2">Transaction ID</label>
+                    <p className="text-white font-mono">{selectedPayment.transactionId}</p>
+                  </div>
+                )}
+                
+                <div className="grid grid-cols-2 gap-4">
+                  <div className="bg-white/5 rounded-xl p-4 border border-white/10">
+                    <label className="block text-sm font-semibold text-gray-400 mb-2">Ngày tạo</label>
+                    <p className="text-white">
+                      {new Date(selectedPayment.createdAt).toLocaleString('vi-VN')}
+                    </p>
+                  </div>
+                  
+                  {selectedPayment.paidAt && (
+                    <div className="bg-white/5 rounded-xl p-4 border border-white/10">
+                      <label className="block text-sm font-semibold text-gray-400 mb-2">Ngày thanh toán</label>
+                      <p className="text-white">
+                        {new Date(selectedPayment.paidAt).toLocaleString('vi-VN')}
+                      </p>
+                    </div>
+                  )}
+                </div>
+                
+                <div className="bg-blue-500/10 border border-blue-500/30 rounded-xl p-4">
+                  <div className="text-sm text-blue-300">
+                    <p className="font-semibold mb-2">ℹ️ Lưu ý:</p>
+                    <p>Thanh toán được cập nhật tự động khi khách hàng xác nhận thanh toán.</p>
+                    <p>Staff chỉ có thể xem thông tin thanh toán, không thể chỉnh sửa trạng thái.</p>
+                  </div>
                 </div>
               </div>
             </div>
           </div>
-        </div>
-      )}
+        )}
+      </div>
     </div>
   )
 }

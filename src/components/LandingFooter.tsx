@@ -8,29 +8,29 @@ const LandingFooter: React.FC = () => {
       { name: 'CPU', href: '/products/cpu' },
       { name: 'GPU', href: '/products/gpu' },
       { name: 'RAM', href: '/products/ram' },
-      { name: 'Storage', href: '/products/storage' },
-      { name: 'Power Supply', href: '/products/psu' }
+      { name: 'Ổ cứng', href: '/products/storage' },
+      { name: 'Nguồn', href: '/products/psu' }
     ],
     community: [
-      { name: 'Completed Builds', href: '#' },
-      { name: 'Reviews', href: '#' },
-      { name: 'Forums', href: '#' },
+      { name: 'Build Hoàn Thành', href: '#' },
+      { name: 'Đánh Giá', href: '#' },
+      { name: 'Diễn Đàn', href: '#' },
       { name: 'Discord', href: '#' },
       { name: 'Reddit', href: '#' }
     ],
     support: [
-      { name: 'Help Center', href: '#' },
-      { name: 'Contact Us', href: '#' },
-      { name: 'FAQ', href: '#' },
-      { name: 'Shipping Info', href: '#' },
-      { name: 'Returns', href: '#' }
+      { name: 'Trung Tâm Trợ Giúp', href: '#' },
+      { name: 'Liên Hệ', href: '#' },
+      { name: 'Câu Hỏi Thường Gặp', href: '#' },
+      { name: 'Thông Tin Vận Chuyển', href: '#' },
+      { name: 'Đổi Trả', href: '#' }
     ],
     company: [
-      { name: 'About Us', href: '#' },
-      { name: 'Careers', href: '#' },
-      { name: 'Press', href: '#' },
-      { name: 'Privacy Policy', href: '#' },
-      { name: 'Terms of Service', href: '#' }
+      { name: 'Về Chúng Tôi', href: '#' },
+      { name: 'Tuyển Dụng', href: '#' },
+      { name: 'Báo Chí', href: '#' },
+      { name: 'Chính Sách Bảo Mật', href: '#' },
+      { name: 'Điều Khoản Dịch Vụ', href: '#' }
     ]
   }
 
@@ -113,7 +113,7 @@ const LandingFooter: React.FC = () => {
               lineHeight: 1.6,
               marginBottom: '24px'
             }}>
-              The ultimate PC building platform. Create, compare, and purchase your perfect build with confidence.
+              Nền tảng xây dựng PC tối ưu. Tạo, so sánh và mua build hoàn hảo của bạn với sự tự tin.
             </p>
             
             {/* Contact Info */}
@@ -144,7 +144,7 @@ const LandingFooter: React.FC = () => {
           {/* Products */}
           <div>
             <h5 style={{ color: 'white', marginBottom: '24px', fontSize: '16px', fontWeight: '600' }}>
-              Products
+              Sản Phẩm
             </h5>
             <div style={{ display: 'flex', flexDirection: 'column', gap: '12px' }}>
               {footerLinks.products.map((link, index) => (
@@ -169,7 +169,7 @@ const LandingFooter: React.FC = () => {
           {/* Community */}
           <div>
             <h5 style={{ color: 'white', marginBottom: '24px', fontSize: '16px', fontWeight: '600' }}>
-              Community
+              Cộng Đồng
             </h5>
             <div style={{ display: 'flex', flexDirection: 'column', gap: '12px' }}>
               {footerLinks.community.map((link, index) => (
@@ -194,7 +194,7 @@ const LandingFooter: React.FC = () => {
           {/* Support */}
           <div>
             <h5 style={{ color: 'white', marginBottom: '24px', fontSize: '16px', fontWeight: '600' }}>
-              Support
+              Hỗ Trợ
             </h5>
             <div style={{ display: 'flex', flexDirection: 'column', gap: '12px' }}>
               {footerLinks.support.map((link, index) => (
@@ -219,7 +219,7 @@ const LandingFooter: React.FC = () => {
           {/* Company */}
           <div>
             <h5 style={{ color: 'white', marginBottom: '24px', fontSize: '16px', fontWeight: '600' }}>
-              Company
+              Công Ty
             </h5>
             <div style={{ display: 'flex', flexDirection: 'column', gap: '12px' }}>
               {footerLinks.company.map((link, index) => (
@@ -252,17 +252,17 @@ const LandingFooter: React.FC = () => {
           }}>
             <div>
               <h4 style={{ color: 'white', marginBottom: '8px', fontSize: '20px', fontWeight: '600' }}>
-                Stay Updated
+                Cập Nhật Thông Tin
               </h4>
               <p style={{ color: 'rgba(255,255,255,0.8)', margin: 0, fontSize: '16px' }}>
-                Get the latest news, tips, and exclusive deals delivered to your inbox.
+                Nhận tin tức mới nhất, mẹo và ưu đãi độc quyền được gửi đến hộp thư của bạn.
               </p>
             </div>
             <div>
               <div style={{ display: 'flex', maxWidth: '400px' }}>
                 <input
                   type="email"
-                  placeholder="Enter your email address"
+                  placeholder="Nhập địa chỉ email của bạn"
                   style={{
                     flex: 1,
                     padding: '12px 16px',
@@ -286,7 +286,7 @@ const LandingFooter: React.FC = () => {
                   }}
                   onClick={() => console.log('Subscribe')}
                 >
-                  Subscribe
+                  Đăng Ký
                 </button>
               </div>
             </div>
@@ -304,7 +304,7 @@ const LandingFooter: React.FC = () => {
           }}>
             <div>
               <span style={{ color: 'rgba(255,255,255,0.6)', fontSize: '14px' }}>
-                © 2024 EzBuild. All rights reserved. Built with ❤️ for PC enthusiasts.
+                © 2024 EzBuild. Bảo lưu mọi quyền. Được xây dựng với ❤️ cho những người đam mê PC.
               </span>
             </div>
             <div style={{ display: 'flex', gap: '16px' }}>

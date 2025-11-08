@@ -255,9 +255,9 @@ function StaffFeedbacksPage() {
   }
 
   const getRatingColor = (rating: number) => {
-    if (rating >= 4) return 'text-green-600'
-    if (rating >= 3) return 'text-yellow-600'
-    return 'text-red-600'
+    if (rating >= 4) return 'text-green-400'
+    if (rating >= 3) return 'text-yellow-400'
+    return 'text-red-400'
   }
 
   const renderStars = (rating: number) => {
@@ -267,10 +267,10 @@ function StaffFeedbacksPage() {
   if (loading) {
     return (
       <div className="page bg-grid bg-radial">
-        <div className="flex items-center justify-center h-64">
+        <div className="flex items-center justify-center min-h-screen">
           <div className="text-center">
-            <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-blue-600 mx-auto mb-4"></div>
-            <p className="text-gray-600">Đang tải dữ liệu...</p>
+            <div className="animate-spin rounded-full h-16 w-16 border-4 border-blue-500 border-t-transparent mx-auto mb-4"></div>
+            <p className="text-white text-lg">Đang tải dữ liệu...</p>
           </div>
         </div>
       </div>
@@ -280,11 +280,11 @@ function StaffFeedbacksPage() {
   if (error) {
     return (
       <div className="page bg-grid bg-radial">
-        <div className="flex items-center justify-center h-64">
-          <div className="text-center">
-            <div className="text-red-500 text-6xl mb-4">⚠️</div>
-            <p className="text-red-600 mb-4">{error}</p>
-            <button onClick={loadData} className="px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700">
+        <div className="flex items-center justify-center min-h-screen">
+          <div className="text-center bg-white/10 backdrop-blur-lg rounded-2xl p-8 border border-white/20">
+            <div className="text-red-400 text-6xl mb-4">⚠️</div>
+            <p className="text-red-300 mb-6 text-xl">{error}</p>
+            <button onClick={loadData} className="px-6 py-3 bg-gradient-to-r from-blue-500 to-cyan-500 text-white rounded-xl hover:from-blue-600 hover:to-cyan-600 transition-all shadow-lg hover:shadow-xl">
               Thử lại
             </button>
           </div>
@@ -294,211 +294,236 @@ function StaffFeedbacksPage() {
   }
 
   return (
-    <div className="page bg-grid bg-radial">
-      <div className="mb-6">
-        <h1 className="text-3xl font-bold text-black mb-2">Quản lý feedback</h1>
-        <p className="text-black">Xem và quản lý phản hồi từ khách hàng</p>
-      </div>
-
-      <div className="mb-4 flex gap-4">
-        <div className="bg-white px-4 py-3 rounded-lg border border-gray-200 shadow-sm">
-          <div className="text-sm text-black">Order Feedbacks</div>
-          <div className="text-2xl font-bold text-black">{orderFeedbacks.length}</div>
+    <div className="page bg-grid bg-radial p-6">
+      <div className="max-w-7xl mx-auto">
+        {/* Header */}
+        <div className="mb-8">
+          <h1 className="text-4xl font-bold text-white mb-2 flex items-center gap-3">
+            <span className="bg-gradient-to-r from-cyan-400 to-blue-400 bg-clip-text text-transparent">
+              Quản lý feedback
+            </span>
+          </h1>
+          <p className="text-gray-300 text-lg">Xem và quản lý phản hồi từ khách hàng</p>
         </div>
-        <div className="bg-white px-4 py-3 rounded-lg border border-gray-200 shadow-sm">
-          <div className="text-sm text-black">Service Feedbacks</div>
-          <div className="text-2xl font-bold text-blue-600">{serviceFeedbacks.length}</div>
-        </div>
-      </div>
 
-      <div className="mb-6">
-        <div className="flex gap-2">
-          <button
-            onClick={() => setActiveTab('orders')}
-            className={`px-6 py-2 rounded-lg font-medium transition-colors ${
-              activeTab === 'orders'
-                ? 'bg-blue-600 text-white'
-                : 'bg-white text-black border border-gray-300 hover:bg-gray-50'
-            }`}
-          >
-            Order Feedbacks ({orderFeedbacks.length})
-          </button>
-          <button
-            onClick={() => setActiveTab('services')}
-            className={`px-6 py-2 rounded-lg font-medium transition-colors ${
-              activeTab === 'services'
-                ? 'bg-blue-600 text-white'
-                : 'bg-white text-black border border-gray-300 hover:bg-gray-50'
-            }`}
-          >
-            Service Feedbacks ({serviceFeedbacks.length})
-          </button>
-          <button
-            onClick={loadData}
-            className="px-4 py-2 bg-blue-100 text-blue-700 font-medium rounded-lg hover:bg-blue-200 transition-colors flex items-center gap-2 border border-blue-300"
-          >
-            <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15" />
-            </svg>
-            <span>Refresh</span>
-          </button>
-          <button
-            onClick={openAddModal}
-            className="px-4 py-2 bg-white text-black font-medium rounded-lg hover:bg-gray-50 transition-colors flex items-center gap-2 border border-gray-300"
-          >
-            <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 4v16m8-8H4" />
-            </svg>
-            <span>Thêm mới</span>
-          </button>
-        </div>
-      </div>
-
-      {/* Order Feedbacks Tab */}
-      {activeTab === 'orders' && (
-        <div className="bg-white rounded-lg border border-black/10 overflow-hidden">
-          <div className="overflow-x-auto">
-            <table className="w-full">
-              <thead className="bg-white">
-                <tr>
-                  <th className="px-6 py-3 text-left text-xs font-medium text-black uppercase">ID</th>
-                  <th className="px-6 py-3 text-left text-xs font-medium text-black uppercase">Order ID</th>
-                  <th className="px-6 py-3 text-left text-xs font-medium text-black uppercase">Khách hàng</th>
-                  <th className="px-6 py-3 text-left text-xs font-medium text-black uppercase">Đánh giá</th>
-                  <th className="px-6 py-3 text-left text-xs font-medium text-black uppercase">Bình luận</th>
-                  <th className="px-6 py-3 text-left text-xs font-medium text-black uppercase">Ngày</th>
-                  <th className="px-6 py-3 text-left text-xs font-medium text-black uppercase">Hành động</th>
-                </tr>
-              </thead>
-              <tbody className="bg-white divide-y divide-gray-200">
-                {orderFeedbacks.length === 0 ? (
-                  <tr>
-                    <td colSpan={7} className="px-6 py-12 text-center text-black">
-                      Chưa có feedback nào cho orders
-                    </td>
-                  </tr>
-                ) : (
-                  orderFeedbacks.map((feedback) => (
-                    <tr key={feedback.id} className="hover:bg-gray-50">
-                      <td className="px-6 py-4 whitespace-nowrap text-sm font-medium text-black">#{feedback.id}</td>
-                      <td className="px-6 py-4 whitespace-nowrap text-sm text-black">Order #{feedback.orderId}</td>
-                      <td className="px-6 py-4 text-sm text-black">
-                        {feedback.user?.fullname || 'N/A'}
-                        <div className="text-black text-xs">{feedback.user?.email || ''}</div>
-                      </td>
-                      <td className="px-6 py-4 whitespace-nowrap">
-                        <div className={`text-lg font-semibold ${getRatingColor(feedback.rating)}`}>
-                          {renderStars(feedback.rating)}
-                        </div>
-                      </td>
-                      <td className="px-6 py-4 text-sm text-black max-w-md">{feedback.comment || '(Không có bình luận)'}</td>
-                      <td className="px-6 py-4 whitespace-nowrap text-sm text-black">
-                        {feedback.createdAt ? (() => {
-                          try {
-                            const date = new Date(feedback.createdAt)
-                            return isNaN(date.getTime()) ? 'Invalid Date' : date.toLocaleDateString('vi-VN')
-                          } catch {
-                            return 'Invalid Date'
-                          }
-                        })() : 'N/A'}
-                      </td>
-                      <td className="px-6 py-4 whitespace-nowrap text-sm font-medium">
-                        <div className="flex items-center gap-2">
-                          <button
-                            onClick={() => openEditModal(feedback)}
-                            className="px-3 py-1 bg-blue-100 text-blue-700 rounded hover:bg-blue-200 font-medium border border-blue-300"
-                          >
-                            Sửa
-                          </button>
-                          <button
-                            onClick={() => handleDeleteOrderFeedback(feedback.id)}
-                            className="px-3 py-1 bg-red-100 text-red-700 rounded hover:bg-red-200 font-medium border border-red-300"
-                          >
-                            Xóa
-                          </button>
-                        </div>
-                      </td>
-                    </tr>
-                  ))
-                )}
-              </tbody>
-            </table>
+        {/* Stats Cards */}
+        <div className="grid grid-cols-1 md:grid-cols-2 gap-4 mb-8">
+          <div className="bg-white/10 backdrop-blur-lg rounded-2xl p-6 border border-white/20 hover:border-white/40 transition-all shadow-lg hover:shadow-xl">
+            <div className="flex items-center justify-between">
+              <div>
+                <p className="text-gray-300 text-sm mb-2">Order Feedbacks</p>
+                <p className="text-3xl font-bold text-white">{orderFeedbacks.length}</p>
+              </div>
+              <div className="w-14 h-14 rounded-xl bg-gradient-to-br from-blue-500 to-cyan-500 flex items-center justify-center text-2xl shadow-lg">
+                📦
+              </div>
+            </div>
+          </div>
+          <div className="bg-white/10 backdrop-blur-lg rounded-2xl p-6 border border-white/20 hover:border-white/40 transition-all shadow-lg hover:shadow-xl">
+            <div className="flex items-center justify-between">
+              <div>
+                <p className="text-gray-300 text-sm mb-2">Service Feedbacks</p>
+                <p className="text-3xl font-bold text-blue-400">{serviceFeedbacks.length}</p>
+              </div>
+              <div className="w-14 h-14 rounded-xl bg-gradient-to-br from-indigo-500 to-purple-500 flex items-center justify-center text-2xl shadow-lg">
+                🛠️
+              </div>
+            </div>
           </div>
         </div>
-      )}
 
-      {/* Service Feedbacks Tab */}
-      {activeTab === 'services' && (
-        <div className="bg-white rounded-lg border border-black/10 overflow-hidden">
-          <div className="overflow-x-auto">
-            <table className="w-full">
-              <thead className="bg-white">
-                <tr>
-                  <th className="px-6 py-3 text-left text-xs font-medium text-black uppercase">ID</th>
-                  <th className="px-6 py-3 text-left text-xs font-medium text-black uppercase">Service ID</th>
-                  <th className="px-6 py-3 text-left text-xs font-medium text-black uppercase">Khách hàng</th>
-                  <th className="px-6 py-3 text-left text-xs font-medium text-black uppercase">Đánh giá</th>
-                  <th className="px-6 py-3 text-left text-xs font-medium text-black uppercase">Bình luận</th>
-                  <th className="px-6 py-3 text-left text-xs font-medium text-black uppercase">Ngày</th>
-                  <th className="px-6 py-3 text-left text-xs font-medium text-black uppercase">Hành động</th>
-                </tr>
-              </thead>
-              <tbody className="bg-white divide-y divide-gray-200">
-                {serviceFeedbacks.length === 0 ? (
-                  <tr>
-                    <td colSpan={7} className="px-6 py-12 text-center text-black">
-                      Chưa có feedback nào cho services
-                    </td>
-                  </tr>
-                ) : (
-                  serviceFeedbacks.map((feedback) => (
-                    <tr key={feedback.id} className="hover:bg-gray-50">
-                      <td className="px-6 py-4 whitespace-nowrap text-sm font-medium text-black">#{feedback.id}</td>
-                      <td className="px-6 py-4 whitespace-nowrap text-sm text-black">Service #{feedback.serviceId}</td>
-                      <td className="px-6 py-4 text-sm text-black">
-                        {feedback.user?.fullname || 'N/A'}
-                        <div className="text-black text-xs">{feedback.user?.email || ''}</div>
-                      </td>
-                      <td className="px-6 py-4 whitespace-nowrap">
-                        <div className={`text-lg font-semibold ${getRatingColor(feedback.rating)}`}>
-                          {renderStars(feedback.rating)}
-                        </div>
-                      </td>
-                      <td className="px-6 py-4 text-sm text-black max-w-md">{feedback.comment || '(Không có bình luận)'}</td>
-                      <td className="px-6 py-4 whitespace-nowrap text-sm text-black">
-                        {feedback.createdAt ? (() => {
-                          try {
-                            const date = new Date(feedback.createdAt)
-                            return isNaN(date.getTime()) ? 'Invalid Date' : date.toLocaleDateString('vi-VN')
-                          } catch {
-                            return 'Invalid Date'
-                          }
-                        })() : 'N/A'}
-                      </td>
-                      <td className="px-6 py-4 whitespace-nowrap text-sm font-medium">
-                        <div className="flex items-center gap-2">
-                          <button
-                            onClick={() => openEditModal(feedback)}
-                            className="px-3 py-1 bg-blue-100 text-blue-700 rounded hover:bg-blue-200 font-medium border border-blue-300"
-                          >
-                            Sửa
-                          </button>
-                          <button
-                            onClick={() => handleDeleteServiceFeedback(feedback.id)}
-                            className="px-3 py-1 bg-red-100 text-red-700 rounded hover:bg-red-200 font-medium border border-red-300"
-                          >
-                            Xóa
-                          </button>
-                        </div>
-                      </td>
-                    </tr>
-                  ))
-                )}
-              </tbody>
-            </table>
+        {/* Tabs and Actions */}
+        <div className="mb-6">
+          <div className="bg-white/10 backdrop-blur-lg rounded-2xl p-4 border border-white/20">
+            <div className="flex flex-wrap gap-3">
+              <button
+                onClick={() => setActiveTab('orders')}
+                className={`px-6 py-3 rounded-xl font-medium transition-all ${
+                  activeTab === 'orders'
+                    ? 'bg-gradient-to-r from-blue-500 to-cyan-500 text-white shadow-lg'
+                    : 'bg-white/5 text-gray-300 border border-white/10 hover:bg-white/10'
+                }`}
+              >
+                Order Feedbacks ({orderFeedbacks.length})
+              </button>
+              <button
+                onClick={() => setActiveTab('services')}
+                className={`px-6 py-3 rounded-xl font-medium transition-all ${
+                  activeTab === 'services'
+                    ? 'bg-gradient-to-r from-blue-500 to-cyan-500 text-white shadow-lg'
+                    : 'bg-white/5 text-gray-300 border border-white/10 hover:bg-white/10'
+                }`}
+              >
+                Service Feedbacks ({serviceFeedbacks.length})
+              </button>
+              <button
+                onClick={loadData}
+                className="px-6 py-3 bg-gradient-to-r from-blue-500 to-cyan-500 text-white rounded-xl hover:from-blue-600 hover:to-cyan-600 transition-all shadow-lg hover:shadow-xl flex items-center gap-2"
+              >
+                <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15" />
+                </svg>
+                Làm mới
+              </button>
+              <button
+                onClick={openAddModal}
+                className="px-6 py-3 bg-gradient-to-r from-green-500 to-emerald-500 text-white rounded-xl hover:from-green-600 hover:to-emerald-600 transition-all shadow-lg hover:shadow-xl flex items-center gap-2"
+              >
+                <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 4v16m8-8H4" />
+                </svg>
+                Thêm mới
+              </button>
+            </div>
           </div>
         </div>
-      )}
+
+        {/* Order Feedbacks Tab */}
+        {activeTab === 'orders' && (
+          <div className="bg-white/10 backdrop-blur-lg rounded-2xl border border-white/20 overflow-hidden shadow-2xl">
+            <div className="overflow-x-auto">
+              <table className="w-full">
+                <thead>
+                  <tr className="bg-white/5 border-b border-white/10">
+                    <th className="px-6 py-4 text-left text-xs font-semibold text-gray-300 uppercase tracking-wider">ID</th>
+                    <th className="px-6 py-4 text-left text-xs font-semibold text-gray-300 uppercase tracking-wider">Order ID</th>
+                    <th className="px-6 py-4 text-left text-xs font-semibold text-gray-300 uppercase tracking-wider">Khách hàng</th>
+                    <th className="px-6 py-4 text-left text-xs font-semibold text-gray-300 uppercase tracking-wider">Đánh giá</th>
+                    <th className="px-6 py-4 text-left text-xs font-semibold text-gray-300 uppercase tracking-wider">Bình luận</th>
+                    <th className="px-6 py-4 text-left text-xs font-semibold text-gray-300 uppercase tracking-wider">Ngày</th>
+                    <th className="px-6 py-4 text-left text-xs font-semibold text-gray-300 uppercase tracking-wider">Hành động</th>
+                  </tr>
+                </thead>
+                <tbody className="divide-y divide-white/10">
+                  {orderFeedbacks.length === 0 ? (
+                    <tr>
+                      <td colSpan={7} className="px-6 py-12 text-center text-gray-400">
+                        Chưa có feedback nào cho orders
+                      </td>
+                    </tr>
+                  ) : (
+                    orderFeedbacks.map((feedback) => (
+                      <tr key={feedback.id} className="hover:bg-white/5 transition-colors">
+                        <td className="px-6 py-4 whitespace-nowrap text-sm font-semibold text-white">#{feedback.id}</td>
+                        <td className="px-6 py-4 whitespace-nowrap text-sm text-white">Order #{feedback.orderId}</td>
+                        <td className="px-6 py-4 text-sm text-white">
+                          {feedback.user?.fullname || 'N/A'}
+                          <div className="text-gray-300 text-xs">{feedback.user?.email || ''}</div>
+                        </td>
+                        <td className="px-6 py-4 whitespace-nowrap">
+                          <div className={`text-lg font-semibold ${getRatingColor(feedback.rating).replace('text-', 'text-').replace('-600', '-400')}`}>
+                            {renderStars(feedback.rating)}
+                          </div>
+                        </td>
+                        <td className="px-6 py-4 text-sm text-gray-300 max-w-md">{feedback.comment || '(Không có bình luận)'}</td>
+                        <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-300">
+                          {feedback.createdAt ? (() => {
+                            try {
+                              const date = new Date(feedback.createdAt)
+                              return isNaN(date.getTime()) ? 'Invalid Date' : date.toLocaleDateString('vi-VN')
+                            } catch {
+                              return 'Invalid Date'
+                            }
+                          })() : 'N/A'}
+                        </td>
+                        <td className="px-6 py-4 whitespace-nowrap">
+                          <div className="flex items-center gap-2">
+                            <button
+                              onClick={() => openEditModal(feedback)}
+                              className="px-4 py-2 bg-gradient-to-r from-blue-500 to-cyan-500 text-white rounded-lg hover:from-blue-600 hover:to-cyan-600 transition-all text-sm font-medium shadow-md"
+                            >
+                              Sửa
+                            </button>
+                            <button
+                              onClick={() => handleDeleteOrderFeedback(feedback.id)}
+                              className="px-4 py-2 bg-gradient-to-r from-red-500 to-rose-500 text-white rounded-lg hover:from-red-600 hover:to-rose-600 transition-all text-sm font-medium shadow-md"
+                            >
+                              Xóa
+                            </button>
+                          </div>
+                        </td>
+                      </tr>
+                    ))
+                  )}
+                </tbody>
+              </table>
+            </div>
+          </div>
+        )}
+
+        {/* Service Feedbacks Tab */}
+        {activeTab === 'services' && (
+          <div className="bg-white/10 backdrop-blur-lg rounded-2xl border border-white/20 overflow-hidden shadow-2xl">
+            <div className="overflow-x-auto">
+              <table className="w-full">
+                <thead>
+                  <tr className="bg-white/5 border-b border-white/10">
+                    <th className="px-6 py-4 text-left text-xs font-semibold text-gray-300 uppercase tracking-wider">ID</th>
+                    <th className="px-6 py-4 text-left text-xs font-semibold text-gray-300 uppercase tracking-wider">Service ID</th>
+                    <th className="px-6 py-4 text-left text-xs font-semibold text-gray-300 uppercase tracking-wider">Khách hàng</th>
+                    <th className="px-6 py-4 text-left text-xs font-semibold text-gray-300 uppercase tracking-wider">Đánh giá</th>
+                    <th className="px-6 py-4 text-left text-xs font-semibold text-gray-300 uppercase tracking-wider">Bình luận</th>
+                    <th className="px-6 py-4 text-left text-xs font-semibold text-gray-300 uppercase tracking-wider">Ngày</th>
+                    <th className="px-6 py-4 text-left text-xs font-semibold text-gray-300 uppercase tracking-wider">Hành động</th>
+                  </tr>
+                </thead>
+                <tbody className="divide-y divide-white/10">
+                  {serviceFeedbacks.length === 0 ? (
+                    <tr>
+                      <td colSpan={7} className="px-6 py-12 text-center text-gray-400">
+                        Chưa có feedback nào cho services
+                      </td>
+                    </tr>
+                  ) : (
+                    serviceFeedbacks.map((feedback) => (
+                      <tr key={feedback.id} className="hover:bg-white/5 transition-colors">
+                        <td className="px-6 py-4 whitespace-nowrap text-sm font-semibold text-white">#{feedback.id}</td>
+                        <td className="px-6 py-4 whitespace-nowrap text-sm text-white">Service #{feedback.serviceId}</td>
+                        <td className="px-6 py-4 text-sm text-white">
+                          {feedback.user?.fullname || 'N/A'}
+                          <div className="text-gray-300 text-xs">{feedback.user?.email || ''}</div>
+                        </td>
+                        <td className="px-6 py-4 whitespace-nowrap">
+                          <div className={`text-lg font-semibold ${getRatingColor(feedback.rating).replace('text-', 'text-').replace('-600', '-400')}`}>
+                            {renderStars(feedback.rating)}
+                          </div>
+                        </td>
+                        <td className="px-6 py-4 text-sm text-gray-300 max-w-md">{feedback.comment || '(Không có bình luận)'}</td>
+                        <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-300">
+                          {feedback.createdAt ? (() => {
+                            try {
+                              const date = new Date(feedback.createdAt)
+                              return isNaN(date.getTime()) ? 'Invalid Date' : date.toLocaleDateString('vi-VN')
+                            } catch {
+                              return 'Invalid Date'
+                            }
+                          })() : 'N/A'}
+                        </td>
+                        <td className="px-6 py-4 whitespace-nowrap">
+                          <div className="flex items-center gap-2">
+                            <button
+                              onClick={() => openEditModal(feedback)}
+                              className="px-4 py-2 bg-gradient-to-r from-blue-500 to-cyan-500 text-white rounded-lg hover:from-blue-600 hover:to-cyan-600 transition-all text-sm font-medium shadow-md"
+                            >
+                              Sửa
+                            </button>
+                            <button
+                              onClick={() => handleDeleteServiceFeedback(feedback.id)}
+                              className="px-4 py-2 bg-gradient-to-r from-red-500 to-rose-500 text-white rounded-lg hover:from-red-600 hover:to-rose-600 transition-all text-sm font-medium shadow-md"
+                            >
+                              Xóa
+                            </button>
+                          </div>
+                        </td>
+                      </tr>
+                    ))
+                  )}
+                </tbody>
+              </table>
+            </div>
+          </div>
+        )}
+      </div>
 
       {/* Add/Edit Modal */}
       {(isAddModalOpen || isEditModalOpen) && (

@@ -10,8 +10,8 @@ const LandingFeatures: React.FC = () => {
           <circle cx="12" cy="12" r="10"/>
         </svg>
       ),
-      title: 'Compatibility Check',
-      description: 'Advanced compatibility checking ensures all components work together perfectly.',
+      title: 'Kiểm Tra Tương Thích',
+      description: 'Kiểm tra tương thích tiên tiến đảm bảo tất cả linh kiện hoạt động hoàn hảo cùng nhau.',
       color: '#52c41a'
     },
     {
@@ -21,8 +21,8 @@ const LandingFeatures: React.FC = () => {
           <path d="M16 8l-4 4-4-4"/>
         </svg>
       ),
-      title: 'Price Comparison',
-      description: 'Compare prices from multiple retailers to get the best deals on your build.',
+      title: 'So Sánh Giá',
+      description: 'So sánh giá từ nhiều nhà bán lẻ để có được giao dịch tốt nhất cho build của bạn.',
       color: '#1e3a8a'
     },
     {
@@ -31,8 +31,8 @@ const LandingFeatures: React.FC = () => {
           <polygon points="13,2 3,14 12,14 11,22 21,10 12,10"/>
         </svg>
       ),
-      title: 'Performance Analysis',
-      description: 'Get detailed performance metrics and benchmarks for your selected components.',
+      title: 'Phân Tích Hiệu Năng',
+      description: 'Nhận các chỉ số hiệu năng và benchmark chi tiết cho các linh kiện bạn đã chọn.',
       color: '#faad14'
     },
     {
@@ -44,8 +44,8 @@ const LandingFeatures: React.FC = () => {
           <path d="M16 3.13a4 4 0 0 1 0 7.75"/>
         </svg>
       ),
-      title: 'Community Reviews',
-      description: 'Read real reviews from our community of PC builders and enthusiasts.',
+      title: 'Đánh Giá Cộng Đồng',
+      description: 'Đọc các đánh giá thực từ cộng đồng người xây dựng PC và người đam mê của chúng tôi.',
       color: '#722ed1'
     },
     {
@@ -54,8 +54,8 @@ const LandingFeatures: React.FC = () => {
           <path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z"/>
         </svg>
       ),
-      title: 'Build Validation',
-      description: 'Our AI validates your build for optimal performance and compatibility.',
+      title: 'Xác Thực Build',
+      description: 'AI của chúng tôi xác thực build của bạn để đạt hiệu năng và tương thích tối ưu.',
       color: '#f5222d'
     },
     {
@@ -67,8 +67,8 @@ const LandingFeatures: React.FC = () => {
           <path d="M12 15v5s3.03-.55 4-2c1.08-1.62 0-5 0-5"/>
         </svg>
       ),
-      title: 'Quick Start Templates',
-      description: 'Choose from pre-built templates for gaming, work, or creative builds.',
+      title: 'Mẫu Bắt Đầu Nhanh',
+      description: 'Chọn từ các mẫu được xây dựng sẵn cho gaming, công việc hoặc build sáng tạo.',
       color: '#13c2c2'
     }
   ]
@@ -78,10 +78,10 @@ const LandingFeatures: React.FC = () => {
       <div style={{ maxWidth: '1200px', margin: '0 auto', padding: '0 24px' }}>
         <div style={{ textAlign: 'center', marginBottom: '64px' }}>
           <h2 style={{ fontSize: '36px', fontWeight: 700, marginBottom: '16px', color: 'white', margin: 0 }}>
-            Why Choose EzBuild?
+            Tại Sao Chọn EzBuild?
           </h2>
           <p style={{ fontSize: '18px', color: 'rgba(255,255,255,0.8)', maxWidth: '600px', margin: '16px auto 0' }}>
-            We provide everything you need to build the perfect PC, from planning to purchasing.
+            Chúng tôi cung cấp mọi thứ bạn cần để xây dựng PC hoàn hảo, từ lập kế hoạch đến mua sắm.
           </p>
         </div>
         

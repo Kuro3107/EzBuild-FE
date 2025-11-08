@@ -173,14 +173,14 @@ function HomePage() {
                     <svg className="w-5 h-5 text-blue-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                       <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M16 7a4 4 0 11-8 0 4 4 0 018 0zM12 14a7 7 0 00-7 7h14a7 7 0 00-7-7z" />
                     </svg>
-                    <span className="font-medium">Profile</span>
+                    <span className="font-medium">Hồ sơ</span>
                   </Link>
                   
                   <button className="w-full px-6 py-3 text-left text-gray-300 hover:bg-gray-800 transition-colors text-sm flex items-center gap-4 group">
                     <svg className="w-5 h-5 text-gray-300" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                       <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4.318 6.318a4.5 4.5 0 000 6.364L12 20.364l7.682-7.682a4.5 4.5 0 00-6.364-6.364L12 7.636l-1.318-1.318a4.5 4.5 0 00-6.364 0z" />
                     </svg>
-                    <span className="font-medium">Favorites</span>
+                    <span className="font-medium">Yêu thích</span>
                   </button>
                   
                   <button 
@@ -190,7 +190,7 @@ function HomePage() {
                     <svg className="w-5 h-5 text-red-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                       <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M17 16l4-4m0 0l-4-4m4 4H7m6 4v1a3 3 0 01-3 3H6a3 3 0 01-3-3V7a3 3 0 013-3h4a3 3 0 013 3v1" />
                     </svg>
-                    <span className="font-medium">Log out</span>
+                    <span className="font-medium">Đăng xuất</span>
                   </button>
                 </div>
               </div>
@@ -217,7 +217,7 @@ function HomePage() {
             <svg className="w-5 h-5 text-gray-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
               <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M11 16l-4-4m0 0l4-4m-4 4h14m-5 4v1a3 3 0 01-3 3H6a3 3 0 01-3-3V7a3 3 0 013-3h7a3 3 0 013 3v1" />
             </svg>
-            <span className="text-sm font-medium text-gray-800">Sign In</span>
+            <span className="text-sm font-medium text-gray-800">Đăng nhập</span>
           </Link>
         </header>
       )}
@@ -235,27 +235,27 @@ function HomePage() {
           <LandingStats />
 
           <div className="homepage-quick-start">
-            <div className="homepage-section-title">Quick Start</div>
+            <div className="homepage-section-title">Bắt đầu nhanh</div>
           
             {/* Desktop: Grid Layout */}
             <div className="hidden md:grid md:grid-cols-3 gap-4" style={{ maxWidth: '100%', overflow: 'hidden' }}>
               {[
                 { 
-                  title: 'All-AMD Red Build', 
-                  description: 'High-performance AMD build with red theme',
-                  price: '$1,299',
+                  title: 'Build AMD Đỏ Toàn Diện', 
+                  description: 'Build AMD hiệu năng cao với theme màu đỏ',
+                  price: '29.000.000đ',
                   image: 'https://images.unsplash.com/photo-1591799264318-7e6ef8ddb7ea?w=400&h=300&fit=crop'
                 },
                 { 
-                  title: 'Baller White 4K RGB', 
-                  description: 'Premium white build with RGB lighting',
-                  price: '$2,199',
+                  title: 'Build Trắng RGB 4K', 
+                  description: 'Build trắng cao cấp với đèn RGB',
+                  price: '49.000.000đ',
                   image: 'https://images.unsplash.com/photo-1587202372634-32705e3bf49c?w=400&h=300&fit=crop'
                 },
                 { 
-                  title: 'Modern 1440p Gaming', 
-                  description: 'Perfect for 1440p gaming experience',
-                  price: '$1,599',
+                  title: 'Gaming 1440p Hiện Đại', 
+                  description: 'Hoàn hảo cho trải nghiệm gaming 1440p',
+                  price: '35.000.000đ',
                   image: 'https://images.unsplash.com/photo-1556438064-2d7646166914?w=400&h=300&fit=crop'
                 },
               ].map((item, index) => (
@@ -274,7 +274,7 @@ function HomePage() {
                    <div className="qs-body" style={{ padding: '16px' }}>
                      <div className="qs-title" style={{ color: 'white', fontSize: '18px', fontWeight: 700, marginBottom: '8px' }}>{item.title}</div>
                      <p className="text-sm mb-3" style={{ color: 'rgba(255,255,255,0.7)', fontSize: '12px' }}>{item.description}</p>
-                     <div className="homepage-cta" style={{ fontSize: '14px' }}>Open Build</div>
+                     <div className="homepage-cta" style={{ fontSize: '14px' }}>Mở Build</div>
                   </div>
                 </article>
               ))}
@@ -284,21 +284,21 @@ function HomePage() {
             <div className="md:hidden grid grid-cols-1 gap-4" style={{ maxWidth: '100%', overflow: 'hidden' }}>
               {[
                 { 
-                  title: 'All-AMD Red Build', 
-                  description: 'High-performance AMD build with red theme',
-                  price: '$1,299',
+                  title: 'Build AMD Đỏ Toàn Diện', 
+                  description: 'Build AMD hiệu năng cao với theme màu đỏ',
+                  price: '29.000.000đ',
                   image: 'https://images.unsplash.com/photo-1591799264318-7e6ef8ddb7ea?w=400&h=300&fit=crop'
                 },
                 { 
-                  title: 'Baller White 4K RGB', 
-                  description: 'Premium white build with RGB lighting',
-                  price: '$2,199',
+                  title: 'Build Trắng RGB 4K', 
+                  description: 'Build trắng cao cấp với đèn RGB',
+                  price: '49.000.000đ',
                   image: 'https://images.unsplash.com/photo-1587202372634-32705e3bf49c?w=400&h=300&fit=crop'
                 },
                 { 
-                  title: 'Modern 1440p Gaming', 
-                  description: 'Perfect for 1440p gaming experience',
-                  price: '$1,599',
+                  title: 'Gaming 1440p Hiện Đại', 
+                  description: 'Hoàn hảo cho trải nghiệm gaming 1440p',
+                  price: '35.000.000đ',
                   image: 'https://images.unsplash.com/photo-1556438064-2d7646166914?w=400&h=300&fit=crop'
                 },
                ].map((item, index) => (
