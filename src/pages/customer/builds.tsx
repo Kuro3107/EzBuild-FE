@@ -278,6 +278,29 @@ function CustomerBuildsPage() {
                       </button>
                       <button
                         onClick={() => {
+                          // Save mapping into localStorage for PCBuilder to consume
+                          const mapped = (b.items || []).map((it) => {
+                            const anyIt = it as unknown as Record<string, unknown>
+                            const nestedProduct = (it.productPrice?.product as unknown as Record<string, unknown>) || {}
+                            return {
+                              category_id: (anyIt.category_id as number | undefined) || (nestedProduct.category as Record<string, unknown> | undefined)?.id as number | undefined,
+                              product_id: anyIt.product_id as number | undefined,
+                              productPriceId: it.product_price_id || it.productPrice?.id,
+                              price: typeof anyIt.price === 'number' ? anyIt.price as number : (it.productPrice?.price || 0),
+                              quantity: it.quantity || 1,
+                              productName: it.product_name || (nestedProduct.name as string | undefined)
+                            }
+                          })
+                          localStorage.setItem('ezbuild-selected-build', JSON.stringify({ id: b.id, name: b.name, items: mapped, checkCompatibility: true }))
+                          window.location.href = '/pcbuilder'
+                        }}
+                        className="px-4 py-2 bg-green-600 text-white rounded-lg hover:bg-green-700 text-sm"
+                        style={{ color: '#fff' }}
+                      >
+                        Kiểm tra tương thích
+                      </button>
+                      <button
+                        onClick={() => {
                           const specs = extractBuildSpecs(b.items || [])
                           const payload = {
                             buildSpecs: specs,

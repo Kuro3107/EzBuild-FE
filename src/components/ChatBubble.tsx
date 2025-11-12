@@ -79,7 +79,7 @@ function ChatBubble({ className = '' }: ChatBubbleProps) {
     >
       {/* Chat Window */}
       {isOpen && (
-        <div className="absolute bottom-16 right-0 w-80 h-96 bg-gray-50 rounded-2xl shadow-2xl border border-gray-300 overflow-hidden">
+        <div className="absolute bottom-16 right-0 w-80 h-96 bg-gray-50 rounded-2xl shadow-2xl border-2 border-blue-600 overflow-hidden">
           <ChatWindow onClose={() => setIsOpen(false)} />
         </div>
       )}
@@ -89,26 +89,18 @@ function ChatBubble({ className = '' }: ChatBubbleProps) {
         onClick={handleBubbleClick}
         className={`relative w-14 h-14 rounded-full shadow-lg hover:shadow-xl transition-all duration-300 transform hover:scale-110 flex items-center justify-center group ${
           userRole === 'Staff' 
-            ? 'bg-gradient-to-br from-green-500 to-green-600' 
+            ? 'bg-gradient-to-br from-blue-600 to-blue-700' 
             : userRole === 'Admin'
-            ? 'bg-gradient-to-br from-red-500 to-red-600'
-            : 'bg-gradient-to-br from-blue-500 to-purple-600'
+            ? 'bg-gradient-to-br from-blue-600 to-blue-700'
+            : 'bg-gradient-to-br from-blue-600 to-blue-700'
         }`}
       >
-        {/* Icon Chat */}
-        <svg 
-          className="w-6 h-6 text-white transition-transform duration-300 group-hover:scale-110" 
-          fill="none" 
-          stroke="currentColor" 
-          viewBox="0 0 24 24"
-        >
-          <path 
-            strokeLinecap="round" 
-            strokeLinejoin="round" 
-            strokeWidth={2} 
-            d="M8 12h.01M12 12h.01M16 12h.01M21 12c0 4.418-4.03 8-9 8a9.863 9.863 0 01-4.255-.949L3 20l1.395-3.72C3.512 15.042 3 13.574 3 12c0-4.418 4.03-8 9-8s9 3.582 9 8z" 
-          />
-        </svg>
+        {/* Robot Icon */}
+        <img 
+          src="/ChatGPT Image 13_44_46 24 thg 10, 2025.png" 
+          alt="Chat Robot" 
+          className="w-8 h-8 object-contain transition-transform duration-300 group-hover:scale-110 pointer-events-none"
+        />
 
         {/* Unread Badge */}
         {unreadCount > 0 && (
@@ -229,12 +221,14 @@ function ChatWindow({ onClose }: ChatWindowProps) {
   return (
     <div className="flex flex-col h-full">
       {/* Header */}
-      <div className="flex items-center justify-between p-4 bg-gradient-to-r from-blue-500 to-purple-600 text-white">
+      <div className="flex items-center justify-between p-4 bg-gradient-to-r from-blue-600 to-blue-700 text-white">
         <div className="flex items-center gap-3">
-          <div className="w-8 h-8 bg-white/20 rounded-full flex items-center justify-center">
-            <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M8 12h.01M12 12h.01M16 12h.01M21 12c0 4.418-4.03 8-9 8a9.863 9.863 0 01-4.255-.949L3 20l1.395-3.72C3.512 15.042 3 13.574 3 12c0-4.418 4.03-8 9-8s9 3.582 9 8z" />
-            </svg>
+          <div className="w-8 h-8 bg-white/20 rounded-full flex items-center justify-center overflow-hidden pointer-events-none">
+            <img 
+              src="/ChatGPT Image 13_44_46 24 thg 10, 2025.png" 
+              alt="Chat Robot" 
+              className="w-full h-full object-contain"
+            />
           </div>
           <div>
             <h3 className="font-semibold text-sm">
@@ -245,7 +239,7 @@ function ChatWindow({ onClose }: ChatWindowProps) {
         </div>
         <button
           onClick={onClose}
-          className="w-8 h-8 rounded-full hover:bg-white/20 flex items-center justify-center transition-colors"
+          className="relative z-10 w-8 h-8 rounded-full hover:bg-white/20 flex items-center justify-center transition-colors"
           style={{ color: '#1f2937' }}
         >
           <svg className="w-6 h-6" fill="currentColor" viewBox="0 0 24 24">
@@ -328,7 +322,7 @@ function ChatWindow({ onClose }: ChatWindowProps) {
           <button
             type="submit"
             disabled={!newMessage.trim()}
-            className="w-10 h-10 bg-blue-500 text-white rounded-full flex items-center justify-center hover:bg-blue-600 disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
+            className="relative z-10 w-10 h-10 bg-blue-500 text-white rounded-full flex items-center justify-center hover:bg-blue-600 disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
           >
             <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
               <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 19l9 2-9-18-9 18 9-2zm0 0v-8" />

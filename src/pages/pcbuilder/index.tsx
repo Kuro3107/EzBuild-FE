@@ -5,6 +5,7 @@ import Joyride, { STATUS, EVENTS } from 'react-joyride'
 import type { CallBackProps } from 'react-joyride'
 import '../../Homepage.css'
 import '../compare/index.css'
+import BuildRollerCard from '../../components/BuildRollerCard'
 
 interface ApiProduct {
   id?: number
@@ -40,6 +41,64 @@ interface ApiProduct {
     supplierLink: string
     updatedAt: string
   }>
+}
+
+interface CompatibilityIssue {
+  code?: string
+  severity?: string
+  message: string
+  components?: string[]
+  category?: string
+}
+
+interface CompatibilityWarning {
+  message?: string
+  [key: string]: unknown
+}
+
+interface PowerInfo {
+  cpuTdpW: number
+  gpuTdpW: number
+  estimatedRamW: number
+  estimatedStorageW: number
+  otherW: number
+  totalEstimatedW: number
+  psuWattage: number
+  recommendedMinW: number
+  recommendedMaxW: number
+  headroomW: number
+  headroomPercent: number
+  ok: boolean
+}
+
+interface FitInfo {
+  gpuLengthMm: number
+  caseMaxGpuLengthMm: number
+}
+
+interface SuggestionAlternative {
+  productId: number
+  name: string
+  price: number
+  score?: number
+  highlights?: Record<string, string>
+}
+
+interface CategorySuggestion {
+  reason: string
+  alternatives: SuggestionAlternative[]
+}
+
+interface CompatibilityResult {
+  compatible: boolean
+  issues: CompatibilityIssue[]
+  warnings: CompatibilityWarning[]
+  power?: PowerInfo
+  fit?: FitInfo
+  slots?: Record<string, unknown>
+  normalizedBuild?: Record<string, unknown>
+  suggestionsByCategory?: Record<string, CategorySuggestion>
+  summary: string
 }
 
 interface PCComponent {
@@ -91,12 +150,48 @@ interface BuildComponent {
   component: PCComponent | null
 }
 
+interface PresetBuildDetail {
+  id: number
+  name?: string
+  totalPrice?: number | null
+  total_price?: number | null
+  items: Array<{
+    id: number
+    quantity: number
+    // Format mới (flat) từ backend
+    product_price_id?: number
+    product_id?: number
+    product_name?: string
+    category_id?: number
+    category_name?: string
+    price?: number
+    // Format cũ (nested) - legacy
+    productPrice?: {
+      id: number
+      price: number
+      supplierLink?: string
+      product?: {
+        id?: number
+        name?: string
+        brand?: string
+        model?: string | null
+        specs?: string | null
+        imageUrl1?: string | null
+        category?: {
+          id?: number
+          name?: string
+        }
+      }
+    }
+  }>
+}
+
 // Category mapping moved outside component
 const categoryMap: { [key: number]: string } = {
   1: 'CPU',
   2: 'GPU',
-  3: 'RAM',
-  4: 'Mainboard',
+  3: 'Mainboard',
+  4: 'RAM',
   5: 'Storage',
   6: 'PSU',
   7: 'Case',
@@ -111,8 +206,8 @@ const categoryMap: { [key: number]: string } = {
 const buildCategories = [
   // Nhóm 1: 4 linh kiện bắt buộc trên
   { id: 1, name: 'CPU', icon: '🖥️', required: true, group: 'required-top' },
-  { id: 4, name: 'Mainboard', icon: '🔧', required: true, group: 'required-top' },
-  { id: 3, name: 'RAM', icon: '💾', required: true, group: 'required-top' },
+  { id: 3, name: 'Mainboard', icon: '🔧', required: true, group: 'required-top' },
+  { id: 4, name: 'RAM', icon: '💾', required: true, group: 'required-top' },
   { id: 2, name: 'GPU', icon: '🎮', required: true, group: 'required-top' },
   // Nhóm 2: 4 linh kiện bắt buộc dưới
   { id: 5, name: 'Storage', icon: '💿', required: true, group: 'required-bottom' },
@@ -138,6 +233,9 @@ function PCBuilderPage() {
   const [selectedCategory, setSelectedCategory] = useState<number | null>(null)
   const [products, setProducts] = useState<PCComponent[]>([])
   const [loading, setLoading] = useState(false)
+  const [savingBuild, setSavingBuild] = useState(false)
+  const [compatibilityResult, setCompatibilityResult] = useState<CompatibilityResult | null>(null)
+  const [showCompatibilityModal, setShowCompatibilityModal] = useState(false)
   const [searchQuery, setSearchQuery] = useState('')
   const [selectedComponent, setSelectedComponent] = useState<PCComponent | null>(null)
   const [loadedCategories, setLoadedCategories] = useState<Set<number>>(new Set())
@@ -145,6 +243,222 @@ function PCBuilderPage() {
   const [productDetails, setProductDetails] = useState<{ [key: number]: PCComponent }>({})
   const [rawApiProducts, setRawApiProducts] = useState<ApiProduct[]>([])
   const [showPCSummary, setShowPCSummary] = useState(false)
+  // Preset builds roller
+  const [presetBuilds, setPresetBuilds] = useState<Array<{ id: number; name: string; totalPrice: number | null }>>([])
+  const [presetIdx, setPresetIdx] = useState<[number, number, number]>([0, 1, 2])
+  const [presetLoading, setPresetLoading] = useState(false)
+  const [presetError, setPresetError] = useState<string | null>(null)
+  const [presetOverlayVisible, setPresetOverlayVisible] = useState(false)
+  const [presetOverlayDismissed, setPresetOverlayDismissed] = useState(false)
+  const [presetApplying, setPresetApplying] = useState(false)
+
+  useEffect(() => {
+    let cancelled = false
+    async function loadPresets() {
+      try {
+        setPresetLoading(true)
+        setPresetError(null)
+        const base = (import.meta as any)?.env?.VITE_API_BASE_URL || 'https://exe201-ezbuildvn-be.onrender.com'
+        const res = await fetch(`${base}/api/build?userId=2`, {
+          method: 'GET',
+          headers: { 'Content-Type': 'application/json' }
+        })
+        if (!res.ok) throw new Error(`HTTP ${res.status}`)
+        const data = await res.json()
+        if (!cancelled) {
+          const list = Array.isArray(data) ? data : []
+          setPresetBuilds(list)
+          if (list.length >= 3) {
+            const set3 = new Set<number>()
+            while (set3.size < 3) set3.add(Math.floor(Math.random() * list.length))
+            setPresetIdx(Array.from(set3) as [number, number, number])
+          } else {
+            setPresetIdx([0, 1 % Math.max(1, list.length), 2 % Math.max(1, list.length)])
+          }
+        }
+      } catch (e: any) {
+        if (!cancelled) setPresetError(e?.message || 'Không tải được preset builds')
+      } finally {
+        if (!cancelled) setPresetLoading(false)
+      }
+    }
+    loadPresets()
+    return () => { cancelled = true }
+  }, [])
+
+  const rollPresetAt = useCallback((slot: number) => {
+    if (!presetBuilds.length) return
+    const used = new Set<number>(presetIdx)
+    let next = Math.floor(Math.random() * presetBuilds.length)
+    let guard = 0
+    while (used.has(next) && guard < 50) {
+      next = Math.floor(Math.random() * presetBuilds.length)
+      guard++
+    }
+    const arr = [...presetIdx] as [number, number, number]
+    arr[slot] = next
+    setPresetIdx(arr)
+  }, [presetBuilds, presetIdx])
+  useEffect(() => {
+    if (!presetOverlayDismissed && !presetLoading && presetBuilds.length > 0) {
+      setPresetOverlayVisible(true)
+    }
+  }, [presetOverlayDismissed, presetLoading, presetBuilds.length])
+
+  const closePresetOverlay = useCallback(() => {
+    setPresetOverlayVisible(false)
+    setPresetOverlayDismissed(true)
+  }, [])
+
+  const handleApplyPreset = useCallback(async (detail: PresetBuildDetail) => {
+    if (!detail?.items?.length) return
+    setPresetApplying(true)
+    try {
+      const itemComponents = await Promise.all(detail.items.map(async (item) => {
+        // Hỗ trợ cả 2 format: mới (flat) và cũ (nested)
+        let productId = 0
+        let categoryId = 0
+        let priceNum = 0
+        let productPriceId = 0
+        let baseProduct: Record<string, unknown> | undefined = undefined
+        
+        if (item.productPrice) {
+          // Format cũ (nested)
+          const productPrice = item.productPrice
+          baseProduct = productPrice.product as Record<string, unknown> | undefined
+          productId = Number(baseProduct?.id ?? 0)
+          productPriceId = Number(productPrice.id ?? 0)
+          priceNum = Number(productPrice.price ?? 0)
+          const catFromProduct = (baseProduct?.['category'] as { id?: number; name?: string } | undefined)
+          categoryId = Number(catFromProduct?.id ?? baseProduct?.['categoryId'] ?? baseProduct?.['category_id'] ?? 0)
+        } else {
+          // Format mới (flat) từ backend
+          productId = Number(item.product_id ?? 0)
+          categoryId = Number(item.category_id ?? 0)
+          priceNum = Number(item.price ?? 0)
+          productPriceId = Number(item.product_price_id ?? 0)
+        }
+        
+        // Nếu có productId, fetch chi tiết từ API
+        let productData: Record<string, unknown> | undefined = baseProduct
+        if (productId) {
+          try {
+            productData = await ApiService.getProductById(productId)
+          } catch (err) {
+            console.warn('Không lấy được chi tiết sản phẩm, dùng dữ liệu trong build detail', err)
+          }
+        }
+        
+        // Xác định categoryId nếu chưa có
+        if (!categoryId && productData) {
+          const catFromProduct = (productData?.['category'] as { id?: number; name?: string } | undefined)
+          categoryId = Number(
+            catFromProduct?.id ??
+            productData?.['categoryId'] ??
+            productData?.['category_id'] ??
+            item.category_id ??
+            0
+          )
+          if (!categoryId) {
+            const catNameRaw = String(
+              catFromProduct?.name ??
+              productData?.['categoryName'] ??
+              item.category_name ??
+              ''
+            ).toLowerCase()
+            const fallback = Object.entries(categoryMap).find(([, label]) => label.toLowerCase() === catNameRaw && catNameRaw !== '')
+            if (fallback) {
+              categoryId = Number(fallback[0])
+            }
+          }
+        }
+        
+        if (!categoryId) return null
+        
+        const component: PCComponent = {
+          id: productId || 0,
+          name: String(
+            productData?.['name'] ??
+            item.product_name ??
+            baseProduct?.['name'] ??
+            `Linh kiện #${productPriceId || item.id}`
+          ),
+          brand: String(productData?.['brand'] ?? baseProduct?.['brand'] ?? ''),
+          model: String(productData?.['model'] ?? baseProduct?.['model'] ?? ''),
+          specs: String(productData?.['specs'] ?? baseProduct?.['specs'] ?? ''),
+          image: String(productData?.['imageUrl1'] ?? baseProduct?.['imageUrl1'] ?? ''),
+          price: priceNum > 0 ? `${priceNum.toLocaleString('vi-VN')} VND` : 'Liên hệ',
+          category: String(
+            productData?.['category']?.['name'] ??
+            (productData?.['category'] as { name?: string } | undefined)?.name ??
+            item.category_name ??
+            categoryMap[categoryId] ??
+            ''
+          ),
+          categoryId,
+          productPrices: [{
+            id: productPriceId || item.id,
+            supplier: {
+              id: 0,
+              name: 'Nhà cung cấp',
+              website: ''
+            },
+            price: priceNum,
+            supplierLink: '',
+            updatedAt: new Date().toISOString()
+          }],
+          selectedSupplier: {
+            id: productPriceId || item.id,
+            supplier: {
+              id: 0,
+              name: 'Nhà cung cấp',
+              website: ''
+            },
+            price: priceNum,
+            supplierLink: '',
+            updatedAt: new Date().toISOString()
+          }
+        }
+        return { categoryId, component }
+      }))
+
+      const validComponents = itemComponents.filter(Boolean) as Array<{ categoryId: number; component: PCComponent }>
+      if (!validComponents.length) {
+        throw new Error('Không tìm thấy linh kiện hợp lệ trong build này')
+      }
+
+      setBuildComponents(prev => {
+        const next = [...prev]
+        validComponents.forEach(({ categoryId, component }) => {
+          const idx = next.findIndex(b => b.categoryId === categoryId)
+          if (idx >= 0) {
+            next[idx] = { ...next[idx], component }
+          }
+        })
+        return next
+      })
+
+      setProductDetails(prev => {
+        const next = { ...prev }
+        validComponents.forEach(({ component }) => {
+          if (component?.id) {
+            next[component.id] = component
+          }
+        })
+        return next
+      })
+
+      setSelectedCategory(null)
+      setPresetOverlayVisible(false)
+      setPresetOverlayDismissed(true)
+      alert('Đã áp dụng build sẵn thành công!')
+    } catch (error) {
+      console.error('Lỗi áp dụng build sẵn:', error)
+      alert('Không thể áp dụng build. Vui lòng thử lại!')
+    } finally {
+      setPresetApplying(false)
+    }
+  }, [])
   // Helper: build payload and save to database
   const handleSaveBuild = useCallback(async () => {
     const currentUser = ApiService.getCurrentUser()
@@ -163,6 +477,9 @@ function PCBuilderPage() {
       alert('Bạn cần chọn đủ 8 linh kiện bắt buộc trước khi lưu build')
       return
     }
+
+    setSavingBuild(true)
+    setCompatibilityResult(null)
 
     try {
       const name = prompt('Đặt tên cho build của bạn', 'My PC Build') || 'My PC Build'
@@ -186,20 +503,196 @@ function PCBuilderPage() {
         }
       }
 
-      await ApiService.createBuild({
+      // Lưu build
+      const buildResult = await ApiService.createBuild({
         userId: String(currentUser?.id || currentUser?.userId || ''),
         name,
         totalPrice: computedTotalPrice,
         items
       })
 
-      alert('Đã lưu build thành công!')
-      navigate('/builds')
+      const buildId = buildResult?.id || buildResult?.buildId
+      if (!buildId) {
+        throw new Error('Không lấy được buildId từ response')
+      }
+
+      // Kiểm tra compatibility
+      try {
+        const token = localStorage.getItem('authToken')
+        const compatibilityResponse = await fetch(`${import.meta.env?.VITE_API_BASE_URL || 'https://exe201-ezbuildvn-be.onrender.com'}/api/build/${buildId}/compatibility`, {
+          method: 'GET',
+          headers: {
+            'Accept': '*/*',
+            ...(token ? { 'Authorization': `Bearer ${token}` } : {})
+          }
+        })
+
+        if (compatibilityResponse.ok) {
+          const compatibilityData = await compatibilityResponse.json()
+          setCompatibilityResult(compatibilityData)
+          setShowCompatibilityModal(true)
+        } else {
+          console.error('Compatibility check failed:', compatibilityResponse.status)
+          alert('Đã lưu build thành công!')
+          navigate('/builds')
+        }
+      } catch (compatError) {
+        console.error('Compatibility check error:', compatError)
+        alert('Đã lưu build thành công!')
+        navigate('/builds')
+      }
     } catch (e) {
       console.error('Save build error:', e)
       alert('Không thể lưu build. Vui lòng thử lại!')
+    } finally {
+      setSavingBuild(false)
     }
   }, [buildComponents, navigate])
+
+  // Format detailed products function (moved before handleReplaceComponent)
+  const formatDetailedProducts = useCallback((categoryProducts: ApiProduct[], categoryId: number): PCComponent[] => {
+    return (categoryProducts as ApiProduct[]).map((item) => {
+      // Lấy giá từ productPrices (tính min-max range)
+      const productPrices = item.productPrices as Array<{
+        id: number
+        supplier: {
+          id: number
+          name: string
+          website: string
+        }
+        price: number
+        supplierLink: string
+        updatedAt: string
+      }> || []
+      
+      let priceStr = 'Liên hệ'
+      if (productPrices.length > 0) {
+        const prices = productPrices.map(pp => pp.price).sort((a, b) => a - b)
+        const minPrice = prices[0]
+        const maxPrice = prices[prices.length - 1]
+        if (minPrice === maxPrice) {
+          priceStr = `${minPrice.toLocaleString('vi-VN')} VND`
+        } else {
+          priceStr = `${minPrice.toLocaleString('vi-VN')} - ${maxPrice.toLocaleString('vi-VN')} VND`
+        }
+      }
+      
+      return {
+        id: Number(item.id) || 0,
+        name: String(item.name) || 'Unknown Product',
+        brand: String(item.brand) || 'Unknown',
+        model: String(item.model) || 'Unknown',
+        specs: String(item.specs) || 'No specifications available',
+        image: String(item.imageUrl1) || 'https://images.unsplash.com/photo-1591799264318-7e6ef8ddb7ea?w=300&h=200&fit=crop',
+        price: priceStr,
+        category: categoryMap[categoryId] || 'Unknown',
+        categoryId: categoryId,
+        hasSupplier: productPrices.length > 0,
+        productPrices: productPrices.map(pp => ({
+          id: pp.id || 0,
+          supplier: {
+            id: pp.supplier?.id || 0,
+            name: pp.supplier?.name || 'Unknown Supplier',
+            website: pp.supplier?.website || ''
+          },
+          price: pp.price || 0,
+          supplierLink: pp.supplierLink || '',
+          updatedAt: pp.updatedAt || ''
+        })),
+        // Additional product info
+        capacity: item.capacity,
+        color: item.color,
+        size: item.size,
+        socket: item.socket,
+        tdpWatt: item.tdpWatt,
+        type: item.type,
+        createdAt: item.createdAt
+      }
+    })
+  }, [])
+
+  // Handle replace component from compatibility suggestions
+  const handleReplaceComponent = useCallback(async (category: string, alternative: SuggestionAlternative) => {
+    try {
+      setSavingBuild(true)
+      
+      // Find category ID from category name
+      const categoryMapReverse: { [key: string]: number } = {
+        'CPU': 1,
+        'GPU / VGA': 2,
+        'GPU': 2,
+        'Mainboard': 3,
+        'RAM': 4,
+        'Storage': 5,
+        'PSU': 6,
+        'Case': 7,
+        'Cooling': 8
+      }
+      
+      const categoryId = categoryMapReverse[category] || categoryMapReverse[category.split(' ')[0]]
+      if (!categoryId) {
+        alert('Không tìm thấy category phù hợp')
+        return
+      }
+
+      // Fetch product details from API
+      const productResponse = await fetch(`${import.meta.env?.VITE_API_BASE_URL || 'https://exe201-ezbuildvn-be.onrender.com'}/api/product/${alternative.productId}`, {
+        method: 'GET',
+        headers: {
+          'Accept': '*/*'
+        }
+      })
+
+      if (!productResponse.ok) {
+        throw new Error('Không thể lấy thông tin sản phẩm')
+      }
+
+      const apiProduct: ApiProduct = await productResponse.json()
+      
+      // Format product to PCComponent
+      const formattedProducts = formatDetailedProducts([apiProduct], categoryId)
+      if (formattedProducts.length === 0) {
+        throw new Error('Không thể format sản phẩm')
+      }
+
+      const newComponent = formattedProducts[0]
+      
+      // Auto-select first supplier if available
+      if (newComponent.productPrices && newComponent.productPrices.length > 0) {
+        const firstPrice = newComponent.productPrices[0]
+        newComponent.selectedSupplier = firstPrice
+        newComponent.price = `${firstPrice.price.toLocaleString('vi-VN')} VND`
+      } else {
+        newComponent.price = alternative.price ? `${alternative.price.toLocaleString('vi-VN')} VND` : 'Liên hệ'
+      }
+      
+      // Update build components
+      setBuildComponents(prev => prev.map(buildComp => 
+        buildComp.categoryId === categoryId 
+          ? { ...buildComp, component: newComponent }
+          : buildComp
+      ))
+
+      // Update product details cache
+      setProductDetails(prev => ({
+        ...prev,
+        [newComponent.id]: newComponent
+      }))
+
+      // Close compatibility modal
+      setShowCompatibilityModal(false)
+      setCompatibilityResult(null)
+      
+      // Show success message
+      alert(`Đã thay thế ${category} thành ${alternative.name} thành công!`)
+      
+    } catch (error) {
+      console.error('Error replacing component:', error)
+      alert('Không thể thay thế linh kiện. Vui lòng thử lại!')
+    } finally {
+      setSavingBuild(false)
+    }
+  }, [formatDetailedProducts])
   
   // Joyride tour states - Enhanced
   const [runTour, setRunTour] = useState(false)
@@ -221,8 +714,8 @@ function PCBuilderPage() {
   // Component order for sequential tour (left to right, top to bottom)
   const componentOrder = useMemo(() => [
     { id: 1, name: 'CPU', icon: '🖥️', group: 'required-top', position: 1 },
-    { id: 4, name: 'Mainboard', icon: '🔧', group: 'required-top', position: 2 },
-    { id: 3, name: 'RAM', icon: '💾', group: 'required-top', position: 3 },
+    { id: 3, name: 'Mainboard', icon: '🔧', group: 'required-top', position: 2 },
+    { id: 4, name: 'RAM', icon: '💾', group: 'required-top', position: 3 },
     { id: 2, name: 'GPU', icon: '🎮', group: 'required-top', position: 4 },
     { id: 5, name: 'Storage', icon: '💿', group: 'required-bottom', position: 5 },
     { id: 6, name: 'PSU', icon: '⚡', group: 'required-bottom', position: 6 },
@@ -237,8 +730,8 @@ function PCBuilderPage() {
 
     const componentInfo = {
       1: { title: 'CPU - Bộ xử lý', desc: 'Bộ não của PC, quyết định hiệu suất tổng thể', tips: ['Chọn socket phù hợp với mainboard', 'Xem xét TDP và khả năng tản nhiệt', 'Cân nhắc số core và thread cho nhu cầu sử dụng'] },
-      4: { title: 'Mainboard - Bo mạch chủ', desc: 'Kết nối tất cả linh kiện với nhau', tips: ['Tương thích socket với CPU', 'Hỗ trợ RAM type và tốc độ', 'Đủ slot PCIe cho GPU và storage'] },
-      3: { title: 'RAM - Bộ nhớ', desc: 'Lưu trữ dữ liệu tạm thời, tăng tốc độ xử lý', tips: ['Dung lượng 16GB+ cho gaming', 'Tốc độ DDR4/DDR5 phù hợp', 'Chọn 2 thanh cho dual channel'] },
+      3: { title: 'Mainboard - Bo mạch chủ', desc: 'Kết nối tất cả linh kiện với nhau', tips: ['Tương thích socket với CPU', 'Hỗ trợ RAM type và tốc độ', 'Đủ slot PCIe cho GPU và storage'] },
+      4: { title: 'RAM - Bộ nhớ', desc: 'Lưu trữ dữ liệu tạm thời, tăng tốc độ xử lý', tips: ['Dung lượng 16GB+ cho gaming', 'Tốc độ DDR4/DDR5 phù hợp', 'Chọn 2 thanh cho dual channel'] },
       2: { title: 'GPU - Card đồ họa', desc: 'Xử lý hình ảnh và video, quan trọng cho gaming', tips: ['Phù hợp với nhu cầu gaming/editing', 'Tương thích với PSU wattage', 'Kiểm tra kích thước case'] },
       5: { title: 'Storage - Ổ lưu trữ', desc: 'Lưu trữ hệ điều hành và dữ liệu', tips: ['SSD NVMe cho tốc độ cao', 'Dung lượng 500GB+ cho hệ thống', 'Cân nhắc thêm HDD cho dữ liệu'] },
       6: { title: 'PSU - Nguồn điện', desc: 'Cung cấp điện cho toàn bộ hệ thống', tips: ['Công suất đủ cho tất cả linh kiện', 'Chọn 80+ Gold/Bronze', 'Modular để dễ quản lý dây'] },
@@ -314,12 +807,61 @@ function PCBuilderPage() {
     ]
   }, [componentOrder])
 
+  // Helper function to translate color to Vietnamese
+  const translateColor = (color: string | undefined): string => {
+    if (!color) return ''
+    const colorLower = color.toLowerCase().trim()
+    const colorMap: { [key: string]: string } = {
+      'black': 'Đen',
+      'white': 'Trắng',
+      'red': 'Đỏ',
+      'blue': 'Xanh dương',
+      'green': 'Xanh lá',
+      'yellow': 'Vàng',
+      'orange': 'Cam',
+      'purple': 'Tím',
+      'pink': 'Hồng',
+      'brown': 'Nâu',
+      'silver': 'Bạc',
+      'gold': 'Vàng',
+      'gray': 'Xám',
+      'grey': 'Xám',
+      'cyan': 'Xanh lơ',
+      'magenta': 'Đỏ tươi',
+      'beige': 'Be',
+      'navy': 'Xanh navy',
+      'maroon': 'Đỏ đậm',
+      'olive': 'Xanh ô liu',
+      'lime': 'Xanh lá chanh',
+      'aqua': 'Xanh nước biển',
+      'teal': 'Xanh ngọc',
+      'indigo': 'Chàm',
+      'violet': 'Tím hoa cà',
+      'crimson': 'Đỏ thẫm',
+      'coral': 'San hô',
+      'salmon': 'Cá hồi',
+      'turquoise': 'Ngọc lam',
+      'khaki': 'Kaki',
+      'tan': 'Nâu vàng',
+      'ivory': 'Ngà',
+      'cream': 'Kem',
+      'charcoal': 'Than',
+      'slate': 'Xám xanh',
+      'burgundy': 'Đỏ rượu vang',
+      'amber': 'Hổ phách',
+      'bronze': 'Đồng',
+      'copper': 'Đồng đỏ',
+      'platinum': 'Bạch kim'
+    }
+    return colorMap[colorLower] || color
+  }
+
   // Helper function to get component colors
   const getComponentColor = (componentId: number, darker: boolean = false) => {
     const colors = {
       1: darker ? '#1d4ed8' : '#3b82f6', // CPU - Blue
-      4: darker ? '#059669' : '#10b981', // Mainboard - Green  
-      3: darker ? '#7c2d12' : '#f59e0b', // RAM - Orange
+      3: darker ? '#059669' : '#10b981', // Mainboard - Green  
+      4: darker ? '#7c2d12' : '#f59e0b', // RAM - Orange
       2: darker ? '#be185d' : '#ec4899', // GPU - Pink
       5: darker ? '#c2410c' : '#f97316', // Storage - Orange
       6: darker ? '#b91c1c' : '#ef4444', // PSU - Red
@@ -331,15 +873,20 @@ function PCBuilderPage() {
 
   // Auto-start tour for first-time users
   useEffect(() => {
+    let compatibilityTimeoutId: ReturnType<typeof setTimeout> | null = null
+    let tourTimer: ReturnType<typeof setTimeout> | null = null
+    
     // Apply build from Customer builds if exists
     try {
       const raw = localStorage.getItem('ezbuild-selected-build')
       if (raw) {
-        const parsed = JSON.parse(raw) as { id?: number; name?: string; items?: Array<{ productPriceId?: number; quantity?: number; productName?: string; category_id?: number; product_id?: number; price?: number }> }
+        const parsed = JSON.parse(raw) as { id?: number; name?: string; checkCompatibility?: boolean; items?: Array<{ productPriceId?: number; quantity?: number; productName?: string; category_id?: number; product_id?: number; price?: number }> }
         console.log('Applying saved build:', parsed)
 
         if (parsed.items && parsed.items.length) {
           // Fetch product details for each item to build full PCComponent
+          const buildId = parsed.id
+          const shouldCheckCompatibility = parsed.checkCompatibility
           ;(async () => {
             const itemComponents = await Promise.all(
               parsed.items!.map(async (it) => {
@@ -383,6 +930,38 @@ function PCBuilderPage() {
               })
               return next
             })
+            
+            // If checkCompatibility flag is set, automatically check compatibility after loading build
+            if (shouldCheckCompatibility && buildId) {
+              // Wait a bit for components to be set, then check compatibility
+              compatibilityTimeoutId = setTimeout(async () => {
+                try {
+                  setSavingBuild(true)
+                  const token = localStorage.getItem('authToken')
+                  const compatibilityResponse = await fetch(`${import.meta.env?.VITE_API_BASE_URL || 'https://exe201-ezbuildvn-be.onrender.com'}/api/build/${buildId}/compatibility`, {
+                    method: 'GET',
+                    headers: {
+                      'Accept': '*/*',
+                      ...(token ? { 'Authorization': `Bearer ${token}` } : {})
+                    }
+                  })
+
+                  if (compatibilityResponse.ok) {
+                    const compatibilityData = await compatibilityResponse.json()
+                    setCompatibilityResult(compatibilityData)
+                    setShowCompatibilityModal(true)
+                  } else {
+                    console.error('Compatibility check failed:', compatibilityResponse.status)
+                    alert('Không thể kiểm tra tương thích. Vui lòng thử lại!')
+                  }
+                } catch (compatError) {
+                  console.error('Compatibility check error:', compatError)
+                  alert('Không thể kiểm tra tương thích. Vui lòng thử lại!')
+                } finally {
+                  setSavingBuild(false)
+                }
+              }, 1500) // Wait 1.5 seconds for components to be loaded
+            }
           })()
         }
         localStorage.removeItem('ezbuild-selected-build')
@@ -396,16 +975,24 @@ function PCBuilderPage() {
     
     if (isFirstVisit) {
       // Delay tour start to allow page to fully load
-      const timer = setTimeout(() => {
+      tourTimer = setTimeout(() => {
         setTourMode('auto')
         setRunTour(true)
         setShowTourWelcome(true)
       }, 1500)
-      
-      return () => clearTimeout(timer)
     } else {
       setHasSeenTour(true)
       setShowTourWelcome(false)
+    }
+    
+    // Cleanup function
+    return () => {
+      if (compatibilityTimeoutId) {
+        clearTimeout(compatibilityTimeoutId)
+      }
+      if (tourTimer) {
+        clearTimeout(tourTimer)
+      }
     }
   }, [])
 
@@ -459,7 +1046,7 @@ function PCBuilderPage() {
       }
 
       // Mainboard specs
-      if (categoryId === 4) {
+      if (categoryId === 3) {
         specs.mainboardSocket = component.socket || ''
         specs.mainboardSize = component.size || ''
         // Extract RAM type from specs (DDR4/DDR5)
@@ -470,7 +1057,7 @@ function PCBuilderPage() {
       }
 
       // RAM specs
-      if (categoryId === 3) {
+      if (categoryId === 4) {
         const ramCapacity = parseInt(component.capacity?.replace(/[^\d]/g, '') || '0')
         specs.totalRAM += ramCapacity
         specs.ramType = component.type || 'DDR4'
@@ -1299,58 +1886,6 @@ function PCBuilderPage() {
   }
 
   // Helper function to format detailed product info (with prices)
-  const formatDetailedProducts = (categoryProducts: ApiProduct[], categoryId: number): PCComponent[] => {
-    return (categoryProducts as ApiProduct[]).map((item) => {
-              // Lấy giá từ productPrices (tính min-max range)
-              const productPrices = item.productPrices as Array<{
-                id: number
-                supplier: {
-                  id: number
-                  name: string
-                  website: string
-                }
-                price: number
-                supplierLink: string
-                updatedAt: string
-              }> || []
-              
-              // Tính min-max price range
-              let priceRange = 'Liên hệ'
-              const hasSupplier = productPrices.length > 0
-
-              return {
-                id: Number(item.id) || 0,
-                name: String(item.name) || 'Unknown Product',
-                brand: String(item.brand) || 'Unknown',
-                model: String(item.model) || 'Unknown',
-                specs: String(item.specs) || 'No specifications available',
-        image: String(item.imageUrl1) || 'https://images.unsplash.com/photo-1591799264318-7e6ef8ddb7ea?w=300&h=200&fit=crop',
-                price: priceRange,
-                category: categoryMap[categoryId] || 'Unknown',
-                categoryId: categoryId,
-                hasSupplier: hasSupplier,
-        // Additional product info
-        capacity: item.capacity,
-        color: item.color,
-        size: item.size,
-        socket: item.socket,
-        tdpWatt: item.tdpWatt,
-        type: item.type,
-        createdAt: item.createdAt,
-                productPrices: productPrices.map(pp => ({
-                  id: pp.id || 0,
-                  supplier: {
-                    id: pp.supplier?.id || 0,
-                    name: pp.supplier?.name || 'Unknown Supplier',
-                    website: pp.supplier?.website || ''
-                  },
-                  price: pp.price || 0,
-                  supplierLink: pp.supplierLink || '',
-                  updatedAt: pp.updatedAt || ''
-                }))
-              }
-            })
-  }
 
   // Load all products in one API call
   useEffect(() => {
@@ -1472,6 +2007,9 @@ function PCBuilderPage() {
         size?: string
         color?: string
         type?: string
+        brand?: string
+        model?: string
+        image?: string
       }>
     }
 
@@ -1490,7 +2028,10 @@ function PCBuilderPage() {
           socket: comp.socket,
           size: comp.size,
           color: comp.color,
-          type: comp.type
+          type: comp.type,
+          brand: comp.brand,
+          model: comp.model,
+          image: comp.image
         })
 
         // Calculate totals
@@ -1498,16 +2039,44 @@ function PCBuilderPage() {
           specs.totalTDP += comp.tdpWatt
         }
         
-        if (comp.capacity && (category.includes('RAM') || category.includes('Storage'))) {
-          const capacityMatch = comp.capacity.match(/(\d+)/)
-          if (capacityMatch) {
-            const capacity = parseInt(capacityMatch[1])
-            if (comp.capacity.includes('GB')) {
-              specs.totalRAM += capacity
-            } else if (comp.capacity.includes('TB')) {
-              specs.totalStorage += capacity * 1024 // Convert TB to GB
+        // Calculate RAM (only for RAM category)
+        if (category.includes('RAM') && comp.capacity) {
+          const capacityStr = comp.capacity.toString()
+          // Extract number from capacity string
+          const numMatch = capacityStr.match(/(\d+)/)
+          if (numMatch) {
+            const num = parseInt(numMatch[1])
+            // Check if it's TB, GB, MB, etc.
+            if (capacityStr.toLowerCase().includes('tb')) {
+              specs.totalRAM += num * 1024 // Convert TB to GB
+            } else if (capacityStr.toLowerCase().includes('gb')) {
+              specs.totalRAM += num
+            } else if (capacityStr.toLowerCase().includes('mb')) {
+              specs.totalRAM += num / 1024 // Convert MB to GB
             } else {
-              specs.totalStorage += capacity
+              // If no unit, assume GB for RAM
+              specs.totalRAM += num
+            }
+          }
+        }
+        
+        // Calculate Storage (only for Storage category)
+        if (category.includes('Storage') && comp.capacity) {
+          const capacityStr = comp.capacity.toString()
+          // Extract number from capacity string
+          const numMatch = capacityStr.match(/(\d+)/)
+          if (numMatch) {
+            const num = parseInt(numMatch[1])
+            // Check if it's TB, GB, MB, etc.
+            if (capacityStr.toLowerCase().includes('tb')) {
+              specs.totalStorage += num * 1024 // Convert TB to GB
+            } else if (capacityStr.toLowerCase().includes('gb')) {
+              specs.totalStorage += num
+            } else if (capacityStr.toLowerCase().includes('mb')) {
+              specs.totalStorage += num / 1024 // Convert MB to GB
+            } else {
+              // If no unit, assume GB for Storage
+              specs.totalStorage += num
             }
           }
         }
@@ -1569,6 +2138,76 @@ function PCBuilderPage() {
 
   return (
     <div className="page homepage-container">
+      {presetOverlayVisible && (
+        <div style={{
+          position: 'fixed',
+          inset: 0,
+          background: 'rgba(13, 10, 22, 0.85)',
+          zIndex: 1800,
+          display: 'flex',
+          alignItems: 'center',
+          justifyContent: 'center',
+          padding: '24px',
+          boxSizing: 'border-box'
+        }}>
+          <button
+            onClick={closePresetOverlay}
+            disabled={presetApplying}
+            style={{
+              position: 'absolute',
+              top: '24px',
+              right: '24px',
+              background: 'transparent',
+              border: '1px solid rgba(255,255,255,0.25)',
+              borderRadius: '999px',
+              color: '#f3f4f6',
+              fontSize: '14px',
+              padding: '8px 16px',
+              cursor: presetApplying ? 'not-allowed' : 'pointer',
+              opacity: presetApplying ? 0.5 : 0.85
+            }}
+            title="Bỏ qua"
+          >
+            Bỏ qua
+          </button>
+
+          <div style={{
+            width: '100%',
+            maxWidth: '1100px',
+            color: 'white'
+          }}>
+            {presetLoading && <div style={{ opacity: 0.8, marginBottom: '16px' }}>Đang tải gợi ý...</div>}
+            {presetError && (
+              <div style={{ color: '#fca5a5', marginBottom: '16px' }}>
+                Lỗi tải build sẵn: {presetError}
+              </div>
+            )}
+
+            {!presetLoading && !presetError && presetBuilds.length > 0 && (
+              <div style={{
+                display: 'grid',
+                gap: '16px',
+                gridTemplateColumns: 'repeat(auto-fit, minmax(260px, 1fr))'
+              }}>
+                {[0, 1, 2].map((slot) => {
+                  if (!presetBuilds.length) return null
+                  const targetIndex = presetBuilds.length === 0 ? 0 : (presetIdx[slot] ?? 0) % presetBuilds.length
+                  return (
+                    <BuildRollerCard
+                      key={slot}
+                      allBuilds={presetBuilds}
+                      currentIndex={targetIndex}
+                      onRoll={() => rollPresetAt(slot)}
+                      onApply={handleApplyPreset}
+                      disableApply={presetApplying}
+                    />
+                  )
+                })}
+              </div>
+            )}
+          </div>
+        </div>
+      )}
       <div className="layout">
         <main className="main">
           <section className="hero">
@@ -1616,7 +2255,10 @@ function PCBuilderPage() {
                 </button>
                 
                 <button
-                  onClick={() => setSelectedCategory(1)} // Auto-select CPU
+                  onClick={() => {
+                    setPresetOverlayDismissed(false)
+                    setPresetOverlayVisible(true)
+                  }}
                   style={{
                     background: 'linear-gradient(135deg, #10b981, #059669)',
                     color: 'white',
@@ -1641,7 +2283,7 @@ function PCBuilderPage() {
                   }}
                 >
                   <span>🖥️</span>
-                  Chọn CPU ngay
+                  Chọn Máy Tính ngay
                 </button>
               </div>
             </div>
@@ -2133,7 +2775,7 @@ function PCBuilderPage() {
                                   )}
                                   
                                   {/* RAM specific */}
-                                  {product.categoryId === 3 && product.capacity && (
+                                  {product.categoryId === 4 && product.capacity && (
                                     <span style={{
                                       background: 'rgba(168, 85, 247, 0.2)',
                                       color: '#a855f7',
@@ -2184,14 +2826,7 @@ function PCBuilderPage() {
                                       borderRadius: '3px',
                                       fontWeight: '500'
                                     }}>
-                                      {product.color === 'Black' ? 'Đen' : 
-                                       product.color === 'White' ? 'Trắng' :
-                                       product.color === 'Red' ? 'Đỏ' :
-                                       product.color === 'Blue' ? 'Xanh dương' :
-                                       product.color === 'Green' ? 'Xanh lá' :
-                                       product.color === 'Silver' ? 'Bạc' :
-                                       product.color === 'Gray' ? 'Xám' :
-                                       product.color}
+                                      {translateColor(product.color)}
                                     </span>
                                   )}
                                 </div>
@@ -2331,7 +2966,7 @@ function PCBuilderPage() {
                                 keyRecommendation = 'CPU hiệu suất cao - cần cooling mạnh'
                               }
                               // RAM recommendations
-                              else if (categoryId === 3) {
+                              else if (categoryId === 4) {
                                 const ramCapacity = parseInt(component.capacity?.replace(/[^\d]/g, '') || '0')
                                 if (ramCapacity < 16) {
                                   keyRecommendation = 'RAM 16GB+ khuyến nghị cho gaming'
@@ -2617,8 +3252,9 @@ function PCBuilderPage() {
                     e.currentTarget.style.background = '#1e3a8a'
                   }}
                   onClick={handleSaveBuild}
+                  disabled={savingBuild}
                 >
-                        💾 Lưu Build
+                  {savingBuild ? '⏳ Đang lưu và kiểm tra...' : '💾 Lưu Build'}
                 </button>
                     </>
                   )}
@@ -2645,169 +3281,488 @@ function PCBuilderPage() {
           padding: '20px'
         }}>
           <div style={{
-            backgroundColor: '#1f2937',
-            border: '1px solid rgba(255, 255, 255, 0.2)',
-            borderRadius: '12px',
-            maxWidth: '600px',
+            background: 'linear-gradient(135deg, #1e293b 0%, #0f172a 100%)',
+            border: '1px solid rgba(255, 255, 255, 0.1)',
+            borderRadius: '16px',
+            maxWidth: '700px',
             width: '100%',
-            maxHeight: '80vh',
+            maxHeight: '85vh',
             overflowY: 'auto',
-            padding: '24px'
+            padding: '0',
+            boxShadow: '0 20px 60px rgba(0, 0, 0, 0.5), 0 0 0 1px rgba(255, 255, 255, 0.05)',
+            position: 'relative'
           }}>
+            {/* Header with gradient */}
             <div style={{
+              background: 'linear-gradient(135deg, rgba(59, 130, 246, 0.1) 0%, rgba(147, 51, 234, 0.1) 100%)',
+              padding: '24px 28px',
+              borderBottom: '1px solid rgba(255, 255, 255, 0.1)',
               display: 'flex',
               justifyContent: 'space-between',
               alignItems: 'flex-start',
-              marginBottom: '24px'
+              position: 'sticky',
+              top: 0,
+              zIndex: 10,
+              backdropFilter: 'blur(10px)'
             }}>
-              <div>
-                <h2 style={{ color: 'white', fontSize: '24px', fontWeight: 'bold', margin: '0 0 8px 0' }}>
+              <div style={{ flex: 1, paddingRight: '20px' }}>
+                <h2 style={{ 
+                  color: 'white', 
+                  fontSize: '26px', 
+                  fontWeight: '700', 
+                  margin: '0 0 6px 0',
+                  lineHeight: '1.3',
+                  letterSpacing: '-0.5px'
+                }}>
                   {selectedComponent.name}
                 </h2>
-                <p style={{ color: 'rgba(255, 255, 255, 0.7)', fontSize: '16px', margin: 0 }}>
+                <p style={{ 
+                  color: 'rgba(255, 255, 255, 0.7)', 
+                  fontSize: '15px', 
+                  margin: '0 0 8px 0',
+                  fontWeight: '400'
+                }}>
                   {selectedComponent.brand}{selectedComponent.model && selectedComponent.model !== 'Unknown' ? ` - ${selectedComponent.model}` : ''}
                 </p>
-                <p style={{ color: '#60a5fa', fontSize: '20px', fontWeight: 'bold', margin: '8px 0 0 0' }}>
+                <p style={{ 
+                  color: '#60a5fa', 
+                  fontSize: '22px', 
+                  fontWeight: '700', 
+                  margin: '0',
+                  textShadow: '0 0 10px rgba(96, 165, 250, 0.3)'
+                }}>
                   {selectedComponent.price}
                 </p>
               </div>
               <button
                 onClick={handleComponentPopupClose}
                 style={{
-                  background: 'none',
+                  background: 'rgba(255, 255, 255, 0.1)',
                   border: 'none',
-                  color: 'rgba(255, 255, 255, 0.6)',
-                  fontSize: '24px',
+                  color: 'rgba(255, 255, 255, 0.8)',
+                  fontSize: '28px',
                   cursor: 'pointer',
-                  padding: '4px'
+                  padding: '8px 12px',
+                  borderRadius: '8px',
+                  transition: 'all 0.2s',
+                  lineHeight: '1',
+                  width: '40px',
+                  height: '40px',
+                  display: 'flex',
+                  alignItems: 'center',
+                  justifyContent: 'center'
+                }}
+                onMouseEnter={(e) => {
+                  e.currentTarget.style.background = 'rgba(255, 255, 255, 0.2)'
+                  e.currentTarget.style.color = 'white'
+                }}
+                onMouseLeave={(e) => {
+                  e.currentTarget.style.background = 'rgba(255, 255, 255, 0.1)'
+                  e.currentTarget.style.color = 'rgba(255, 255, 255, 0.8)'
                 }}
               >
                 ×
               </button>
             </div>
 
+            {/* Content */}
+            <div style={{ padding: '28px' }}>
+
+            {/* Image - Display first if available */}
+            {selectedComponent.image && selectedComponent.image !== 'https://images.unsplash.com/photo-1591799264318-7e6ef8ddb7ea?w=300&h=200&fit=crop' && (
+              <div style={{ 
+                marginBottom: '28px',
+                borderRadius: '12px',
+                overflow: 'hidden',
+                background: 'rgba(255, 255, 255, 0.03)',
+                border: '1px solid rgba(255, 255, 255, 0.08)'
+              }}>
+                <img 
+                  src={selectedComponent.image} 
+                  alt={selectedComponent.name}
+                  style={{
+                    width: '100%',
+                    height: 'auto',
+                    display: 'block',
+                    cursor: 'pointer',
+                    objectFit: 'contain',
+                    transition: 'transform 0.3s ease'
+                  }}
+                  onClick={() => window.open(selectedComponent.image, '_blank')}
+                  onMouseEnter={(e) => {
+                    e.currentTarget.style.transform = 'scale(1.02)'
+                  }}
+                  onMouseLeave={(e) => {
+                    e.currentTarget.style.transform = 'scale(1)'
+                  }}
+                  onError={(e) => {
+                    (e.target as HTMLImageElement).style.display = 'none'
+                  }}
+                />
+              </div>
+            )}
+
             {/* Specifications */}
-            <div style={{ marginTop: '24px' }}>
-              <h3 style={{ color: 'white', fontSize: '18px', fontWeight: '600', margin: '0 0 16px 0' }}>
+            <div style={{ marginBottom: '28px' }}>
+              <h3 style={{ 
+                color: 'white', 
+                fontSize: '20px', 
+                fontWeight: '700', 
+                margin: '0 0 20px 0',
+                letterSpacing: '-0.3px'
+              }}>
                 Thông số kỹ thuật
               </h3>
               <div style={{
-                backgroundColor: 'rgba(255, 255, 255, 0.05)',
-                borderRadius: '8px',
-                padding: '16px',
-                border: '1px solid rgba(255, 255, 255, 0.1)'
+                background: 'rgba(255, 255, 255, 0.03)',
+                borderRadius: '12px',
+                padding: '20px',
+                border: '1px solid rgba(255, 255, 255, 0.08)',
+                backdropFilter: 'blur(10px)'
               }}>
-                <div style={{ display: 'flex', flexDirection: 'column', gap: '8px' }}>
-                  {/* Category-specific specifications - moved to top */}
-                  {selectedComponent.categoryId === 1 && ( // CPU
-                    <>
-                      {selectedComponent.socket && (
-                        <div style={{ 
-                          color: 'rgba(255, 255, 255, 0.8)', 
-                          fontSize: '14px', 
-                          lineHeight: '1.6' 
-                        }}>
-                          <strong>Socket:</strong> {selectedComponent.socket}
-                        </div>
-                      )}
-                      {selectedComponent.tdpWatt && (
-                        <div style={{ 
-                          color: 'rgba(255, 255, 255, 0.8)', 
-                          fontSize: '14px', 
-                          lineHeight: '1.6' 
-                        }}>
-                          <strong>Công suất tiêu thụ:</strong> {selectedComponent.tdpWatt}W
-                        </div>
-                      )}
-                    </>
-                  )}
-                  
-                  {selectedComponent.categoryId === 3 && selectedComponent.capacity && ( // RAM
+                <div style={{ 
+                  display: 'grid', 
+                  gridTemplateColumns: 'repeat(auto-fit, minmax(250px, 1fr))',
+                  gap: '12px'
+                }}>
+                  {/* Category */}
+                  {selectedComponent.category && (
                     <div style={{ 
-                      color: 'rgba(255, 255, 255, 0.8)', 
-                      fontSize: '14px', 
-                      lineHeight: '1.6' 
+                      padding: '12px',
+                      background: 'rgba(255, 255, 255, 0.03)',
+                      borderRadius: '8px',
+                      border: '1px solid rgba(255, 255, 255, 0.05)'
                     }}>
-                      <strong>Dung lượng:</strong> {selectedComponent.capacity}
+                      <div style={{ 
+                        color: 'rgba(255, 255, 255, 0.5)', 
+                        fontSize: '12px', 
+                        fontWeight: '600',
+                        textTransform: 'uppercase',
+                        letterSpacing: '0.5px',
+                        marginBottom: '4px'
+                      }}>
+                        Danh mục
+                      </div>
+                      <div style={{ 
+                        color: 'white', 
+                        fontSize: '15px', 
+                        fontWeight: '500'
+                      }}>
+                        {typeof selectedComponent.category === 'string' 
+                          ? selectedComponent.category 
+                          : (typeof selectedComponent.category === 'object' && selectedComponent.category !== null && 'name' in selectedComponent.category
+                              ? (selectedComponent.category as { name: string }).name
+                              : String(selectedComponent.category))}
+                      </div>
                     </div>
                   )}
                   
-                  {selectedComponent.categoryId === 5 && selectedComponent.capacity && ( // Storage
+                  {/* Brand */}
+                  {selectedComponent.brand && selectedComponent.brand !== 'Unknown' && (
                     <div style={{ 
-                      color: 'rgba(255, 255, 255, 0.8)', 
-                      fontSize: '14px', 
-                      lineHeight: '1.6' 
+                      padding: '12px',
+                      background: 'rgba(255, 255, 255, 0.03)',
+                      borderRadius: '8px',
+                      border: '1px solid rgba(255, 255, 255, 0.05)'
                     }}>
-                      <strong>Dung lượng:</strong> {selectedComponent.capacity}
+                      <div style={{ 
+                        color: 'rgba(255, 255, 255, 0.5)', 
+                        fontSize: '12px', 
+                        fontWeight: '600',
+                        textTransform: 'uppercase',
+                        letterSpacing: '0.5px',
+                        marginBottom: '4px'
+                      }}>
+                        Thương hiệu
+                      </div>
+                      <div style={{ 
+                        color: 'white', 
+                        fontSize: '15px', 
+                        fontWeight: '500'
+                      }}>
+                        {selectedComponent.brand}
+                      </div>
                     </div>
                   )}
                   
-                  {selectedComponent.categoryId === 7 && selectedComponent.size && ( // Case
+                  {/* Model */}
+                  {selectedComponent.model && selectedComponent.model !== 'Unknown' && (
                     <div style={{ 
-                      color: 'rgba(255, 255, 255, 0.8)', 
-                      fontSize: '14px', 
-                      lineHeight: '1.6' 
+                      padding: '12px',
+                      background: 'rgba(255, 255, 255, 0.03)',
+                      borderRadius: '8px',
+                      border: '1px solid rgba(255, 255, 255, 0.05)'
                     }}>
-                      <strong>Kích thước:</strong> {selectedComponent.size}
+                      <div style={{ 
+                        color: 'rgba(255, 255, 255, 0.5)', 
+                        fontSize: '12px', 
+                        fontWeight: '600',
+                        textTransform: 'uppercase',
+                        letterSpacing: '0.5px',
+                        marginBottom: '4px'
+                      }}>
+                        Model
+                      </div>
+                      <div style={{ 
+                        color: 'white', 
+                        fontSize: '15px', 
+                        fontWeight: '500'
+                      }}>
+                        {selectedComponent.model}
+                      </div>
                     </div>
                   )}
                   
-                  {/* General specifications */}
+                  {/* Socket */}
+                  {selectedComponent.socket && (
+                    <div style={{ 
+                      padding: '12px',
+                      background: 'rgba(255, 255, 255, 0.03)',
+                      borderRadius: '8px',
+                      border: '1px solid rgba(255, 255, 255, 0.05)'
+                    }}>
+                      <div style={{ 
+                        color: 'rgba(255, 255, 255, 0.5)', 
+                        fontSize: '12px', 
+                        fontWeight: '600',
+                        textTransform: 'uppercase',
+                        letterSpacing: '0.5px',
+                        marginBottom: '4px'
+                      }}>
+                        Socket
+                      </div>
+                      <div style={{ 
+                        color: 'white', 
+                        fontSize: '15px', 
+                        fontWeight: '500'
+                      }}>
+                        {selectedComponent.socket}
+                      </div>
+                    </div>
+                  )}
+                  
+                  {/* TDP Watt */}
+                  {selectedComponent.tdpWatt && (
+                    <div style={{ 
+                      padding: '12px',
+                      background: 'rgba(255, 255, 255, 0.03)',
+                      borderRadius: '8px',
+                      border: '1px solid rgba(255, 255, 255, 0.05)'
+                    }}>
+                      <div style={{ 
+                        color: 'rgba(255, 255, 255, 0.5)', 
+                        fontSize: '12px', 
+                        fontWeight: '600',
+                        textTransform: 'uppercase',
+                        letterSpacing: '0.5px',
+                        marginBottom: '4px'
+                      }}>
+                        Công suất tiêu thụ
+                      </div>
+                      <div style={{ 
+                        color: 'white', 
+                        fontSize: '15px', 
+                        fontWeight: '500'
+                      }}>
+                        {selectedComponent.tdpWatt}W
+                      </div>
+                    </div>
+                  )}
+                  
+                  {/* Capacity */}
+                  {selectedComponent.capacity && (
+                    <div style={{ 
+                      padding: '12px',
+                      background: 'rgba(255, 255, 255, 0.03)',
+                      borderRadius: '8px',
+                      border: '1px solid rgba(255, 255, 255, 0.05)'
+                    }}>
+                      <div style={{ 
+                        color: 'rgba(255, 255, 255, 0.5)', 
+                        fontSize: '12px', 
+                        fontWeight: '600',
+                        textTransform: 'uppercase',
+                        letterSpacing: '0.5px',
+                        marginBottom: '4px'
+                      }}>
+                        Dung lượng
+                      </div>
+                      <div style={{ 
+                        color: 'white', 
+                        fontSize: '15px', 
+                        fontWeight: '500'
+                      }}>
+                        {(() => {
+                          const capacity = selectedComponent.capacity || ''
+                          // Kiểm tra xem đã có đơn vị chưa (GB, TB, MB, etc.)
+                          if (/\d+\s*(GB|TB|MB|KB|gb|tb|mb|kb)/i.test(capacity)) {
+                            return capacity
+                          }
+                          // Nếu chỉ là số, thêm GB
+                          const numValue = capacity.replace(/[^\d]/g, '')
+                          if (numValue) {
+                            const num = parseInt(numValue)
+                            if (num >= 1000) {
+                              return `${(num / 1000).toFixed(num % 1000 === 0 ? 0 : 1)} TB`
+                            } else {
+                              return `${num} GB`
+                            }
+                          }
+                          return capacity
+                        })()}
+                      </div>
+                    </div>
+                  )}
+                  
+                  {/* Size */}
+                  {selectedComponent.size && (
+                    <div style={{ 
+                      padding: '12px',
+                      background: 'rgba(255, 255, 255, 0.03)',
+                      borderRadius: '8px',
+                      border: '1px solid rgba(255, 255, 255, 0.05)'
+                    }}>
+                      <div style={{ 
+                        color: 'rgba(255, 255, 255, 0.5)', 
+                        fontSize: '12px', 
+                        fontWeight: '600',
+                        textTransform: 'uppercase',
+                        letterSpacing: '0.5px',
+                        marginBottom: '4px'
+                      }}>
+                        Kích thước
+                      </div>
+                      <div style={{ 
+                        color: 'white', 
+                        fontSize: '15px', 
+                        fontWeight: '500'
+                      }}>
+                        {(() => {
+                          const size = selectedComponent.size || ''
+                          // Kiểm tra xem đã có đơn vị chưa (mm, cm, inch, ATX, Micro ATX, etc.)
+                          if (/\d+\s*(mm|cm|inch|"|ATX|Micro|Mini|E-ATX|XL-ATX)/i.test(size) || 
+                              /^(ATX|Micro ATX|Mini ITX|E-ATX|XL-ATX|Flex ATX|DTX|mATX|ITX)$/i.test(size.trim())) {
+                            return size
+                          }
+                          // Nếu chỉ là số, có thể là form factor hoặc kích thước
+                          // Nếu là số nhỏ (dưới 50), có thể là form factor, không thêm đơn vị
+                          // Nếu là số lớn, thêm mm
+                          const numValue = size.replace(/[^\d]/g, '')
+                          if (numValue && numValue.length > 0) {
+                            const num = parseInt(numValue)
+                            if (num > 50) {
+                              return `${size} mm`
+                            }
+                          }
+                          return size
+                        })()}
+                      </div>
+                    </div>
+                  )}
+                  
+                  {/* Color */}
                   {selectedComponent.color && (
                     <div style={{ 
-                      color: 'rgba(255, 255, 255, 0.8)', 
-                      fontSize: '14px', 
-                      lineHeight: '1.6' 
+                      padding: '12px',
+                      background: 'rgba(255, 255, 255, 0.03)',
+                      borderRadius: '8px',
+                      border: '1px solid rgba(255, 255, 255, 0.05)'
                     }}>
-                      <strong>Màu sắc:</strong> {selectedComponent.color === 'Black' ? 'Đen' : 
-                                               selectedComponent.color === 'White' ? 'Trắng' :
-                                               selectedComponent.color === 'Red' ? 'Đỏ' :
-                                               selectedComponent.color === 'Blue' ? 'Xanh dương' :
-                                               selectedComponent.color === 'Green' ? 'Xanh lá' :
-                                               selectedComponent.color === 'Silver' ? 'Bạc' :
-                                               selectedComponent.color === 'Gray' ? 'Xám' :
-                                               selectedComponent.color}
+                      <div style={{ 
+                        color: 'rgba(255, 255, 255, 0.5)', 
+                        fontSize: '12px', 
+                        fontWeight: '600',
+                        textTransform: 'uppercase',
+                        letterSpacing: '0.5px',
+                        marginBottom: '4px'
+                      }}>
+                        Màu sắc
+                      </div>
+                      <div style={{ 
+                        color: 'white', 
+                        fontSize: '15px', 
+                        fontWeight: '500'
+                      }}>
+                        {translateColor(selectedComponent.color)}
+                      </div>
                     </div>
                   )}
                   
+                  {/* Type */}
                   {selectedComponent.type && (
                     <div style={{ 
-                      color: 'rgba(255, 255, 255, 0.8)', 
-                      fontSize: '14px', 
-                      lineHeight: '1.6' 
+                      padding: '12px',
+                      background: 'rgba(255, 255, 255, 0.03)',
+                      borderRadius: '8px',
+                      border: '1px solid rgba(255, 255, 255, 0.05)'
                     }}>
-                      <strong>Loại:</strong> {selectedComponent.type === 'Gaming' ? 'Gaming' :
-                                            selectedComponent.type === 'Office' ? 'Văn phòng' :
-                                            selectedComponent.type === 'Professional' ? 'Chuyên nghiệp' :
-                                            selectedComponent.type === 'Budget' ? 'Tiết kiệm' :
-                                            selectedComponent.type}
+                      <div style={{ 
+                        color: 'rgba(255, 255, 255, 0.5)', 
+                        fontSize: '12px', 
+                        fontWeight: '600',
+                        textTransform: 'uppercase',
+                        letterSpacing: '0.5px',
+                        marginBottom: '4px'
+                      }}>
+                        Loại
+                      </div>
+                      <div style={{ 
+                        color: 'white', 
+                        fontSize: '15px', 
+                        fontWeight: '500'
+                      }}>
+                        {selectedComponent.type === 'Gaming' ? 'Gaming' :
+                         selectedComponent.type === 'Office' ? 'Văn phòng' :
+                         selectedComponent.type === 'Professional' ? 'Chuyên nghiệp' :
+                         selectedComponent.type === 'Budget' ? 'Tiết kiệm' :
+                         selectedComponent.type}
+                      </div>
                     </div>
                   )}
                   
-                  {/* Basic specs - moved below */}
+                  {/* Specs */}
                   {selectedComponent.specs && selectedComponent.specs !== 'No specifications available' && (
                     <div style={{ 
-                      color: 'rgba(255, 255, 255, 0.8)', 
-                      fontSize: '14px', 
-                      lineHeight: '1.6' 
+                      padding: '12px',
+                      background: 'rgba(255, 255, 255, 0.03)',
+                      borderRadius: '8px',
+                      border: '1px solid rgba(255, 255, 255, 0.05)',
+                      gridColumn: '1 / -1'
                     }}>
-                      <strong>Thông số cơ bản:</strong> {selectedComponent.specs}
+                      <div style={{ 
+                        color: 'rgba(255, 255, 255, 0.5)', 
+                        fontSize: '12px', 
+                        fontWeight: '600',
+                        textTransform: 'uppercase',
+                        letterSpacing: '0.5px',
+                        marginBottom: '4px'
+                      }}>
+                        Thông số cơ bản
+                      </div>
+                      <div style={{ 
+                        color: 'white', 
+                        fontSize: '15px', 
+                        fontWeight: '500',
+                        lineHeight: '1.5'
+                      }}>
+                        {selectedComponent.specs}
+                      </div>
                     </div>
                   )}
                   
                   {/* Show message if no specs available */}
-                  {!selectedComponent.specs || selectedComponent.specs === 'No specifications available' ? 
-                    (!selectedComponent.socket && !selectedComponent.tdpWatt && !selectedComponent.capacity && 
-                     !selectedComponent.size && !selectedComponent.color && !selectedComponent.type) && (
-                      <div style={{ 
-                        color: 'rgba(255, 255, 255, 0.5)', 
-                        fontSize: '14px', 
-                        fontStyle: 'italic' 
-                      }}>
-                        Không có thông số kỹ thuật chi tiết
-                      </div>
-                    ) : null
-                  }
+                  {!selectedComponent.category && !selectedComponent.brand && !selectedComponent.model && 
+                   !selectedComponent.socket && !selectedComponent.tdpWatt && !selectedComponent.capacity && 
+                   !selectedComponent.size && !selectedComponent.color && !selectedComponent.type && 
+                   (!selectedComponent.specs || selectedComponent.specs === 'No specifications available') && (
+                    <div style={{ 
+                      color: 'rgba(255, 255, 255, 0.5)', 
+                      fontSize: '14px', 
+                      fontStyle: 'italic' 
+                    }}>
+                      Không có thông số kỹ thuật chi tiết
+                    </div>
+                  )}
                 </div>
               </div>
             </div>
@@ -2815,7 +3770,13 @@ function PCBuilderPage() {
             {/* Hiển thị giá từ nhiều suppliers */}
             {selectedComponent.productPrices && selectedComponent.productPrices.length > 0 ? (
               <div>
-                <h3 style={{ color: 'white', fontSize: '18px', fontWeight: '600', margin: '0 0 16px 0' }}>
+                <h3 style={{ 
+                  color: 'white', 
+                  fontSize: '20px', 
+                  fontWeight: '700', 
+                  margin: '0 0 20px 0',
+                  letterSpacing: '-0.3px'
+                }}>
                   Giá từ các nhà cung cấp
                 </h3>
                 <div style={{ display: 'flex', flexDirection: 'column', gap: '12px' }}>
@@ -2826,18 +3787,43 @@ function PCBuilderPage() {
                         display: 'flex',
                         justifyContent: 'space-between',
                         alignItems: 'center',
-                        padding: '16px',
-                        backgroundColor: 'rgba(255, 255, 255, 0.05)',
-                        borderRadius: '8px',
-                        border: '1px solid rgba(255, 255, 255, 0.1)'
-                      }}>
+                        padding: '18px 20px',
+                        background: 'rgba(255, 255, 255, 0.03)',
+                        borderRadius: '12px',
+                        border: '1px solid rgba(255, 255, 255, 0.08)',
+                        transition: 'all 0.2s',
+                        cursor: 'default'
+                      }}
+                      onMouseEnter={(e) => {
+                        e.currentTarget.style.background = 'rgba(255, 255, 255, 0.05)'
+                        e.currentTarget.style.borderColor = 'rgba(255, 255, 255, 0.15)'
+                      }}
+                      onMouseLeave={(e) => {
+                        e.currentTarget.style.background = 'rgba(255, 255, 255, 0.03)'
+                        e.currentTarget.style.borderColor = 'rgba(255, 255, 255, 0.08)'
+                      }}
+                      >
                         <div style={{ flex: 1 }}>
                           <div style={{ color: 'white', fontWeight: '500', fontSize: '16px' }}>
-                            {priceInfo.supplier.name}
+                            {priceInfo.supplier?.name && priceInfo.supplier.name !== 'Unknown Supplier' 
+                              ? priceInfo.supplier.name 
+                              : (priceInfo.supplierLink 
+                                  ? (() => {
+                                      try {
+                                        const url = new URL(priceInfo.supplierLink)
+                                        const hostname = url.hostname.replace('www.', '')
+                                        return hostname.split('.')[0].charAt(0).toUpperCase() + hostname.split('.')[0].slice(1)
+                                      } catch {
+                                        return 'Nhà cung cấp'
+                                      }
+                                    })()
+                                  : 'Nhà cung cấp')}
                           </div>
-                          <div style={{ color: 'rgba(255, 255, 255, 0.6)', fontSize: '14px' }}>
-                            ID: {priceInfo.supplier.id}
-                          </div>
+                          {priceInfo.updatedAt && (
+                            <div style={{ color: 'rgba(255, 255, 255, 0.6)', fontSize: '14px' }}>
+                              Cập nhật: {new Date(priceInfo.updatedAt).toLocaleDateString('vi-VN')}
+                            </div>
+                          )}
                         </div>
                         <div style={{ textAlign: 'right', display: 'flex', flexDirection: 'column', alignItems: 'flex-end', gap: '8px' }}>
                           <div style={{ color: '#10b981', fontWeight: 'bold', fontSize: '16px' }}>
@@ -3027,6 +4013,7 @@ function PCBuilderPage() {
                 </button>
               )}
             </div>
+            </div>
           </div>
         </div>
       )}
@@ -3059,28 +4046,64 @@ function PCBuilderPage() {
           }}>
             {/* Header */}
             <div style={{
+              background: 'linear-gradient(135deg, rgba(59, 130, 246, 0.1) 0%, rgba(147, 51, 234, 0.1) 100%)',
+              padding: '24px 28px',
+              borderRadius: '16px 16px 0 0',
+              borderBottom: '1px solid rgba(255, 255, 255, 0.1)',
               display: 'flex',
               justifyContent: 'space-between',
               alignItems: 'center',
-              marginBottom: '24px'
+              marginBottom: '32px',
+              margin: '-32px -32px 32px -32px',
+              position: 'sticky',
+              top: 0,
+              zIndex: 10,
+              backdropFilter: 'blur(10px)'
             }}>
               <div>
-                <h2 style={{ color: 'white', fontSize: '24px', fontWeight: 'bold', margin: '0 0 8px 0' }}>
+                <h2 style={{ 
+                  color: 'white', 
+                  fontSize: '26px', 
+                  fontWeight: '700', 
+                  margin: '0 0 6px 0',
+                  letterSpacing: '-0.5px'
+                }}>
                   📊 Thông số PC của bạn
                 </h2>
-                <p style={{ color: 'rgba(255, 255, 255, 0.7)', fontSize: '14px', margin: 0 }}>
+                <p style={{ 
+                  color: 'rgba(255, 255, 255, 0.7)', 
+                  fontSize: '15px', 
+                  margin: 0,
+                  fontWeight: '400'
+                }}>
                   Tổng hợp chi tiết tất cả linh kiện đã chọn
                 </p>
               </div>
               <button
                 onClick={() => setShowPCSummary(false)}
                 style={{
-                  background: 'none',
+                  background: 'rgba(255, 255, 255, 0.1)',
                   border: 'none',
-                  color: 'rgba(255, 255, 255, 0.6)',
-                  fontSize: '24px',
+                  color: 'rgba(255, 255, 255, 0.8)',
+                  fontSize: '28px',
                   cursor: 'pointer',
-                  padding: '4px'
+                  padding: '8px 12px',
+                  borderRadius: '8px',
+                  transition: 'all 0.2s',
+                  lineHeight: '1',
+                  width: '40px',
+                  height: '40px',
+                  display: 'flex',
+                  alignItems: 'center',
+                  justifyContent: 'center'
+                }}
+                onMouseEnter={(e) => {
+                  e.currentTarget.style.background = 'rgba(255, 255, 255, 0.2)'
+                  e.currentTarget.style.color = 'white'
+                }}
+                onMouseLeave={(e) => {
+                  e.currentTarget.style.background = 'rgba(255, 255, 255, 0.1)'
+                  e.currentTarget.style.color = 'rgba(255, 255, 255, 0.8)'
                 }}
               >
                 ×
@@ -3090,116 +4113,224 @@ function PCBuilderPage() {
             {/* Summary Stats */}
             <div style={{
               display: 'grid',
-              gridTemplateColumns: 'repeat(auto-fit, minmax(200px, 1fr))',
+              gridTemplateColumns: 'repeat(auto-fit, minmax(180px, 1fr))',
               gap: '16px',
               marginBottom: '32px'
             }}>
               <div style={{
-                background: 'rgba(16, 185, 129, 0.1)',
+                background: 'linear-gradient(135deg, rgba(16, 185, 129, 0.15) 0%, rgba(5, 150, 105, 0.1) 100%)',
                 border: '1px solid rgba(16, 185, 129, 0.3)',
-                borderRadius: '12px',
-                padding: '20px',
-                textAlign: 'center'
-              }}>
-                <div style={{ fontSize: '32px', marginBottom: '8px' }}>⚡</div>
-                <div style={{ color: '#10b981', fontSize: '24px', fontWeight: 'bold' }}>
+                borderRadius: '16px',
+                padding: '24px',
+                textAlign: 'center',
+                boxShadow: '0 4px 12px rgba(16, 185, 129, 0.1)',
+                transition: 'all 0.3s',
+                cursor: 'default'
+              }}
+              onMouseEnter={(e) => {
+                e.currentTarget.style.transform = 'translateY(-4px)'
+                e.currentTarget.style.boxShadow = '0 8px 20px rgba(16, 185, 129, 0.2)'
+              }}
+              onMouseLeave={(e) => {
+                e.currentTarget.style.transform = 'translateY(0)'
+                e.currentTarget.style.boxShadow = '0 4px 12px rgba(16, 185, 129, 0.1)'
+              }}
+              >
+                <div style={{ fontSize: '36px', marginBottom: '12px' }}>⚡</div>
+                <div style={{ color: '#10b981', fontSize: '28px', fontWeight: '700', marginBottom: '4px' }}>
                   {pcSpecsSummary.totalTDP}W
                 </div>
-                <div style={{ color: 'rgba(255, 255, 255, 0.7)', fontSize: '14px' }}>
+                <div style={{ color: 'rgba(255, 255, 255, 0.7)', fontSize: '13px', fontWeight: '500' }}>
                   Tổng công suất
                 </div>
               </div>
 
               <div style={{
-                background: 'rgba(59, 130, 246, 0.1)',
+                background: 'linear-gradient(135deg, rgba(59, 130, 246, 0.15) 0%, rgba(37, 99, 235, 0.1) 100%)',
                 border: '1px solid rgba(59, 130, 246, 0.3)',
-                borderRadius: '12px',
-                padding: '20px',
-                textAlign: 'center'
-              }}>
-                <div style={{ fontSize: '32px', marginBottom: '8px' }}>💾</div>
-                <div style={{ color: '#3b82f6', fontSize: '24px', fontWeight: 'bold' }}>
-                  {pcSpecsSummary.totalRAM}GB
+                borderRadius: '16px',
+                padding: '24px',
+                textAlign: 'center',
+                boxShadow: '0 4px 12px rgba(59, 130, 246, 0.1)',
+                transition: 'all 0.3s',
+                cursor: 'default'
+              }}
+              onMouseEnter={(e) => {
+                e.currentTarget.style.transform = 'translateY(-4px)'
+                e.currentTarget.style.boxShadow = '0 8px 20px rgba(59, 130, 246, 0.2)'
+              }}
+              onMouseLeave={(e) => {
+                e.currentTarget.style.transform = 'translateY(0)'
+                e.currentTarget.style.boxShadow = '0 4px 12px rgba(59, 130, 246, 0.1)'
+              }}
+              >
+                <div style={{ fontSize: '36px', marginBottom: '12px' }}>💾</div>
+                <div style={{ color: '#3b82f6', fontSize: '28px', fontWeight: '700', marginBottom: '4px' }}>
+                  {pcSpecsSummary.totalRAM > 0 
+                    ? (pcSpecsSummary.totalRAM >= 1024 
+                        ? `${(pcSpecsSummary.totalRAM / 1024).toFixed(pcSpecsSummary.totalRAM % 1024 === 0 ? 0 : 1)} TB`
+                        : `${Math.round(pcSpecsSummary.totalRAM)} GB`)
+                    : '0 GB'}
                 </div>
-                <div style={{ color: 'rgba(255, 255, 255, 0.7)', fontSize: '14px' }}>
+                <div style={{ color: 'rgba(255, 255, 255, 0.7)', fontSize: '13px', fontWeight: '500' }}>
                   Tổng RAM
                 </div>
               </div>
 
               <div style={{
-                background: 'rgba(168, 85, 247, 0.1)',
+                background: 'linear-gradient(135deg, rgba(168, 85, 247, 0.15) 0%, rgba(147, 51, 234, 0.1) 100%)',
                 border: '1px solid rgba(168, 85, 247, 0.3)',
-                borderRadius: '12px',
-                padding: '20px',
-                textAlign: 'center'
-              }}>
-                <div style={{ fontSize: '32px', marginBottom: '8px' }}>💿</div>
-                <div style={{ color: '#a855f7', fontSize: '24px', fontWeight: 'bold' }}>
-                  {pcSpecsSummary.totalStorage}GB
+                borderRadius: '16px',
+                padding: '24px',
+                textAlign: 'center',
+                boxShadow: '0 4px 12px rgba(168, 85, 247, 0.1)',
+                transition: 'all 0.3s',
+                cursor: 'default'
+              }}
+              onMouseEnter={(e) => {
+                e.currentTarget.style.transform = 'translateY(-4px)'
+                e.currentTarget.style.boxShadow = '0 8px 20px rgba(168, 85, 247, 0.2)'
+              }}
+              onMouseLeave={(e) => {
+                e.currentTarget.style.transform = 'translateY(0)'
+                e.currentTarget.style.boxShadow = '0 4px 12px rgba(168, 85, 247, 0.1)'
+              }}
+              >
+                <div style={{ fontSize: '36px', marginBottom: '12px' }}>💿</div>
+                <div style={{ color: '#a855f7', fontSize: '28px', fontWeight: '700', marginBottom: '4px' }}>
+                  {pcSpecsSummary.totalStorage > 0 
+                    ? (pcSpecsSummary.totalStorage >= 1024 
+                        ? `${(pcSpecsSummary.totalStorage / 1024).toFixed(pcSpecsSummary.totalStorage % 1024 === 0 ? 0 : 1)} TB`
+                        : `${Math.round(pcSpecsSummary.totalStorage)} GB`)
+                    : '0 GB'}
                 </div>
-                <div style={{ color: 'rgba(255, 255, 255, 0.7)', fontSize: '14px' }}>
+                <div style={{ color: 'rgba(255, 255, 255, 0.7)', fontSize: '13px', fontWeight: '500' }}>
                   Tổng lưu trữ
                 </div>
               </div>
 
               <div style={{
-                background: 'rgba(245, 158, 11, 0.1)',
+                background: 'linear-gradient(135deg, rgba(245, 158, 11, 0.15) 0%, rgba(217, 119, 6, 0.1) 100%)',
                 border: '1px solid rgba(245, 158, 11, 0.3)',
-                borderRadius: '12px',
-                padding: '20px',
-                textAlign: 'center'
-              }}>
-                <div style={{ fontSize: '32px', marginBottom: '8px' }}>💰</div>
-                <div style={{ color: '#f59e0b', fontSize: '24px', fontWeight: 'bold' }}>
+                borderRadius: '16px',
+                padding: '24px',
+                textAlign: 'center',
+                boxShadow: '0 4px 12px rgba(245, 158, 11, 0.1)',
+                transition: 'all 0.3s',
+                cursor: 'default'
+              }}
+              onMouseEnter={(e) => {
+                e.currentTarget.style.transform = 'translateY(-4px)'
+                e.currentTarget.style.boxShadow = '0 8px 20px rgba(245, 158, 11, 0.2)'
+              }}
+              onMouseLeave={(e) => {
+                e.currentTarget.style.transform = 'translateY(0)'
+                e.currentTarget.style.boxShadow = '0 4px 12px rgba(245, 158, 11, 0.1)'
+              }}
+              >
+                <div style={{ fontSize: '36px', marginBottom: '12px' }}>💰</div>
+                <div style={{ color: '#f59e0b', fontSize: '24px', fontWeight: '700', marginBottom: '4px', lineHeight: '1.2' }}>
                   {totalPrice.toLocaleString('vi-VN')} VND
                 </div>
-                <div style={{ color: 'rgba(255, 255, 255, 0.7)', fontSize: '14px' }}>
+                <div style={{ color: 'rgba(255, 255, 255, 0.7)', fontSize: '13px', fontWeight: '500' }}>
                   Tổng giá trị
                 </div>
               </div>
+
             </div>
 
             {/* Component Details */}
             <div>
-              <h3 style={{ color: 'white', fontSize: '18px', fontWeight: '600', marginBottom: '16px' }}>
+              <h3 style={{ 
+                color: 'white', 
+                fontSize: '20px', 
+                fontWeight: '700', 
+                marginBottom: '20px',
+                letterSpacing: '-0.3px'
+              }}>
                 Chi tiết linh kiện
               </h3>
-              <div style={{ display: 'flex', flexDirection: 'column', gap: '12px' }}>
+              <div style={{ display: 'flex', flexDirection: 'column', gap: '16px' }}>
                 {pcSpecsSummary.components.map((comp, index) => (
                   <div key={index} style={{
-                    background: 'rgba(255, 255, 255, 0.05)',
-                    border: '1px solid rgba(255, 255, 255, 0.1)',
-                    borderRadius: '12px',
-                    padding: '20px'
-                  }}>
+                    background: 'rgba(255, 255, 255, 0.03)',
+                    border: '1px solid rgba(255, 255, 255, 0.08)',
+                    borderRadius: '16px',
+                    padding: '24px',
+                    transition: 'all 0.2s'
+                  }}
+                  onMouseEnter={(e) => {
+                    e.currentTarget.style.background = 'rgba(255, 255, 255, 0.05)'
+                    e.currentTarget.style.borderColor = 'rgba(255, 255, 255, 0.15)'
+                  }}
+                  onMouseLeave={(e) => {
+                    e.currentTarget.style.background = 'rgba(255, 255, 255, 0.03)'
+                    e.currentTarget.style.borderColor = 'rgba(255, 255, 255, 0.08)'
+                  }}
+                  >
                     <div style={{
                       display: 'flex',
-                      justifyContent: 'space-between',
-                      alignItems: 'flex-start',
-                      marginBottom: '12px'
+                      gap: '20px',
+                      alignItems: 'flex-start'
                     }}>
+                      {/* Image */}
+                      {comp.image && comp.image !== 'https://images.unsplash.com/photo-1591799264318-7e6ef8ddb7ea?w=300&h=200&fit=crop' && (
+                        <div style={{
+                          width: '120px',
+                          height: '120px',
+                          borderRadius: '12px',
+                          overflow: 'hidden',
+                          background: 'rgba(255, 255, 255, 0.05)',
+                          border: '1px solid rgba(255, 255, 255, 0.1)',
+                          flexShrink: 0
+                        }}>
+                          <img 
+                            src={comp.image} 
+                            alt={comp.name}
+                            style={{
+                              width: '100%',
+                              height: '100%',
+                              objectFit: 'contain',
+                              cursor: 'pointer'
+                            }}
+                            onClick={() => window.open(comp.image, '_blank')}
+                            onError={(e) => {
+                              (e.target as HTMLImageElement).style.display = 'none'
+                            }}
+                          />
+                        </div>
+                      )}
+                      
                       <div style={{ flex: 1 }}>
                         <div style={{
                           display: 'flex',
                           alignItems: 'center',
-                          gap: '8px',
-                          marginBottom: '8px'
+                          gap: '10px',
+                          marginBottom: '12px'
                         }}>
-                          <span style={{ fontSize: '20px' }}>
+                          <span style={{ fontSize: '24px' }}>
                             {buildCategories.find(cat => cat.name === comp.category)?.icon}
                           </span>
-                          <span style={{ color: 'white', fontSize: '16px', fontWeight: '600' }}>
+                          <span style={{ color: 'white', fontSize: '18px', fontWeight: '700' }}>
                             {comp.category}
                           </span>
                         </div>
-                        <div style={{ color: 'white', fontSize: '14px', fontWeight: '500', marginBottom: '4px' }}>
+                        <div style={{ color: 'white', fontSize: '16px', fontWeight: '600', marginBottom: '6px' }}>
                           {comp.name}
                         </div>
-                        <div style={{ color: 'rgba(255, 255, 255, 0.7)', fontSize: '13px' }}>
+                        {comp.brand && comp.brand !== 'Unknown' && (
+                          <div style={{ color: 'rgba(255, 255, 255, 0.6)', fontSize: '14px', marginBottom: '4px' }}>
+                            Thương hiệu: {comp.brand}
+                          </div>
+                        )}
+                        {comp.model && comp.model !== 'Unknown' && (
+                          <div style={{ color: 'rgba(255, 255, 255, 0.6)', fontSize: '14px', marginBottom: '8px' }}>
+                            Model: {comp.model}
+                          </div>
+                        )}
+                        <div style={{ color: 'rgba(255, 255, 255, 0.8)', fontSize: '14px', marginBottom: '12px' }}>
                           {comp.specs}
                         </div>
-                      </div>
-                    </div>
 
                     {/* Component-specific specs */}
                     <div style={{ display: 'flex', flexWrap: 'wrap', gap: '8px' }}>
@@ -3232,11 +4363,26 @@ function PCBuilderPage() {
                           background: 'rgba(168, 85, 247, 0.2)',
                           color: '#a855f7',
                           fontSize: '12px',
-                          padding: '4px 8px',
-                          borderRadius: '6px',
+                          padding: '6px 12px',
+                          borderRadius: '8px',
                           fontWeight: '500'
                         }}>
-                          Dung lượng: {comp.capacity}
+                          Dung lượng: {(() => {
+                            const capacity = comp.capacity || ''
+                            if (/\d+\s*(GB|TB|MB|KB|gb|tb|mb|kb)/i.test(capacity)) {
+                              return capacity
+                            }
+                            const numValue = capacity.replace(/[^\d]/g, '')
+                            if (numValue) {
+                              const num = parseInt(numValue)
+                              if (num >= 1000) {
+                                return `${(num / 1000).toFixed(num % 1000 === 0 ? 0 : 1)} TB`
+                              } else {
+                                return `${num} GB`
+                              }
+                            }
+                            return capacity
+                          })()}
                         </span>
                       )}
                       {comp.size && (
@@ -3244,11 +4390,25 @@ function PCBuilderPage() {
                           background: 'rgba(239, 68, 68, 0.2)',
                           color: '#ef4444',
                           fontSize: '12px',
-                          padding: '4px 8px',
-                          borderRadius: '6px',
+                          padding: '6px 12px',
+                          borderRadius: '8px',
                           fontWeight: '500'
                         }}>
-                          Kích thước: {comp.size}
+                          Kích thước: {(() => {
+                            const size = comp.size || ''
+                            if (/\d+\s*(mm|cm|inch|"|ATX|Micro|Mini|E-ATX|XL-ATX)/i.test(size) || 
+                                /^(ATX|Micro ATX|Mini ITX|E-ATX|XL-ATX|Flex ATX|DTX|mATX|ITX)$/i.test(size.trim())) {
+                              return size
+                            }
+                            const numValue = size.replace(/[^\d]/g, '')
+                            if (numValue && numValue.length > 0) {
+                              const num = parseInt(numValue)
+                              if (num > 50) {
+                                return `${size} mm`
+                              }
+                            }
+                            return size
+                          })()}
                         </span>
                       )}
                       {comp.color && (
@@ -3260,14 +4420,7 @@ function PCBuilderPage() {
                           borderRadius: '6px',
                           fontWeight: '500'
                         }}>
-                          Màu: {comp.color === 'Black' ? 'Đen' : 
-                                comp.color === 'White' ? 'Trắng' :
-                                comp.color === 'Red' ? 'Đỏ' :
-                                comp.color === 'Blue' ? 'Xanh dương' :
-                                comp.color === 'Green' ? 'Xanh lá' :
-                                comp.color === 'Silver' ? 'Bạc' :
-                                comp.color === 'Gray' ? 'Xám' :
-                                comp.color}
+                          Màu: {translateColor(comp.color)}
                         </span>
                       )}
                       {comp.type && (
@@ -3286,6 +4439,8 @@ function PCBuilderPage() {
                                 comp.type}
                         </span>
                       )}
+                    </div>
+                      </div>
                     </div>
                   </div>
                 ))}
@@ -3325,28 +4480,36 @@ function PCBuilderPage() {
               </button>
               <button
                 onClick={handleSaveBuild}
+                disabled={savingBuild}
                 style={{
-                  background: 'linear-gradient(135deg, #3b82f6, #1d4ed8)',
+                  background: savingBuild 
+                    ? 'linear-gradient(135deg, #9ca3af, #6b7280)' 
+                    : 'linear-gradient(135deg, #3b82f6, #1d4ed8)',
                   color: 'white',
                   border: 'none',
                   padding: '12px 24px',
                   borderRadius: '8px',
                   fontSize: '14px',
                   fontWeight: '500',
-                  cursor: 'pointer',
-                  transition: 'all 0.2s'
+                  cursor: savingBuild ? 'not-allowed' : 'pointer',
+                  transition: 'all 0.2s',
+                  opacity: savingBuild ? 0.7 : 1
                 }}
                 onMouseEnter={(e) => {
-                  e.currentTarget.style.transform = 'translateY(-2px)'
-                  e.currentTarget.style.boxShadow = '0 8px 20px rgba(59, 130, 246, 0.3)'
+                  if (!savingBuild) {
+                    e.currentTarget.style.transform = 'translateY(-2px)'
+                    e.currentTarget.style.boxShadow = '0 8px 20px rgba(59, 130, 246, 0.3)'
+                  }
                 }}
                 onMouseLeave={(e) => {
-                  e.currentTarget.style.transform = 'translateY(0)'
-                  e.currentTarget.style.boxShadow = 'none'
+                  if (!savingBuild) {
+                    e.currentTarget.style.transform = 'translateY(0)'
+                    e.currentTarget.style.boxShadow = 'none'
+                  }
                 }}
-              >
-                💾 Lưu Build
-              </button>
+                >
+                  {savingBuild ? '⏳ Đang lưu và kiểm tra...' : '💾 Lưu Build'}
+                </button>
             </div>
           </div>
         </div>
@@ -4073,6 +5236,434 @@ function PCBuilderPage() {
           skip: 'Bỏ qua',
         }}
       />
+
+      {/* Compatibility Check Modal */}
+      {showCompatibilityModal && compatibilityResult && (
+        <div style={{
+          position: 'fixed',
+          top: 0,
+          left: 0,
+          right: 0,
+          bottom: 0,
+          backgroundColor: 'rgba(0, 0, 0, 0.8)',
+          display: 'flex',
+          alignItems: 'center',
+          justifyContent: 'center',
+          zIndex: 2000,
+          padding: '20px'
+        }}>
+          <div style={{
+            background: 'linear-gradient(135deg, #1e293b 0%, #0f172a 100%)',
+            border: '1px solid rgba(255, 255, 255, 0.1)',
+            borderRadius: '16px',
+            maxWidth: '800px',
+            width: '100%',
+            maxHeight: '90vh',
+            overflowY: 'auto',
+            padding: '0',
+            boxShadow: '0 20px 60px rgba(0, 0, 0, 0.5)',
+            position: 'relative'
+          }}>
+            {/* Header */}
+            <div style={{
+              background: 'linear-gradient(135deg, rgba(59, 130, 246, 0.1) 0%, rgba(147, 51, 234, 0.1) 100%)',
+              padding: '24px 28px',
+              borderBottom: '1px solid rgba(255, 255, 255, 0.1)',
+              display: 'flex',
+              justifyContent: 'space-between',
+              alignItems: 'center',
+              position: 'sticky',
+              top: 0,
+              zIndex: 10,
+              backdropFilter: 'blur(10px)'
+            }}>
+              <div>
+                <h2 style={{ 
+                  color: 'white', 
+                  fontSize: '26px', 
+                  fontWeight: '700', 
+                  margin: '0 0 6px 0',
+                  letterSpacing: '-0.5px'
+                }}>
+                  {compatibilityResult.compatible ? '✅ Tương thích' : '❌ Không tương thích'}
+                </h2>
+                <p style={{ 
+                  color: 'rgba(255, 255, 255, 0.7)', 
+                  fontSize: '15px', 
+                  margin: 0,
+                  fontWeight: '400'
+                }}>
+                  {compatibilityResult.summary || 'Kết quả kiểm tra tương thích'}
+                </p>
+              </div>
+              <button
+                onClick={() => {
+                  setShowCompatibilityModal(false)
+                  setCompatibilityResult(null)
+                  navigate('/builds')
+                }}
+                style={{
+                  background: 'rgba(255, 255, 255, 0.1)',
+                  border: 'none',
+                  color: 'rgba(255, 255, 255, 0.8)',
+                  fontSize: '28px',
+                  cursor: 'pointer',
+                  padding: '8px 12px',
+                  borderRadius: '8px',
+                  transition: 'all 0.2s',
+                  lineHeight: '1',
+                  width: '40px',
+                  height: '40px',
+                  display: 'flex',
+                  alignItems: 'center',
+                  justifyContent: 'center'
+                }}
+                onMouseEnter={(e) => {
+                  e.currentTarget.style.background = 'rgba(255, 255, 255, 0.2)'
+                  e.currentTarget.style.color = 'white'
+                }}
+                onMouseLeave={(e) => {
+                  e.currentTarget.style.background = 'rgba(255, 255, 255, 0.1)'
+                  e.currentTarget.style.color = 'rgba(255, 255, 255, 0.8)'
+                }}
+              >
+                ×
+              </button>
+            </div>
+
+            {/* Content */}
+            <div style={{ padding: '28px' }}>
+              {/* Issues */}
+              {compatibilityResult.issues && compatibilityResult.issues.length > 0 && (
+                <div style={{ marginBottom: '24px' }}>
+                  <h3 style={{ 
+                    color: '#ef4444', 
+                    fontSize: '20px', 
+                    fontWeight: '700', 
+                    marginBottom: '16px',
+                    display: 'flex',
+                    alignItems: 'center',
+                    gap: '8px'
+                  }}>
+                    ⚠️ Build của bạn đang có 1 số vấn đề ({compatibilityResult.issues.length})
+                  </h3>
+                  <div style={{ display: 'flex', flexDirection: 'column', gap: '12px' }}>
+                    {compatibilityResult.issues.map((issue: CompatibilityIssue, index: number) => (
+                      <div key={index} style={{
+                        background: 'rgba(239, 68, 68, 0.1)',
+                        border: '1px solid rgba(239, 68, 68, 0.3)',
+                        borderRadius: '12px',
+                        padding: '16px'
+                      }}>
+                        <div style={{ color: '#ef4444', fontSize: '16px', fontWeight: '600', marginBottom: '4px' }}>
+                          {issue.message}
+                        </div>
+                        {issue.components && issue.components.length > 0 && (
+                          <div style={{ color: 'rgba(255, 255, 255, 0.7)', fontSize: '14px', marginTop: '8px' }}>
+                            Linh kiện: {issue.components.join(', ')}
+                          </div>
+                        )}
+                      </div>
+                    ))}
+                  </div>
+                </div>
+              )}
+
+              {/* Warnings */}
+              {compatibilityResult.warnings && compatibilityResult.warnings.length > 0 && (
+                <div style={{ marginBottom: '24px' }}>
+                  <h3 style={{ 
+                    color: '#f59e0b', 
+                    fontSize: '20px', 
+                    fontWeight: '700', 
+                    marginBottom: '16px',
+                    display: 'flex',
+                    alignItems: 'center',
+                    gap: '8px'
+                  }}>
+                    ⚠️ Cảnh báo ({compatibilityResult.warnings.length})
+                  </h3>
+                  <div style={{ display: 'flex', flexDirection: 'column', gap: '12px' }}>
+                    {compatibilityResult.warnings.map((warning: CompatibilityWarning, index: number) => (
+                      <div key={index} style={{
+                        background: 'rgba(245, 158, 11, 0.1)',
+                        border: '1px solid rgba(245, 158, 11, 0.3)',
+                        borderRadius: '12px',
+                        padding: '16px'
+                      }}>
+                        <div style={{ color: '#f59e0b', fontSize: '16px', fontWeight: '600' }}>
+                          {typeof warning === 'string' ? warning : (warning.message || String(warning))}
+                        </div>
+                      </div>
+                    ))}
+                  </div>
+                </div>
+              )}
+
+              {/* Power Info */}
+              {compatibilityResult.power && (
+                <div style={{ marginBottom: '24px' }}>
+                  <h3 style={{ 
+                    color: 'white', 
+                    fontSize: '20px', 
+                    fontWeight: '700', 
+                    marginBottom: '16px'
+                  }}>
+                    ⚡ Thông tin công suất
+                  </h3>
+                  <div style={{
+                    background: 'rgba(255, 255, 255, 0.03)',
+                    borderRadius: '12px',
+                    padding: '20px',
+                    border: '1px solid rgba(255, 255, 255, 0.08)'
+                  }}>
+                    <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(200px, 1fr))', gap: '12px' }}>
+                      <div style={{ padding: '12px', background: 'rgba(255, 255, 255, 0.03)', borderRadius: '8px' }}>
+                        <div style={{ color: 'rgba(255, 255, 255, 0.5)', fontSize: '12px', fontWeight: '600', textTransform: 'uppercase', marginBottom: '4px' }}>CPU TDP</div>
+                        <div style={{ color: 'white', fontSize: '16px', fontWeight: '600' }}>{compatibilityResult.power.cpuTdpW}W</div>
+                      </div>
+                      <div style={{ padding: '12px', background: 'rgba(255, 255, 255, 0.03)', borderRadius: '8px' }}>
+                        <div style={{ color: 'rgba(255, 255, 255, 0.5)', fontSize: '12px', fontWeight: '600', textTransform: 'uppercase', marginBottom: '4px' }}>GPU TDP</div>
+                        <div style={{ color: 'white', fontSize: '16px', fontWeight: '600' }}>{compatibilityResult.power.gpuTdpW}W</div>
+                      </div>
+                      <div style={{ padding: '12px', background: 'rgba(255, 255, 255, 0.03)', borderRadius: '8px' }}>
+                        <div style={{ color: 'rgba(255, 255, 255, 0.5)', fontSize: '12px', fontWeight: '600', textTransform: 'uppercase', marginBottom: '4px' }}>Tổng ước tính</div>
+                        <div style={{ color: 'white', fontSize: '16px', fontWeight: '600' }}>{compatibilityResult.power.totalEstimatedW}W</div>
+                      </div>
+                      <div style={{ padding: '12px', background: 'rgba(255, 255, 255, 0.03)', borderRadius: '8px' }}>
+                        <div style={{ color: 'rgba(255, 255, 255, 0.5)', fontSize: '12px', fontWeight: '600', textTransform: 'uppercase', marginBottom: '4px' }}>PSU</div>
+                        <div style={{ color: 'white', fontSize: '16px', fontWeight: '600' }}>{compatibilityResult.power.psuWattage}W</div>
+                      </div>
+                      <div style={{ padding: '12px', background: 'rgba(255, 255, 255, 0.03)', borderRadius: '8px' }}>
+                        <div style={{ color: 'rgba(255, 255, 255, 0.5)', fontSize: '12px', fontWeight: '600', textTransform: 'uppercase', marginBottom: '4px' }}>Khuyến nghị tối thiểu</div>
+                        <div style={{ color: 'white', fontSize: '16px', fontWeight: '600' }}>{compatibilityResult.power.recommendedMinW}W</div>
+                      </div>
+                      <div style={{ padding: '12px', background: compatibilityResult.power.ok ? 'rgba(16, 185, 129, 0.1)' : 'rgba(239, 68, 68, 0.1)', borderRadius: '8px', border: `1px solid ${compatibilityResult.power.ok ? 'rgba(16, 185, 129, 0.3)' : 'rgba(239, 68, 68, 0.3)'}` }}>
+                        <div style={{ color: 'rgba(255, 255, 255, 0.5)', fontSize: '12px', fontWeight: '600', textTransform: 'uppercase', marginBottom: '4px' }}>Trạng thái</div>
+                        <div style={{ color: compatibilityResult.power.ok ? '#10b981' : '#ef4444', fontSize: '16px', fontWeight: '600' }}>
+                          {compatibilityResult.power.ok ? '✅ Đủ công suất' : '❌ Thiếu công suất'}
+                        </div>
+                      </div>
+                    </div>
+                  </div>
+                </div>
+              )}
+
+              {/* Fit Info */}
+              {compatibilityResult.fit && (
+                <div style={{ marginBottom: '24px' }}>
+                  <h3 style={{ 
+                    color: 'white', 
+                    fontSize: '20px', 
+                    fontWeight: '700', 
+                    marginBottom: '16px'
+                  }}>
+                    📦 Kích thước GPU và Case
+                  </h3>
+                  <div style={{
+                    background: 'rgba(255, 255, 255, 0.03)',
+                    borderRadius: '12px',
+                    padding: '20px',
+                    border: '1px solid rgba(255, 255, 255, 0.08)'
+                  }}>
+                    <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(200px, 1fr))', gap: '12px' }}>
+                      <div style={{ padding: '12px', background: 'rgba(255, 255, 255, 0.03)', borderRadius: '8px' }}>
+                        <div style={{ color: 'rgba(255, 255, 255, 0.5)', fontSize: '12px', fontWeight: '600', textTransform: 'uppercase', marginBottom: '4px' }}>Chiều dài GPU</div>
+                        <div style={{ color: 'white', fontSize: '16px', fontWeight: '600' }}>{compatibilityResult.fit.gpuLengthMm}mm</div>
+                      </div>
+                      <div style={{ padding: '12px', background: 'rgba(255, 255, 255, 0.03)', borderRadius: '8px' }}>
+                        <div style={{ color: 'rgba(255, 255, 255, 0.5)', fontSize: '12px', fontWeight: '600', textTransform: 'uppercase', marginBottom: '4px' }}>Chiều dài tối đa Case</div>
+                        <div style={{ color: 'white', fontSize: '16px', fontWeight: '600' }}>{compatibilityResult.fit.caseMaxGpuLengthMm}mm</div>
+                      </div>
+                      <div style={{ padding: '12px', background: compatibilityResult.fit.gpuLengthMm <= compatibilityResult.fit.caseMaxGpuLengthMm ? 'rgba(16, 185, 129, 0.1)' : 'rgba(239, 68, 68, 0.1)', borderRadius: '8px', border: `1px solid ${compatibilityResult.fit.gpuLengthMm <= compatibilityResult.fit.caseMaxGpuLengthMm ? 'rgba(16, 185, 129, 0.3)' : 'rgba(239, 68, 68, 0.3)'}` }}>
+                        <div style={{ color: 'rgba(255, 255, 255, 0.5)', fontSize: '12px', fontWeight: '600', textTransform: 'uppercase', marginBottom: '4px' }}>Trạng thái</div>
+                        <div style={{ color: compatibilityResult.fit.gpuLengthMm <= compatibilityResult.fit.caseMaxGpuLengthMm ? '#10b981' : '#ef4444', fontSize: '16px', fontWeight: '600' }}>
+                          {compatibilityResult.fit.gpuLengthMm <= compatibilityResult.fit.caseMaxGpuLengthMm ? '✅ Vừa' : '❌ Không vừa'}
+                        </div>
+                      </div>
+                    </div>
+                  </div>
+                </div>
+              )}
+
+              {/* Suggestions */}
+              {compatibilityResult.suggestionsByCategory && Object.keys(compatibilityResult.suggestionsByCategory).length > 0 && (
+                <div style={{ marginBottom: '24px' }}>
+                  <h3 style={{ 
+                    color: 'white', 
+                    fontSize: '20px', 
+                    fontWeight: '700', 
+                    marginBottom: '16px'
+                  }}>
+                    💡 Đề xuất thay thế
+                  </h3>
+                  {Object.entries(compatibilityResult.suggestionsByCategory).map(([category, suggestion]: [string, CategorySuggestion]) => (
+                    <div key={category} style={{ marginBottom: '20px' }}>
+                      <div style={{
+                        background: 'rgba(59, 130, 246, 0.1)',
+                        border: '1px solid rgba(59, 130, 246, 0.3)',
+                        borderRadius: '12px',
+                        padding: '16px',
+                        marginBottom: '12px'
+                      }}>
+                        <div style={{ color: '#3b82f6', fontSize: '16px', fontWeight: '600', marginBottom: '8px' }}>
+                          {category}
+                        </div>
+                        <div style={{ color: 'rgba(255, 255, 255, 0.8)', fontSize: '14px' }}>
+                          {suggestion.reason}
+                        </div>
+                      </div>
+                      {suggestion.alternatives && suggestion.alternatives.length > 0 && (
+                        <div style={{ display: 'flex', flexDirection: 'column', gap: '8px', marginTop: '12px' }}>
+                          {suggestion.alternatives.map((alt: SuggestionAlternative, index: number) => (
+                            <div 
+                              key={index} 
+                              onClick={() => handleReplaceComponent(category, alt)}
+                              style={{
+                                background: 'rgba(255, 255, 255, 0.03)',
+                                border: '1px solid rgba(255, 255, 255, 0.08)',
+                                borderRadius: '8px',
+                                padding: '12px',
+                                display: 'flex',
+                                justifyContent: 'space-between',
+                                alignItems: 'center',
+                                cursor: 'pointer',
+                                transition: 'all 0.2s'
+                              }}
+                              onMouseEnter={(e) => {
+                                e.currentTarget.style.background = 'rgba(59, 130, 246, 0.1)'
+                                e.currentTarget.style.borderColor = 'rgba(59, 130, 246, 0.3)'
+                                e.currentTarget.style.transform = 'translateX(4px)'
+                              }}
+                              onMouseLeave={(e) => {
+                                e.currentTarget.style.background = 'rgba(255, 255, 255, 0.03)'
+                                e.currentTarget.style.borderColor = 'rgba(255, 255, 255, 0.08)'
+                                e.currentTarget.style.transform = 'translateX(0)'
+                              }}
+                            >
+                              <div style={{ flex: 1 }}>
+                                <div style={{ color: 'white', fontSize: '14px', fontWeight: '600', marginBottom: '4px' }}>
+                                  {alt.name}
+                                </div>
+                                {alt.highlights && Object.keys(alt.highlights).length > 0 && (
+                                  <div style={{ display: 'flex', gap: '8px', marginTop: '4px', flexWrap: 'wrap' }}>
+                                    {Object.entries(alt.highlights || {}).map(([key, value]: [string, string]) => (
+                                      <span key={key} style={{
+                                        background: 'rgba(59, 130, 246, 0.2)',
+                                        color: '#60a5fa',
+                                        fontSize: '12px',
+                                        padding: '2px 8px',
+                                        borderRadius: '4px'
+                                      }}>
+                                        {key}: {value}
+                                      </span>
+                                    ))}
+                                  </div>
+                                )}
+                              </div>
+                              <div style={{ display: 'flex', alignItems: 'center', gap: '12px' }}>
+                                <div style={{ color: '#10b981', fontSize: '16px', fontWeight: '700' }}>
+                                  {alt.price?.toLocaleString('vi-VN')} VND
+                                </div>
+                                <div style={{
+                                  background: 'rgba(16, 185, 129, 0.2)',
+                                  color: '#10b981',
+                                  fontSize: '12px',
+                                  padding: '6px 12px',
+                                  borderRadius: '6px',
+                                  fontWeight: '600',
+                                  whiteSpace: 'nowrap'
+                                }}>
+                                  Chọn
+                                </div>
+                              </div>
+                            </div>
+                          ))}
+                        </div>
+                      )}
+                    </div>
+                  ))}
+                </div>
+              )}
+
+              {/* Action Buttons */}
+              <div style={{
+                display: 'flex',
+                gap: '12px',
+                justifyContent: 'flex-end',
+                marginTop: '32px',
+                paddingTop: '24px',
+                borderTop: '1px solid rgba(255, 255, 255, 0.1)'
+              }}>
+                <button
+                  onClick={() => {
+                    setShowCompatibilityModal(false)
+                    setCompatibilityResult(null)
+                    navigate('/builds')
+                  }}
+                  style={{
+                    background: 'rgba(255, 255, 255, 0.1)',
+                    color: 'white',
+                    border: '1px solid rgba(255, 255, 255, 0.2)',
+                    padding: '12px 24px',
+                    borderRadius: '8px',
+                    fontSize: '14px',
+                    fontWeight: '500',
+                    cursor: 'pointer',
+                    transition: 'all 0.2s'
+                  }}
+                  onMouseEnter={(e) => {
+                    e.currentTarget.style.backgroundColor = 'rgba(255, 255, 255, 0.2)'
+                  }}
+                  onMouseLeave={(e) => {
+                    e.currentTarget.style.backgroundColor = 'rgba(255, 255, 255, 0.1)'
+                  }}
+                >
+                  Đóng
+                </button>
+              </div>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* Loading Overlay */}
+      {savingBuild && (
+        <>
+          <style>{`
+            @keyframes spin {
+              from { transform: rotate(0deg); }
+              to { transform: rotate(360deg); }
+            }
+          `}</style>
+          <div style={{
+            position: 'fixed',
+            top: 0,
+            left: 0,
+            right: 0,
+            bottom: 0,
+            backgroundColor: 'rgba(0, 0, 0, 0.7)',
+            display: 'flex',
+            alignItems: 'center',
+            justifyContent: 'center',
+            zIndex: 1500,
+            flexDirection: 'column',
+            gap: '20px'
+          }}>
+            <div style={{
+              width: '60px',
+              height: '60px',
+              border: '4px solid rgba(255, 255, 255, 0.1)',
+              borderTop: '4px solid #3b82f6',
+              borderRadius: '50%',
+              animation: 'spin 1s linear infinite'
+            }}></div>
+            <div style={{ color: 'white', fontSize: '18px', fontWeight: '600' }}>
+              Đang lưu build và kiểm tra tương thích...
+            </div>
+          </div>
+        </>
+      )}
     </div>
   )
 }
