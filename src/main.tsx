@@ -6,6 +6,8 @@ import ProtectedRoute from './components/ProtectedRoute'
 import HomePage from './pages/homepage/index.tsx'
 import AppShell from './components/AppShell'
 import SalesPage from './pages/sales/index.tsx'
+import GamesPage from './pages/games/index.tsx'
+import ServicesPage from './pages/services/index.tsx'
 import CasePage from './pages/products/case.tsx'
 import CPUPage from './pages/products/cpu.tsx'
 import ProductDetailPage from './pages/products/product-detail.tsx'
@@ -59,6 +61,8 @@ createRoot(document.getElementById('root')!).render(
         <Route element={<AppShell />}>
           <Route path="/" element={<HomePage />} />
           <Route path="/sales" element={<SalesPage />} />
+          <Route path="/games" element={<GamesPage />} />
+          <Route path="/services" element={<ServicesPage />} />
           <Route path="/compare" element={<ComparePage />} />
           <Route path="/pcbuilder" element={<PCBuilderPage />} />
           <Route path="/checkout" element={<CheckoutPage />} />

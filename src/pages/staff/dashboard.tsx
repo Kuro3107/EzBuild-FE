@@ -1,4 +1,4 @@
-import { useEffect, useMemo, useState } from 'react'
+import { useEffect, useMemo, useState, useCallback } from 'react'
 import { Link } from 'react-router-dom'
 import { ApiService } from '../../services/api'
 import '../../Homepage.css'
@@ -38,31 +38,47 @@ function StaffDashboardPage() {
   const [ordersForChart, setOrdersForChart] = useState<Array<Record<string, unknown>>>([])
   const [paymentsForChart, setPaymentsForChart] = useState<Array<Record<string, unknown>>>([])
 
-  const revenuePoints = useMemo(() => {
+  type PaymentLike = {
+    status?: string
+    amount?: number | string
+    paidAt?: string
+    updatedAt?: string
+    createdAt?: string
+  }
+
+  const revenueByMonth = useMemo(() => {
     const map = new Map<string, number>()
     paymentsForChart
-      .filter(p => (p as Record<string, unknown>)['status'] === 'PAID')
-      .forEach(p => {
-        const rec = p as Record<string, unknown>
-        const d = (rec['paidAt'] as string) || (rec['updatedAt'] as string) || (rec['createdAt'] as string)
-        const key = d ? new Date(d).toLocaleDateString('vi-VN', { day: '2-digit', month: '2-digit' }) : '??'
-        const amtRaw = rec['amount'] as number | string | undefined
-        map.set(key, (map.get(key) || 0) + (amtRaw !== undefined ? Number(amtRaw) : 0))
+      .filter(p => {
+        const status = (p as PaymentLike).status
+        return status === 'SUCCESS' || status === 'PAID'
       })
-    const arr = Array.from(map.entries()).map(([k, v]) => ({ x: k, y: v }))
-    arr.sort((a, b) => {
-      const [da, ma] = a.x.split('/').map(Number)
-      const [db, mb] = b.x.split('/').map(Number)
-      return ma === mb ? da - db : ma - mb
+      .forEach(p => {
+        const pay = p as PaymentLike
+        const d = pay.paidAt || pay.updatedAt || pay.createdAt
+        const key = d ? new Date(d).toLocaleDateString('vi-VN', { month: '2-digit', year: '2-digit' }) : '??'
+        map.set(key, (map.get(key) || 0) + (Number(pay.amount) || 0))
+      })
+    const entries = Array.from(map.entries()).sort((a, b) => {
+      const [ma, ya] = a[0].split('/').map(Number)
+      const [mb, yb] = b[0].split('/').map(Number)
+      return ya === yb ? ma - mb : ya - yb
     })
-    return arr
+    return entries.map(([k, v]) => ({ x: k, y: v }))
   }, [paymentsForChart])
 
-  useEffect(() => {
-    loadDashboardData()
-  }, [])
+  const revenueBarData = useMemo(() => {
+    return {
+      labels: revenueByMonth.map(p => p.x),
+      values: revenueByMonth.map(p => p.y)
+    }
+  }, [revenueByMonth])
 
-  const loadDashboardData = async () => {
+  const currentMonthRevenue = revenueByMonth.length > 0 ? revenueByMonth[revenueByMonth.length - 1].y : 0
+  const prevMonthRevenue = revenueByMonth.length > 1 ? revenueByMonth[revenueByMonth.length - 2].y : 0
+  const revenueChangePercent = prevMonthRevenue > 0 ? ((currentMonthRevenue - prevMonthRevenue) / prevMonthRevenue) * 100 : 0
+
+  const loadDashboardData = useCallback(async () => {
     try {
       setLoading(true)
       setError(null)
@@ -88,8 +104,11 @@ function StaffDashboardPage() {
         paid25PercentPayments: payments.filter(p => p.status === 'PAID 25%').length,
         paidPayments: payments.filter(p => p.status === 'PAID').length,
         totalRevenue: payments
-          .filter(p => p.status === 'PAID')
-          .reduce((sum, p) => sum + (Number(p.amount) || 0), 0)
+          .filter(p => {
+            const status = (p as PaymentLike).status
+            return status === 'SUCCESS' || status === 'PAID'
+          })
+          .reduce((sum, p) => sum + (Number((p as PaymentLike).amount) || 0), 0)
       }
       
       setStats(newStats)
@@ -101,7 +120,11 @@ function StaffDashboardPage() {
     } finally {
       setLoading(false)
     }
-  }
+  }, [])
+
+  useEffect(() => {
+    loadDashboardData()
+  }, [loadDashboardData])
 
   if (loading) {
     return (
@@ -148,21 +171,27 @@ function StaffDashboardPage() {
           <p className="text-gray-300 text-lg">Tổng quan hoạt động hệ thống</p>
         </div>
 
-        {/* Orders Stats */}
-        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4 mb-6">
+        {/* Stats Grid */}
+        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-5 gap-4 mb-8">
           {[
             { label: 'Tổng đơn hàng', value: stats.totalOrders, color: 'from-blue-500 to-cyan-500', icon: '📦', link: '/staff/orders' },
             { label: 'Chờ xử lý', value: stats.pendingOrders, color: 'from-amber-500 to-orange-500', icon: '⏳' },
             { label: 'Đã cọc', value: stats.depositedOrders, color: 'from-blue-500 to-indigo-500', icon: '💰' },
             { label: 'Đang giao', value: stats.shippingOrders, color: 'from-purple-500 to-pink-500', icon: '🚚' },
+            { label: 'Doanh thu', value: stats.totalRevenue, color: 'from-red-500 to-rose-500', icon: '💰', isCurrency: true },
           ].map((stat, idx) => (
             <div key={idx} className="bg-white/10 backdrop-blur-lg rounded-2xl p-6 border border-white/20 hover:border-white/40 transition-all shadow-lg hover:shadow-xl">
               <div className="flex items-center justify-between mb-4">
-                <div>
+                <div className="flex-1">
                   <p className="text-gray-300 text-sm mb-2">{stat.label}</p>
-                  <p className="text-3xl font-bold text-white">{stat.value}</p>
+                  <p className="text-2xl font-bold text-white">
+                    {stat.isCurrency 
+                      ? new Intl.NumberFormat('vi-VN', { style: 'currency', currency: 'VND', notation: 'compact' }).format(stat.value as number)
+                      : stat.value
+                    }
+                  </p>
                 </div>
-                <div className={`w-14 h-14 rounded-xl bg-gradient-to-br ${stat.color} flex items-center justify-center text-2xl shadow-lg`}>
+                <div className={`w-12 h-12 rounded-xl bg-gradient-to-br ${stat.color} flex items-center justify-center text-xl shadow-lg`}>
                   {stat.icon}
                 </div>
               </div>
@@ -208,23 +237,6 @@ function StaffDashboardPage() {
           ))}
         </div>
 
-        {/* Revenue Card */}
-        <div className="bg-gradient-to-r from-emerald-500 to-teal-500 rounded-2xl p-6 mb-8 border border-white/20 shadow-2xl">
-          <div className="flex items-center justify-between">
-            <div>
-              <p className="text-white/90 text-sm mb-2">Tổng doanh thu</p>
-              <p className="text-4xl font-bold text-white">
-                {new Intl.NumberFormat('vi-VN', {
-                  style: 'currency',
-                  currency: 'VND'
-                }).format(stats.totalRevenue)}
-              </p>
-            </div>
-            <div className="w-16 h-16 rounded-xl bg-white/20 backdrop-blur-sm flex items-center justify-center text-3xl">
-              💰
-            </div>
-          </div>
-        </div>
 
         {/* Charts */}
         <div className="grid grid-cols-1 lg:grid-cols-2 gap-6 mb-8">
@@ -243,8 +255,19 @@ function StaffDashboardPage() {
             />
           </div>
           <div className="bg-white/10 backdrop-blur-lg rounded-2xl p-6 border border-white/20 shadow-xl">
-            <h3 className="font-semibold text-white mb-4 text-lg">Doanh thu (ngày gần đây)</h3>
-            <LineChart points={revenuePoints} />
+            <h3 className="font-semibold text-white mb-4 text-lg">Doanh thu theo tháng</h3>
+            <div className="flex items-end gap-3 mb-4">
+              <div className="text-3xl font-bold text-white">
+                {new Intl.NumberFormat('vi-VN', { style: 'currency', currency: 'VND', notation: 'compact' }).format(currentMonthRevenue)}
+              </div>
+              <div className={`text-sm font-medium ${revenueChangePercent >= 0 ? 'text-green-400' : 'text-red-400'}`}>
+                <span className="inline-flex items-center gap-1">
+                  {revenueChangePercent >= 0 ? '↑' : '↓'}
+                  {Math.abs(revenueChangePercent).toFixed(1)}%
+                </span>
+              </div>
+            </div>
+            <BarChart labels={revenueBarData.labels} values={revenueBarData.values} color="#3b82f6" />
           </div>
         </div>
 
@@ -318,18 +341,5 @@ function BarChart({ labels, values, color = '#6366f1' }: { labels: string[]; val
   )
 }
 
-function LineChart({ points, color = '#10b981' }: { points: Array<{ x: string; y: number }>; color?: string }) {
-  const maxY = Math.max(1, ...points.map(p => p.y))
-  const stepX = 100 / Math.max(1, points.length - 1)
-  return (
-    <svg viewBox="0 0 100 60" preserveAspectRatio="none" className="w-full h-40">
-      <polyline fill="none" stroke={color} strokeWidth="1.5" points={points.map((p, i) => `${i * stepX},${55 - (p.y / maxY) * 48}`).join(' ')} />
-      {points.map((p, i) => (
-        <circle key={i} cx={i * stepX} cy={55 - (p.y / maxY) * 48} r={1.2} fill={color} />
-      ))}
-      <line x1="0" y1="55" x2="100" y2="55" stroke="#374151" strokeWidth="0.5" />
-    </svg>
-  )
-}
 
 export default StaffDashboardPage

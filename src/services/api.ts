@@ -1991,6 +1991,87 @@ export class ApiService {
     }
   }
 
+  static async getAllGameRequirements(): Promise<Record<string, unknown>[]> {
+    try {
+      const response = await fetch(`${API_BASE_URL}/api/game-requirement`, {
+        method: 'GET',
+        headers: { 'Content-Type': 'application/json' }
+      })
+
+      if (!response.ok) {
+        throw new Error(`HTTP ${response.status}: ${response.statusText}`)
+      }
+
+      return await this.handleResponse<Record<string, unknown>[]>(response)
+    } catch (error) {
+      console.error('Error fetching game requirements:', error)
+      throw error
+    }
+  }
+
+  static async getGameRequirementsByGameId(gameId: number): Promise<Record<string, unknown>[]> {
+    try {
+      // Thử cả path parameter và query parameter
+      let response = await fetch(`${API_BASE_URL}/api/game-requirement/${gameId}`, {
+        method: 'GET',
+        headers: { 'Content-Type': 'application/json' }
+      })
+
+      // Nếu không thành công, thử query parameter
+      if (!response.ok) {
+        response = await fetch(`${API_BASE_URL}/api/game-requirement?game_id=${gameId}`, {
+          method: 'GET',
+          headers: { 'Content-Type': 'application/json' }
+        })
+      }
+
+      // Nếu vẫn không thành công, lấy tất cả và filter
+      if (!response.ok) {
+        console.log(`Endpoint /api/game-requirement/${gameId} không hoạt động, thử lấy tất cả và filter...`)
+        const allRequirements = await this.getAllGameRequirements()
+        const filtered = allRequirements.filter((req: Record<string, unknown>) => {
+          const reqGameId = Number(req.game_id ?? req.gameId ?? (req.game && typeof req.game === 'object' ? (req.game as { id?: unknown }).id : undefined))
+          return reqGameId === gameId
+        })
+        console.log(`Tìm thấy ${filtered.length} requirements cho game_id=${gameId}`)
+        // Đảm bảo trả về array
+        return Array.isArray(filtered) ? filtered : []
+      }
+
+      const data = await this.handleResponse<Record<string, unknown>[]>(response)
+      console.log(`Lấy được ${Array.isArray(data) ? data.length : 'N/A'} requirements cho game_id=${gameId} từ API`)
+      console.log(`Data type:`, typeof data, `Is array:`, Array.isArray(data))
+      console.log(`Data:`, data)
+      
+      // Đảm bảo trả về array
+      if (Array.isArray(data)) {
+        return data
+      } else if (data && typeof data === 'object') {
+        // Nếu là object, convert sang array
+        return [data]
+      } else {
+        console.warn(`Unexpected data format, returning empty array`)
+        return []
+      }
+    } catch (error) {
+      console.error('Error fetching game requirement by id:', error)
+      // Fallback: lấy tất cả và filter
+      try {
+        const allRequirements = await this.getAllGameRequirements()
+        const filtered = allRequirements.filter((req: Record<string, unknown>) => {
+          const reqGameId = Number(req.game_id ?? req.gameId ?? (req.game && typeof req.game === 'object' ? (req.game as { id?: unknown }).id : undefined))
+          return reqGameId === gameId
+        })
+        console.log(`Fallback: Tìm thấy ${filtered.length} requirements cho game_id=${gameId}`)
+        // Đảm bảo trả về array
+        return Array.isArray(filtered) ? filtered : []
+      } catch (fallbackError) {
+        console.error('Error in fallback:', fallbackError)
+        throw error
+      }
+    }
+  }
+
   static async createGame(game: Record<string, unknown>): Promise<Record<string, unknown>> {
     const response = await fetch(`${API_BASE_URL}/api/game`, {
       method: 'POST',
@@ -2030,18 +2111,129 @@ export class ApiService {
   }
 
   // Feedbacks APIs
-  static async getAllOrderFeedbacks(): Promise<Record<string, unknown>[]> {
+  static async getOrderFeedbackById(id: number): Promise<Record<string, unknown>> {
     try {
-      const response = await fetch(`${API_BASE_URL}/api/order-feedback`, {
+      const token = localStorage.getItem('authToken')
+      const headers: Record<string, string> = {
+        'Content-Type': 'application/json',
+        'Accept': 'application/json',
+      }
+      
+      if (token) {
+        headers['Authorization'] = `Bearer ${token}`
+      }
+
+      const response = await fetch(`${API_BASE_URL}/api/order-feedback/${id}`, {
         method: 'GET',
-        headers: { 'Content-Type': 'application/json' },
+        headers: headers,
       })
 
       if (!response.ok) {
         throw new Error(`HTTP ${response.status}: ${response.statusText}`)
       }
 
-      return await this.handleResponse<Record<string, unknown>[]>(response)
+      // Log response chi tiết
+      const responseText = await response.clone().text()
+      console.log(`=== GET ORDER FEEDBACK BY ID #${id} ===`)
+      console.log('Response text:', responseText.substring(0, 1000))
+      
+      const data = await this.handleResponse<Record<string, unknown>>(response)
+      console.log('Parsed data:', JSON.stringify(data, null, 2))
+      console.log('Data keys:', Object.keys(data))
+      console.log('order_id:', data.order_id)
+      console.log('orderId:', data.orderId)
+      console.log('order:', data.order)
+      console.log('user_id:', data.user_id)
+      console.log('userId:', data.userId)
+      console.log('user:', data.user)
+      
+      return data
+    } catch (error) {
+      console.error(`Error fetching order feedback ${id}:`, error)
+      throw error
+    }
+  }
+
+  static async getAllOrderFeedbacks(): Promise<Record<string, unknown>[]> {
+    try {
+      const token = localStorage.getItem('authToken')
+      const headers: Record<string, string> = {
+        'Content-Type': 'application/json',
+        'Accept': 'application/json',
+      }
+      
+      // Thêm Authorization header nếu có token
+      if (token) {
+        headers['Authorization'] = `Bearer ${token}`
+      }
+
+      console.log('=== GET ALL ORDER FEEDBACKS ===')
+      console.log('Request URL:', `${API_BASE_URL}/api/order-feedback`)
+      console.log('Request method: GET')
+      console.log('Headers:', headers)
+
+      const response = await fetch(`${API_BASE_URL}/api/order-feedback`, {
+        method: 'GET', // Đảm bảo dùng GET method - không phải OPTIONS
+        headers: headers,
+        // Không gửi body cho GET request
+      })
+
+      console.log('Response status:', response.status)
+      console.log('Response ok:', response.ok)
+
+      if (!response.ok) {
+        throw new Error(`HTTP ${response.status}: ${response.statusText}`)
+      }
+
+      // Lấy raw response text trước để xem format thực tế
+      const responseText = await response.clone().text()
+      console.log('=== RAW RESPONSE TEXT ===')
+      console.log(responseText.substring(0, 2000)) // Log 2000 ký tự đầu
+      
+      const data = await this.handleResponse<Record<string, unknown>[]>(response)
+      console.log('Response data:', data)
+      console.log('Number of feedbacks:', data.length)
+      
+      // Log chi tiết từng feedback để debug
+      if (data.length > 0) {
+        console.log('=== FIRST FEEDBACK DETAILS ===')
+        console.log('First feedback:', JSON.stringify(data[0], null, 2))
+        console.log('First feedback keys:', Object.keys(data[0]))
+        
+        // Kiểm tra tất cả các keys có thể chứa order_id
+        const firstFeedback = data[0] as Record<string, unknown>
+        console.log('=== CHECKING ALL ORDER ID POSSIBILITIES ===')
+        console.log('order_id:', firstFeedback.order_id, '(type:', typeof firstFeedback.order_id, ')')
+        console.log('orderId:', firstFeedback.orderId, '(type:', typeof firstFeedback.orderId, ')')
+        console.log('order:', firstFeedback.order)
+        if (firstFeedback.order && typeof firstFeedback.order === 'object' && firstFeedback.order !== null) {
+          const order = firstFeedback.order as Record<string, unknown>
+          console.log('order.id:', order.id)
+          console.log('order.orderId:', order.orderId)
+          console.log('order.order_id:', order.order_id)
+          console.log('All order keys:', Object.keys(order))
+        }
+        
+        console.log('=== CHECKING ALL USER ID POSSIBILITIES ===')
+        console.log('user_id:', firstFeedback.user_id, '(type:', typeof firstFeedback.user_id, ')')
+        console.log('userId:', firstFeedback.userId, '(type:', typeof firstFeedback.userId, ')')
+        console.log('user:', firstFeedback.user)
+        if (firstFeedback.user && typeof firstFeedback.user === 'object' && firstFeedback.user !== null) {
+          const user = firstFeedback.user as Record<string, unknown>
+          console.log('user.id:', user.id)
+          console.log('user.userId:', user.userId)
+          console.log('user.user_id:', user.user_id)
+          console.log('All user keys:', Object.keys(user))
+        }
+        
+        // Kiểm tra tất cả các keys trong response
+        console.log('=== ALL KEYS IN RESPONSE ===')
+        Object.keys(firstFeedback).forEach(key => {
+          console.log(`  ${key}:`, firstFeedback[key], `(type: ${typeof firstFeedback[key]})`)
+        })
+      }
+      
+      return data
     } catch (error) {
       console.error('Error fetching order feedbacks:', error)
       throw error
@@ -2050,16 +2242,40 @@ export class ApiService {
 
   static async getAllServiceFeedbacks(): Promise<Record<string, unknown>[]> {
     try {
+      const token = localStorage.getItem('authToken')
+      const headers: Record<string, string> = {
+        'Content-Type': 'application/json',
+        'Accept': 'application/json',
+      }
+      
+      // Thêm Authorization header nếu có token
+      if (token) {
+        headers['Authorization'] = `Bearer ${token}`
+      }
+
+      console.log('=== GET ALL SERVICE FEEDBACKS ===')
+      console.log('Request URL:', `${API_BASE_URL}/api/service-feedback`)
+      console.log('Request method: GET')
+      console.log('Headers:', headers)
+
       const response = await fetch(`${API_BASE_URL}/api/service-feedback`, {
-        method: 'GET',
-        headers: { 'Content-Type': 'application/json' },
+        method: 'GET', // Đảm bảo dùng GET method - không phải OPTIONS
+        headers: headers,
+        // Không gửi body cho GET request
       })
+
+      console.log('Response status:', response.status)
+      console.log('Response ok:', response.ok)
 
       if (!response.ok) {
         throw new Error(`HTTP ${response.status}: ${response.statusText}`)
       }
 
-      return await this.handleResponse<Record<string, unknown>[]>(response)
+      const data = await this.handleResponse<Record<string, unknown>[]>(response)
+      console.log('Response data:', data)
+      console.log('Number of feedbacks:', data.length)
+      
+      return data
     } catch (error) {
       console.error('Error fetching service feedbacks:', error)
       throw error
@@ -2096,13 +2312,56 @@ export class ApiService {
 
   static async createOrderFeedback(data: { orderId: number; rating: number; comment: string; userId?: number; createdAt?: string }): Promise<Record<string, unknown>> {
     try {
+      // Đảm bảo orderId và userId có giá trị hợp lệ
+      if (!data.orderId || data.orderId === 0) {
+        throw new Error('Order ID không hợp lệ')
+      }
+      
+      if (!data.userId || data.userId === 0) {
+        console.warn('⚠️ User ID không có hoặc = 0, sẽ không gửi user object')
+      }
+
+      // Backend expect format: { order: { id: ... }, user: { id: ... }, rating, comments }
+      const payload: Record<string, unknown> = {
+        order: {
+          id: data.orderId
+        },
+        rating: data.rating,
+        comments: data.comment || '',  // Backend dùng 'comments' (số nhiều)
+      }
+      
+      // Chỉ thêm user object nếu có userId hợp lệ
+      if (data.userId && data.userId > 0) {
+        payload.user = {
+          id: data.userId
+        }
+      }
+
+      // Gửi thêm snake_case format để đảm bảo tương thích
+      payload.order_id = data.orderId
+      if (data.userId && data.userId > 0) {
+        payload.user_id = data.userId
+      }
+
+      console.log('=== CREATE ORDER FEEDBACK ===')
+      console.log('Input data:', data)
+      console.log('Order ID:', data.orderId, '(type:', typeof data.orderId, ')')
+      console.log('User ID:', data.userId, '(type:', typeof data.userId, ')')
+      console.log('Payload to send:', payload)
+      console.log('Payload JSON string:', JSON.stringify(payload))
+
       const response = await fetch(`${API_BASE_URL}/api/order-feedback`, {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
         },
-        body: JSON.stringify(data),
+        body: JSON.stringify(payload),
       })
+      
+      // Log response để debug
+      const responseText = await response.clone().text()
+      console.log('Response status:', response.status)
+      console.log('Response body:', responseText)
 
       if (!response.ok) {
         const errorData = await response.json().catch(() => ({}))
@@ -2118,12 +2377,22 @@ export class ApiService {
 
   static async updateOrderFeedback(id: number, data: { orderId?: number; rating?: number; comment?: string; createdAt?: string }): Promise<Record<string, unknown>> {
     try {
+      // Convert camelCase sang snake_case để match với database
+      const payload: Record<string, unknown> = {}
+      
+      if (data.orderId !== undefined) payload.order_id = data.orderId
+      if (data.rating !== undefined) payload.rating = data.rating
+      if (data.comment !== undefined) payload.comments = data.comment  // Database dùng 'comments'
+      if (data.createdAt !== undefined) payload.created_at = data.createdAt
+
+      console.log('Updating order feedback with payload:', payload)
+
       const response = await fetch(`${API_BASE_URL}/api/order-feedback/${id}`, {
         method: 'PUT',
         headers: {
           'Content-Type': 'application/json',
         },
-        body: JSON.stringify(data),
+        body: JSON.stringify(payload),
       })
 
       if (!response.ok) {
@@ -2140,12 +2409,23 @@ export class ApiService {
 
   static async createServiceFeedback(data: { serviceId: number; rating: number; comment: string; userId?: number; createdAt?: string }): Promise<Record<string, unknown>> {
     try {
+      // Convert camelCase sang snake_case để match với database
+      const payload = {
+        service_id: data.serviceId,  // Database dùng snake_case
+        user_id: data.userId || null,  // Database dùng snake_case
+        rating: data.rating,
+        comments: data.comment || '',  // Database dùng 'comments' (số nhiều)
+        created_at: data.createdAt || new Date().toISOString(),  // Database dùng snake_case
+      }
+
+      console.log('Creating service feedback with payload:', payload)
+
       const response = await fetch(`${API_BASE_URL}/api/service-feedback`, {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
         },
-        body: JSON.stringify(data),
+        body: JSON.stringify(payload),
       })
 
       if (!response.ok) {
@@ -2162,12 +2442,22 @@ export class ApiService {
 
   static async updateServiceFeedback(id: number, data: { serviceId?: number; rating?: number; comment?: string; createdAt?: string }): Promise<Record<string, unknown>> {
     try {
+      // Convert camelCase sang snake_case để match với database
+      const payload: Record<string, unknown> = {}
+      
+      if (data.serviceId !== undefined) payload.service_id = data.serviceId
+      if (data.rating !== undefined) payload.rating = data.rating
+      if (data.comment !== undefined) payload.comments = data.comment  // Database dùng 'comments'
+      if (data.createdAt !== undefined) payload.created_at = data.createdAt
+
+      console.log('Updating service feedback with payload:', payload)
+
       const response = await fetch(`${API_BASE_URL}/api/service-feedback/${id}`, {
         method: 'PUT',
         headers: {
           'Content-Type': 'application/json',
         },
-        body: JSON.stringify(data),
+        body: JSON.stringify(payload),
       })
 
       if (!response.ok) {
