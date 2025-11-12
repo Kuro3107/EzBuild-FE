@@ -1,6 +1,6 @@
 import { useEffect, useMemo, useState } from 'react'
 import { ApiService } from '../../services/api'
-import { Link } from 'react-router-dom'
+import { Link, useNavigate } from 'react-router-dom'
 import ChatBubble from '../../components/AIChatBubble'
 
 interface BuildItemDTO {
@@ -33,11 +33,122 @@ interface BuildDTO {
   items?: BuildItemDTO[]
 }
 
+interface BuildSpecs {
+  cpu?: string
+  gpu?: string
+  ramGB?: number
+  storageGB?: number
+}
+
+const CATEGORY_CPU = 1
+const CATEGORY_GPU = 2
+const CATEGORY_RAM = 3
+const CATEGORY_STORAGE = 5
+
+const getCategoryId = (item: BuildItemDTO): number | undefined => {
+  const anyItem = item as unknown as Record<string, unknown>
+
+  const directCategory =
+    (anyItem.category_id as number | undefined) ??
+    (anyItem.categoryId as number | undefined) ??
+    (anyItem.product_category_id as number | undefined)
+  if (directCategory) return directCategory
+
+  const categoryObj = anyItem.category as { id?: number } | undefined
+  if (categoryObj?.id) return categoryObj.id
+
+  const productPrice = item.productPrice as { product?: { categoryId?: number; category?: { id?: number } } } | undefined
+  const productCategoryId = productPrice?.product?.categoryId ?? productPrice?.product?.category?.id
+  if (productCategoryId) return productCategoryId
+
+  return undefined
+}
+
+const parseCapacityToGB = (text?: string, quantity = 1): number | undefined => {
+  if (!text) return undefined
+  const match = text.match(/(\d+(?:\.\d+)?)\s*(tb|gb)/i)
+  if (!match) return undefined
+  let value = parseFloat(match[1])
+  const unit = match[2].toLowerCase()
+  if (unit === 'tb') value *= 1024
+  return value * (quantity || 1)
+}
+
+const isLikelyCPU = (name: string) => /cpu|ryzen|intel|core|xeon/i.test(name)
+const isLikelyGPU = (name: string) => /gpu|rtx|gtx|radeon|graphics|vga/i.test(name)
+const isLikelyRAM = (name: string) => /ram|ddr|sodimm/i.test(name)
+const isLikelyStorage = (name: string) => /ssd|hdd|nvme|m\.2|sata|storage|hard drive/i.test(name)
+
+const extractBuildSpecs = (items: BuildItemDTO[] = []): BuildSpecs => {
+  let cpuName: string | undefined
+  let gpuName: string | undefined
+  let totalRam = 0
+  let totalStorage = 0
+
+  items.forEach((item) => {
+    const anyItem = item as unknown as Record<string, unknown>
+    const rawName =
+      item.product_name ??
+      ((item.productPrice?.product as unknown as { name?: string } | undefined)?.name) ??
+      (anyItem.name as string | undefined) ??
+      ''
+    const productName = typeof rawName === 'string' ? rawName : String(rawName)
+    const nameLower = productName.toLowerCase()
+    const quantity = item.quantity || Number(anyItem.quantity || 1) || 1
+    const categoryId = getCategoryId(item)
+
+    if (
+      categoryId === CATEGORY_CPU ||
+      isLikelyCPU(nameLower)
+    ) {
+      if (!cpuName) {
+        cpuName = productName
+      }
+      return
+    }
+
+    if (
+      categoryId === CATEGORY_GPU ||
+      isLikelyGPU(nameLower)
+    ) {
+      if (!gpuName) {
+        gpuName = productName
+      }
+      return
+    }
+
+    if (
+      categoryId === CATEGORY_RAM ||
+      isLikelyRAM(nameLower)
+    ) {
+      const capacity = parseCapacityToGB(productName, quantity)
+      if (capacity) totalRam += capacity
+      return
+    }
+
+    if (
+      categoryId === CATEGORY_STORAGE ||
+      isLikelyStorage(nameLower)
+    ) {
+      const capacity = parseCapacityToGB(productName, quantity)
+      if (capacity) totalStorage += capacity
+    }
+  })
+
+  return {
+    cpu: cpuName,
+    gpu: gpuName,
+    ramGB: totalRam > 0 ? totalRam : undefined,
+    storageGB: totalStorage > 0 ? totalStorage : undefined
+  }
+}
+
 function CustomerBuildsPage() {
   const currentUser = ApiService.getCurrentUser()
   const [builds, setBuilds] = useState<BuildDTO[]>([])
   const [isLoading, setIsLoading] = useState(true)
   const [error, setError] = useState<string | null>(null)
+  const navigate = useNavigate()
 
   useEffect(() => {
     const fetchData = async () => {
@@ -158,12 +269,30 @@ function CustomerBuildsPage() {
                             }
                           })
                           localStorage.setItem('ezbuild-selected-build', JSON.stringify({ id: b.id, name: b.name, items: mapped }))
-                          window.location.href = '/pcbuilder'
+                          navigate('/pcbuilder')
                         }}
                         className="px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 text-sm"
                         style={{ color: '#fff' }}
                       >
                         Xem
+                      </button>
+                      <button
+                        onClick={() => {
+                          const specs = extractBuildSpecs(b.items || [])
+                          const payload = {
+                            buildSpecs: specs,
+                            buildName: b.name || `Build #${b.id ?? ''}`
+                          }
+                          try {
+                            localStorage.setItem('ezbuild-canirunit', JSON.stringify(payload))
+                          } catch {
+                            // ignore storage errors
+                          }
+                          navigate('/games', { state: payload })
+                        }}
+                        className="px-4 py-2 border border-emerald-500 text-emerald-300 rounded-lg hover:bg-emerald-500/10 text-sm"
+                      >
+                        Can I Run It?
                       </button>
                       <button className="px-4 py-2 border border-gray-600 text-white rounded-lg hover:bg-gray-800 text-sm" style={{ color: '#fff' }}>Chia sẻ</button>
                       <button

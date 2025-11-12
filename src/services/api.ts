@@ -1991,6 +1991,42 @@ export class ApiService {
     }
   }
 
+  static async getAllGameRequirements(): Promise<Record<string, unknown>[]> {
+    try {
+      const response = await fetch(`${API_BASE_URL}/api/game-requirement`, {
+        method: 'GET',
+        headers: { 'Content-Type': 'application/json' }
+      })
+
+      if (!response.ok) {
+        throw new Error(`HTTP ${response.status}: ${response.statusText}`)
+      }
+
+      return await this.handleResponse<Record<string, unknown>[]>(response)
+    } catch (error) {
+      console.error('Error fetching game requirements:', error)
+      throw error
+    }
+  }
+
+  static async getGameRequirementsByGameId(gameId: number): Promise<Record<string, unknown>[]> {
+    try {
+      const response = await fetch(`${API_BASE_URL}/api/game-requirement/${gameId}`, {
+        method: 'GET',
+        headers: { 'Content-Type': 'application/json' }
+      })
+
+      if (!response.ok) {
+        throw new Error(`HTTP ${response.status}: ${response.statusText}`)
+      }
+
+      return await this.handleResponse<Record<string, unknown>[]>(response)
+    } catch (error) {
+      console.error('Error fetching game requirement by id:', error)
+      throw error
+    }
+  }
+
   static async createGame(game: Record<string, unknown>): Promise<Record<string, unknown>> {
     const response = await fetch(`${API_BASE_URL}/api/game`, {
       method: 'POST',
