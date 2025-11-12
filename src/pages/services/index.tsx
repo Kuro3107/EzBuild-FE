@@ -107,7 +107,11 @@ function ServicesPage() {
           <div className="flex flex-wrap justify-center gap-3">
             <button
               onClick={() => setSelectedType('all')}
-              className={`px-4 py-2 rounded-full border ${selectedType === 'all' ? 'bg-blue-500 text-white border-blue-500' : 'bg-white/10 border-white/20 text-gray-200'}`}
+              className={`px-4 py-2 rounded-full border transition-all shadow-md font-medium ${
+                selectedType === 'all' 
+                  ? 'bg-gradient-to-r from-blue-500 to-cyan-500 text-white border-blue-400/30' 
+                  : 'bg-gradient-to-r from-gray-600 to-gray-700 text-white border-gray-500/30 hover:from-gray-500 hover:to-gray-600'
+              }`}
             >
               Tất cả
             </button>
@@ -115,8 +119,10 @@ function ServicesPage() {
               <button
                 key={type}
                 onClick={() => setSelectedType(type)}
-                className={`px-4 py-2 rounded-full border capitalize ${
-                  selectedType === type ? 'bg-blue-500 text-white border-blue-500' : 'bg-white/10 border-white/20 text-gray-200'
+                className={`px-4 py-2 rounded-full border capitalize transition-all shadow-md font-medium ${
+                  selectedType === type 
+                    ? 'bg-gradient-to-r from-blue-500 to-cyan-500 text-white border-blue-400/30' 
+                    : 'bg-gradient-to-r from-gray-600 to-gray-700 text-white border-gray-500/30 hover:from-gray-500 hover:to-gray-600'
                 }`}
               >
                 {type === 'onsite'
@@ -177,10 +183,10 @@ function ServicesPage() {
                     </button>
                     <button
                       onClick={() => navigate('/chat')}
-                      className={`px-5 py-2 border rounded-xl text-sm transition-all ${
+                      className={`px-5 py-2 rounded-xl text-sm transition-all font-semibold shadow-md ${
                         service.category === 'consulting'
-                          ? 'border-white/40 text-white hover:bg-white/10'
-                          : 'border-white/20 text-white/80 hover:bg-white/10'
+                          ? 'bg-gradient-to-r from-purple-500 to-pink-500 text-white hover:from-purple-600 hover:to-pink-600'
+                          : 'bg-gradient-to-r from-blue-500 to-indigo-500 text-white hover:from-blue-600 hover:to-indigo-600'
                       }`}
                     >
                       {service.category === 'consulting' ? 'Trò chuyện với nhân viên' : 'Tư vấn thêm'}

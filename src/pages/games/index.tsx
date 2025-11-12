@@ -214,6 +214,52 @@ const normalizeRequirement = (raw: RawGameRequirement) => {
   }
 }
 
+// Hàm load requirements cho một game cụ thể
+const loadGameRequirements = async (gameId: number): Promise<{ minimum?: RequirementDetail; recommended?: RequirementDetail }> => {
+  try {
+    console.log(`Loading requirements for game_id=${gameId}...`)
+    const requirementData = await ApiService.getGameRequirementsByGameId(gameId)
+    console.log(`Received requirementData:`, requirementData)
+    console.log(`Type of requirementData:`, typeof requirementData)
+    console.log(`Is array?`, Array.isArray(requirementData))
+    
+    // Kiểm tra và convert sang array
+    let requirementsArray: RawGameRequirement[] = []
+    if (Array.isArray(requirementData)) {
+      requirementsArray = requirementData as RawGameRequirement[]
+    } else if (requirementData && typeof requirementData === 'object') {
+      // Nếu là object, thử convert sang array
+      requirementsArray = [requirementData as RawGameRequirement]
+    } else {
+      console.warn(`requirementData is not an array or object, got:`, requirementData)
+      requirementsArray = []
+    }
+    
+    console.log(`Normalizing ${requirementsArray.length} requirements...`)
+    const normalizedRequirements = requirementsArray.map(normalizeRequirement)
+    console.log(`Normalized requirements:`, normalizedRequirements)
+    
+    const result: { minimum?: RequirementDetail; recommended?: RequirementDetail } = {}
+    normalizedRequirements.forEach((req) => {
+      if (req.type === 'recommended') {
+        result.recommended = req.detail
+      } else if (req.type === 'minimum') {
+        result.minimum = req.detail
+      } else if (!result.minimum) {
+        result.minimum = req.detail
+      } else if (!result.recommended) {
+        result.recommended = req.detail
+      }
+    })
+    
+    console.log(`Final result:`, result)
+    return result
+  } catch (err) {
+    console.error('Error loading game requirements:', err)
+    return {}
+  }
+}
+
 const loadPersistedBuildSpecs = (): { specs: BuildSpecs; name?: string } | null => {
   if (typeof window === 'undefined') return null
   try {
@@ -280,6 +326,26 @@ function GamesPage() {
     }
     return loadPersistedBuildSpecs()
   })
+  
+  // State cho chọn cấu hình
+  const [selectedSpecs, setSelectedSpecs] = useState<BuildSpecs>({
+    cpu: '',
+    gpu: '',
+    ramGB: undefined,
+    storageGB: undefined
+  })
+  const [showSpecSelector, setShowSpecSelector] = useState(false)
+  const [showMinSpecModal, setShowMinSpecModal] = useState(false)
+  const [selectedGameForSpec, setSelectedGameForSpec] = useState<Game | null>(null)
+  const [gameRequirements, setGameRequirements] = useState<{ minimum?: RequirementDetail; recommended?: RequirementDetail } | null>(null)
+  const [loadingRequirements, setLoadingRequirements] = useState(false)
+  const [showCompareModal, setShowCompareModal] = useState(false)
+  const [gameToCompare, setGameToCompare] = useState<Game | null>(null)
+  
+  // State cho danh sách CPU, GPU, RAM, Storage
+  const [cpus, setCpus] = useState<Array<{ id: number; name: string }>>([])
+  const [gpus, setGpus] = useState<Array<{ id: number; name: string }>>([])
+  const [loadingSpecs, setLoadingSpecs] = useState(false)
 
   useEffect(() => {
     const timer = setTimeout(() => setDebouncedSearch(searchTerm.trim().toLowerCase()), 300)
@@ -357,6 +423,61 @@ function GamesPage() {
 
     fetchGames()
   }, [])
+  
+  // Load CPU và GPU khi mở spec selector
+  useEffect(() => {
+    if (showSpecSelector && (cpus.length === 0 || gpus.length === 0)) {
+      const loadSpecs = async () => {
+        setLoadingSpecs(true)
+        try {
+          const [cpuData, gpuData] = await Promise.all([
+            ApiService.getCPUs().catch(() => []),
+            ApiService.getProductsByCategory(2).catch(() => []) // GPU category_id = 2
+          ])
+          
+          setCpus((cpuData as Array<Record<string, unknown>>).map(cpu => ({
+            id: Number(cpu.id) || 0,
+            name: String(cpu.name || '')
+          })))
+          
+          setGpus((gpuData as Array<Record<string, unknown>>).map(gpu => ({
+            id: Number(gpu.id) || 0,
+            name: String(gpu.name || '')
+          })))
+        } catch (err) {
+          console.error('Error loading specs:', err)
+        } finally {
+          setLoadingSpecs(false)
+        }
+      }
+      loadSpecs()
+    }
+  }, [showSpecSelector, cpus.length, gpus.length])
+  
+  // Hàm kiểm tra game có thể chạy được với specs đã chọn
+  const canRunGame = (game: Game, specs: BuildSpecs): boolean => {
+    if (!game.minimumDetail) return true // Nếu không có requirement thì cho phép
+    
+    const req = game.minimumDetail
+    
+    // Kiểm tra RAM
+    if (req.ramGB !== undefined && specs.ramGB !== undefined) {
+      if (specs.ramGB < req.ramGB) return false
+    }
+    
+    // Kiểm tra Storage
+    if (req.storageGB !== undefined && specs.storageGB !== undefined) {
+      if (specs.storageGB < req.storageGB) return false
+    }
+    
+    // CPU và GPU chỉ kiểm tra nếu có giá trị (không so sánh string vì phức tạp)
+    // Có thể cải thiện sau bằng cách parse model number
+    
+    return true
+  }
+  
+  // Kiểm tra xem có specs nào được chọn không
+  const hasSelectedSpecs = selectedSpecs.cpu || selectedSpecs.gpu || selectedSpecs.ramGB || selectedSpecs.storageGB
 
   const genres = useMemo(() => {
     const set = new Set<string>()
@@ -386,27 +507,41 @@ function GamesPage() {
     const keyword = debouncedSearch
     return games
       .filter(game => {
+        // Filter theo genre
         if (selectedGenre !== 'all') {
           const genresOfGame = (game.genre || '').split(',').map(g => g.trim().toLowerCase())
           if (!genresOfGame.includes(selectedGenre.toLowerCase())) return false
         }
+        
+        // Filter theo developer
         if (selectedDeveloper !== 'all') {
           if ((game.developer || '').toLowerCase() !== selectedDeveloper.toLowerCase()) return false
         }
-        if (!keyword) return true
-        return (
-          game.name.toLowerCase().includes(keyword) ||
-          game.description.toLowerCase().includes(keyword) ||
-          (game.genre || '').toLowerCase().includes(keyword) ||
-          (game.developer || '').toLowerCase().includes(keyword)
-        )
+        
+        // Filter theo search keyword
+        if (keyword) {
+          const matchesKeyword = (
+            game.name.toLowerCase().includes(keyword) ||
+            game.description.toLowerCase().includes(keyword) ||
+            (game.genre || '').toLowerCase().includes(keyword) ||
+            (game.developer || '').toLowerCase().includes(keyword)
+          )
+          if (!matchesKeyword) return false
+        }
+        
+        // Filter theo specs đã chọn (chỉ hiển thị game có thể chạy được)
+        if (hasSelectedSpecs) {
+          return canRunGame(game, selectedSpecs)
+        }
+        
+        return true
       })
       .sort((a, b) => {
         const dateA = a.releaseDate ? new Date(a.releaseDate).getTime() : 0
         const dateB = b.releaseDate ? new Date(b.releaseDate).getTime() : 0
         return dateB - dateA
       })
-  }, [games, selectedGenre, selectedDeveloper, debouncedSearch])
+  }, [games, selectedGenre, selectedDeveloper, debouncedSearch, selectedSpecs, hasSelectedSpecs])
 
   if (loading) {
     return (
@@ -467,8 +602,35 @@ function GamesPage() {
                   </option>
                 ))}
               </select>
+              <button
+                onClick={() => setShowSpecSelector(true)}
+                className={`px-4 py-3 rounded-xl text-white font-medium transition-all shadow-lg ${
+                  hasSelectedSpecs
+                    ? 'bg-gradient-to-r from-green-500 to-emerald-500 hover:from-green-600 hover:to-emerald-600'
+                    : 'bg-gradient-to-r from-blue-500 to-cyan-500 hover:from-blue-600 hover:to-cyan-600 border border-blue-400/30'
+                }`}
+              >
+                {hasSelectedSpecs ? '✓ Đã chọn cấu hình' : 'Chọn cấu hình'}
+              </button>
             </div>
           </div>
+          {hasSelectedSpecs && (
+            <div className="flex items-center justify-center gap-2 text-sm text-gray-300">
+              <span>Đang lọc: </span>
+              {selectedSpecs.cpu && <span className="bg-white/10 px-2 py-1 rounded">CPU: {selectedSpecs.cpu}</span>}
+              {selectedSpecs.gpu && <span className="bg-white/10 px-2 py-1 rounded">GPU: {selectedSpecs.gpu}</span>}
+              {selectedSpecs.ramGB && <span className="bg-white/10 px-2 py-1 rounded">RAM: {selectedSpecs.ramGB}GB</span>}
+              {selectedSpecs.storageGB && <span className="bg-white/10 px-2 py-1 rounded">Storage: {selectedSpecs.storageGB}GB</span>}
+              <button
+                onClick={() => {
+                  setSelectedSpecs({ cpu: '', gpu: '', ramGB: undefined, storageGB: undefined })
+                }}
+                className="px-3 py-1 bg-gradient-to-r from-red-500 to-rose-500 hover:from-red-600 hover:to-rose-600 text-white rounded-lg transition-all text-sm font-medium shadow-md"
+              >
+                Xóa bộ lọc
+              </button>
+            </div>
+          )}
           {error && (
             <div className="inline-flex items-center gap-2 px-4 py-2 bg-red-500/10 border border-red-500/30 text-sm text-red-200 rounded-xl">
               <span>⚠️</span> {error}
@@ -490,7 +652,7 @@ function GamesPage() {
                   setActiveBuild(null)
                   persistBuildSpecs(null)
                 }}
-                className="self-start md:self-auto px-4 py-2 border border-white/20 text-white/70 rounded-lg hover:bg-white/10 transition-colors text-xs"
+                className="self-start md:self-auto px-4 py-2 bg-gradient-to-r from-red-500 to-rose-500 hover:from-red-600 hover:to-rose-600 text-white rounded-lg transition-all shadow-md text-xs font-medium"
               >
                 Xóa build khỏi so sánh
               </button>
@@ -606,7 +768,36 @@ function GamesPage() {
                       </div>
                     )}
                   </div>
-                  <div className="px-6 pb-6">
+                  <div className="px-6 pb-6 space-y-3">
+                    <div className="flex gap-2">
+                      <button
+                        onClick={async () => {
+                          setSelectedGameForSpec(game)
+                          setShowMinSpecModal(true)
+                          setLoadingRequirements(true)
+                          setGameRequirements(null)
+                          
+                          // Load requirements cho game này
+                          const requirements = await loadGameRequirements(game.id)
+                          setGameRequirements(requirements)
+                          setLoadingRequirements(false)
+                        }}
+                        className="flex-1 px-4 py-2 bg-gradient-to-r from-indigo-500 to-purple-500 text-white rounded-xl hover:from-indigo-600 hover:to-purple-600 transition-all text-sm font-medium shadow-md"
+                      >
+                        📋 Cấu hình tối thiểu
+                      </button>
+                      {hasSelectedSpecs && (
+                        <button
+                          onClick={() => {
+                            setGameToCompare(game)
+                            setShowCompareModal(true)
+                          }}
+                          className="flex-1 px-4 py-2 bg-gradient-to-r from-purple-500 to-pink-500 text-white rounded-xl hover:from-purple-600 hover:to-pink-600 transition-all text-sm font-medium"
+                        >
+                          ⚖️ So sánh
+                        </button>
+                      )}
+                    </div>
                     <button
                       onClick={() => navigate('/pcbuilder', { state: { highlightGame: game.name } })}
                       className="w-full px-4 py-3 bg-gradient-to-r from-blue-500 to-cyan-500 text-white rounded-xl hover:from-blue-600 hover:to-cyan-600 transition-all shadow-lg hover:shadow-2xl flex items-center justify-center gap-2 text-sm font-semibold"
@@ -644,6 +835,458 @@ function GamesPage() {
           </div>
         </section>
       </div>
+      
+      {/* Modal chọn cấu hình */}
+      {showSpecSelector && (
+        <div className="fixed inset-0 bg-black/50 backdrop-blur-sm flex items-center justify-center z-50 p-4">
+          <div className="bg-gray-900 border border-white/20 rounded-2xl p-6 max-w-2xl w-full max-h-[90vh] overflow-y-auto">
+            <div className="flex justify-between items-center mb-6">
+              <h2 className="text-2xl font-bold text-white">Chọn cấu hình PC của bạn</h2>
+              <button
+                onClick={() => setShowSpecSelector(false)}
+                className="text-gray-400 hover:text-white text-2xl"
+              >
+                ×
+              </button>
+            </div>
+            
+            <div className="space-y-4">
+              <div>
+                <label className="block text-sm font-medium text-gray-300 mb-2">CPU</label>
+                {loadingSpecs ? (
+                  <div className="text-gray-400">Đang tải...</div>
+                ) : (
+                  <select
+                    value={selectedSpecs.cpu}
+                    onChange={(e) => setSelectedSpecs({ ...selectedSpecs, cpu: e.target.value })}
+                    className="w-full px-4 py-2 bg-white/10 border border-white/20 rounded-xl text-white"
+                  >
+                    <option value="" className="text-black">Chọn CPU</option>
+                    {cpus.map((cpu) => (
+                      <option key={cpu.id} value={cpu.name} className="text-black">
+                        {cpu.name}
+                      </option>
+                    ))}
+                  </select>
+                )}
+              </div>
+              
+              <div>
+                <label className="block text-sm font-medium text-gray-300 mb-2">GPU</label>
+                {loadingSpecs ? (
+                  <div className="text-gray-400">Đang tải...</div>
+                ) : (
+                  <select
+                    value={selectedSpecs.gpu}
+                    onChange={(e) => setSelectedSpecs({ ...selectedSpecs, gpu: e.target.value })}
+                    className="w-full px-4 py-2 bg-white/10 border border-white/20 rounded-xl text-white"
+                  >
+                    <option value="" className="text-black">Chọn GPU</option>
+                    {gpus.map((gpu) => (
+                      <option key={gpu.id} value={gpu.name} className="text-black">
+                        {gpu.name}
+                      </option>
+                    ))}
+                  </select>
+                )}
+              </div>
+              
+              <div>
+                <label className="block text-sm font-medium text-gray-300 mb-2">RAM (GB)</label>
+                <input
+                  type="number"
+                  min="1"
+                  value={selectedSpecs.ramGB || ''}
+                  onChange={(e) => setSelectedSpecs({ ...selectedSpecs, ramGB: e.target.value ? Number(e.target.value) : undefined })}
+                  className="w-full px-4 py-2 bg-white/10 border border-white/20 rounded-xl text-white"
+                  placeholder="Nhập dung lượng RAM (GB)"
+                />
+              </div>
+              
+              <div>
+                <label className="block text-sm font-medium text-gray-300 mb-2">Storage (GB)</label>
+                <input
+                  type="number"
+                  min="1"
+                  value={selectedSpecs.storageGB || ''}
+                  onChange={(e) => setSelectedSpecs({ ...selectedSpecs, storageGB: e.target.value ? Number(e.target.value) : undefined })}
+                  className="w-full px-4 py-2 bg-white/10 border border-white/20 rounded-xl text-white"
+                  placeholder="Nhập dung lượng Storage (GB)"
+                />
+              </div>
+            </div>
+            
+            <div className="flex gap-3 mt-6">
+              <button
+                onClick={() => {
+                  setSelectedSpecs({ cpu: '', gpu: '', ramGB: undefined, storageGB: undefined })
+                  setShowSpecSelector(false)
+                }}
+                className="flex-1 px-4 py-2 bg-white/10 border border-white/20 text-white rounded-xl hover:bg-white/20 transition-all"
+              >
+                Xóa tất cả
+              </button>
+              <button
+                onClick={() => setShowSpecSelector(false)}
+                className="flex-1 px-4 py-2 bg-gradient-to-r from-blue-500 to-cyan-500 text-white rounded-xl hover:from-blue-600 hover:to-cyan-600 transition-all"
+              >
+                Áp dụng
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+      
+      {/* Modal hiển thị cấu hình tối thiểu */}
+      {showMinSpecModal && selectedGameForSpec && (
+        <div style={{
+          position: 'fixed',
+          top: 0,
+          left: 0,
+          right: 0,
+          bottom: 0,
+          backgroundColor: 'rgba(0, 0, 0, 0.5)',
+          display: 'flex',
+          alignItems: 'center',
+          justifyContent: 'center',
+          zIndex: 10000,
+          padding: '20px'
+        }}>
+          <div style={{
+            backgroundColor: '#1f2937',
+            border: '1px solid rgba(255, 255, 255, 0.2)',
+            borderRadius: '12px',
+            maxWidth: '600px',
+            width: '100%',
+            maxHeight: '80vh',
+            overflowY: 'auto',
+            padding: '24px'
+          }}>
+            <div style={{
+              display: 'flex',
+              justifyContent: 'space-between',
+              alignItems: 'flex-start',
+              marginBottom: '24px'
+            }}>
+              <h2 style={{ color: 'white', fontSize: '24px', fontWeight: 'bold', margin: 0 }}>
+                Cấu hình tối thiểu - {selectedGameForSpec.name}
+              </h2>
+              <button
+                onClick={() => {
+                  setShowMinSpecModal(false)
+                  setSelectedGameForSpec(null)
+                  setGameRequirements(null)
+                }}
+                style={{
+                  background: 'none',
+                  border: 'none',
+                  color: 'rgba(255, 255, 255, 0.6)',
+                  fontSize: '24px',
+                  cursor: 'pointer',
+                  padding: '4px'
+                }}
+              >
+                ×
+              </button>
+            </div>
+            
+            <div style={{ display: 'flex', flexDirection: 'column', gap: '16px' }}>
+              {loadingRequirements ? (
+                <div style={{ textAlign: 'center', padding: '32px 0' }}>
+                  <div className="animate-spin rounded-full h-12 w-12 border-4 border-blue-500 border-t-transparent mx-auto mb-4"></div>
+                  <p style={{ color: 'rgba(255, 255, 255, 0.7)', fontSize: '14px' }}>Đang tải thông tin cấu hình...</p>
+                </div>
+              ) : (gameRequirements?.minimum || selectedGameForSpec.minimumDetail) ? (
+                <>
+                  <div style={{
+                    backgroundColor: '#374151',
+                    border: '1px solid rgba(255, 255, 255, 0.1)',
+                    borderRadius: '8px',
+                    padding: '20px'
+                  }}>
+                    <h3 style={{ color: 'white', fontSize: '18px', fontWeight: 'bold', marginBottom: '16px' }}>Yêu cầu tối thiểu</h3>
+                    <div style={{ display: 'flex', flexDirection: 'column', gap: '12px' }}>
+                      {(gameRequirements?.minimum?.cpu || selectedGameForSpec.minimumDetail?.cpu) && (
+                        <div style={{
+                          display: 'flex',
+                          alignItems: 'flex-start',
+                          gap: '12px',
+                          backgroundColor: '#4b5563',
+                          padding: '12px',
+                          borderRadius: '6px'
+                        }}>
+                          <span style={{ color: 'rgba(255, 255, 255, 0.7)', fontSize: '14px', fontWeight: '500', width: '80px', flexShrink: 0 }}>CPU:</span>
+                          <span style={{ color: 'white', fontSize: '14px', fontWeight: '600' }}>{(gameRequirements?.minimum?.cpu || selectedGameForSpec.minimumDetail?.cpu)}</span>
+                        </div>
+                      )}
+                      {(gameRequirements?.minimum?.gpu || selectedGameForSpec.minimumDetail?.gpu) && (
+                        <div style={{
+                          display: 'flex',
+                          alignItems: 'flex-start',
+                          gap: '12px',
+                          backgroundColor: '#4b5563',
+                          padding: '12px',
+                          borderRadius: '6px'
+                        }}>
+                          <span style={{ color: 'rgba(255, 255, 255, 0.7)', fontSize: '14px', fontWeight: '500', width: '80px', flexShrink: 0 }}>GPU:</span>
+                          <span style={{ color: 'white', fontSize: '14px', fontWeight: '600' }}>{(gameRequirements?.minimum?.gpu || selectedGameForSpec.minimumDetail?.gpu)}</span>
+                        </div>
+                      )}
+                      {(gameRequirements?.minimum?.ramGB || selectedGameForSpec.minimumDetail?.ramGB) && (
+                        <div style={{
+                          display: 'flex',
+                          alignItems: 'flex-start',
+                          gap: '12px',
+                          backgroundColor: '#4b5563',
+                          padding: '12px',
+                          borderRadius: '6px'
+                        }}>
+                          <span style={{ color: 'rgba(255, 255, 255, 0.7)', fontSize: '14px', fontWeight: '500', width: '80px', flexShrink: 0 }}>RAM:</span>
+                          <span style={{ color: 'white', fontSize: '14px', fontWeight: '600' }}>{formatGBValue(gameRequirements?.minimum?.ramGB || selectedGameForSpec.minimumDetail?.ramGB)}</span>
+                        </div>
+                      )}
+                      {(gameRequirements?.minimum?.storageGB || selectedGameForSpec.minimumDetail?.storageGB) && (
+                        <div style={{
+                          display: 'flex',
+                          alignItems: 'flex-start',
+                          gap: '12px',
+                          backgroundColor: '#4b5563',
+                          padding: '12px',
+                          borderRadius: '6px'
+                        }}>
+                          <span style={{ color: 'rgba(255, 255, 255, 0.7)', fontSize: '14px', fontWeight: '500', width: '80px', flexShrink: 0 }}>Storage:</span>
+                          <span style={{ color: 'white', fontSize: '14px', fontWeight: '600' }}>{formatGBValue(gameRequirements?.minimum?.storageGB || selectedGameForSpec.minimumDetail?.storageGB)}</span>
+                        </div>
+                      )}
+                    </div>
+                    {(selectedGameForSpec.minimumSpec || gameRequirements?.minimum?.summary) && (
+                      <div style={{ marginTop: '16px', paddingTop: '16px', borderTop: '1px solid rgba(255, 255, 255, 0.1)' }}>
+                        <p style={{ color: 'rgba(255, 255, 255, 0.6)', fontSize: '12px', fontWeight: '500', marginBottom: '8px' }}>Chi tiết đầy đủ:</p>
+                        <p style={{ color: 'rgba(255, 255, 255, 0.9)', fontSize: '13px', lineHeight: '1.6' }}>{selectedGameForSpec.minimumSpec || gameRequirements?.minimum?.summary}</p>
+                      </div>
+                    )}
+                  </div>
+                  
+                  {(gameRequirements?.recommended || selectedGameForSpec.recommendedDetail) && (
+                    <div style={{
+                      backgroundColor: '#374151',
+                      border: '1px solid rgba(255, 255, 255, 0.1)',
+                      borderRadius: '8px',
+                      padding: '20px'
+                    }}>
+                      <h3 style={{ color: 'white', fontSize: '18px', fontWeight: 'bold', marginBottom: '16px' }}>Cấu hình khuyến nghị</h3>
+                      <div style={{ display: 'flex', flexDirection: 'column', gap: '12px' }}>
+                        {(gameRequirements?.recommended?.cpu || selectedGameForSpec.recommendedDetail?.cpu) && (
+                          <div style={{
+                            display: 'flex',
+                            alignItems: 'flex-start',
+                            gap: '12px',
+                            backgroundColor: '#4b5563',
+                            padding: '12px',
+                            borderRadius: '6px'
+                          }}>
+                            <span style={{ color: 'rgba(255, 255, 255, 0.7)', fontSize: '14px', fontWeight: '500', width: '80px', flexShrink: 0 }}>CPU:</span>
+                            <span style={{ color: 'white', fontSize: '14px', fontWeight: '600' }}>{(gameRequirements?.recommended?.cpu || selectedGameForSpec.recommendedDetail?.cpu)}</span>
+                          </div>
+                        )}
+                        {(gameRequirements?.recommended?.gpu || selectedGameForSpec.recommendedDetail?.gpu) && (
+                          <div style={{
+                            display: 'flex',
+                            alignItems: 'flex-start',
+                            gap: '12px',
+                            backgroundColor: '#4b5563',
+                            padding: '12px',
+                            borderRadius: '6px'
+                          }}>
+                            <span style={{ color: 'rgba(255, 255, 255, 0.7)', fontSize: '14px', fontWeight: '500', width: '80px', flexShrink: 0 }}>GPU:</span>
+                            <span style={{ color: 'white', fontSize: '14px', fontWeight: '600' }}>{(gameRequirements?.recommended?.gpu || selectedGameForSpec.recommendedDetail?.gpu)}</span>
+                          </div>
+                        )}
+                        {(gameRequirements?.recommended?.ramGB || selectedGameForSpec.recommendedDetail?.ramGB) && (
+                          <div style={{
+                            display: 'flex',
+                            alignItems: 'flex-start',
+                            gap: '12px',
+                            backgroundColor: '#4b5563',
+                            padding: '12px',
+                            borderRadius: '6px'
+                          }}>
+                            <span style={{ color: 'rgba(255, 255, 255, 0.7)', fontSize: '14px', fontWeight: '500', width: '80px', flexShrink: 0 }}>RAM:</span>
+                            <span style={{ color: 'white', fontSize: '14px', fontWeight: '600' }}>{formatGBValue(gameRequirements?.recommended?.ramGB || selectedGameForSpec.recommendedDetail?.ramGB)}</span>
+                          </div>
+                        )}
+                        {(gameRequirements?.recommended?.storageGB || selectedGameForSpec.recommendedDetail?.storageGB) && (
+                          <div style={{
+                            display: 'flex',
+                            alignItems: 'flex-start',
+                            gap: '12px',
+                            backgroundColor: '#4b5563',
+                            padding: '12px',
+                            borderRadius: '6px'
+                          }}>
+                            <span style={{ color: 'rgba(255, 255, 255, 0.7)', fontSize: '14px', fontWeight: '500', width: '80px', flexShrink: 0 }}>Storage:</span>
+                            <span style={{ color: 'white', fontSize: '14px', fontWeight: '600' }}>{formatGBValue(gameRequirements?.recommended?.storageGB || selectedGameForSpec.recommendedDetail?.storageGB)}</span>
+                          </div>
+                        )}
+                      </div>
+                      {(selectedGameForSpec.recommendedSpec || gameRequirements?.recommended?.summary) && (
+                        <div style={{ marginTop: '16px', paddingTop: '16px', borderTop: '1px solid rgba(255, 255, 255, 0.1)' }}>
+                          <p style={{ color: 'rgba(255, 255, 255, 0.6)', fontSize: '12px', fontWeight: '500', marginBottom: '8px' }}>Chi tiết đầy đủ:</p>
+                          <p style={{ color: 'rgba(255, 255, 255, 0.9)', fontSize: '13px', lineHeight: '1.6' }}>{selectedGameForSpec.recommendedSpec || gameRequirements?.recommended?.summary}</p>
+                        </div>
+                      )}
+                    </div>
+                  )}
+                </>
+              ) : (
+                <div style={{
+                  textAlign: 'center',
+                  padding: '32px 0',
+                  backgroundColor: '#374151',
+                  borderRadius: '8px',
+                  border: '1px solid rgba(255, 255, 255, 0.1)'
+                }}>
+                  <p style={{ color: 'rgba(255, 255, 255, 0.7)', fontSize: '16px' }}>Chưa có thông tin cấu hình cho game này</p>
+                </div>
+              )}
+            </div>
+            
+            <div style={{ display: 'flex', justifyContent: 'flex-end', marginTop: '24px' }}>
+              <button
+                onClick={() => {
+                  setShowMinSpecModal(false)
+                  setSelectedGameForSpec(null)
+                  setGameRequirements(null)
+                }}
+                style={{
+                  padding: '10px 24px',
+                  backgroundColor: '#374151',
+                  border: '1px solid rgba(255, 255, 255, 0.2)',
+                  borderRadius: '8px',
+                  color: 'white',
+                  cursor: 'pointer',
+                  fontSize: '14px',
+                  fontWeight: '500'
+                }}
+                onMouseOver={(e) => e.currentTarget.style.backgroundColor = '#4b5563'}
+                onMouseOut={(e) => e.currentTarget.style.backgroundColor = '#374151'}
+              >
+                Đóng
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+      
+      {/* Modal so sánh cấu hình */}
+      {showCompareModal && gameToCompare && (
+        <div className="fixed inset-0 bg-black/50 backdrop-blur-sm flex items-center justify-center z-50 p-4">
+          <div className="bg-gray-800 border-2 border-gray-600 rounded-2xl p-6 max-w-3xl w-full max-h-[90vh] overflow-y-auto shadow-2xl">
+            <div className="flex justify-between items-center mb-6">
+              <h2 className="text-2xl font-bold text-white">So sánh cấu hình - {gameToCompare.name}</h2>
+              <button
+                onClick={() => {
+                  setShowCompareModal(false)
+                  setGameToCompare(null)
+                }}
+                className="text-gray-300 hover:text-white text-3xl font-bold leading-none"
+              >
+                ×
+              </button>
+            </div>
+            
+            {gameToCompare.minimumDetail ? (
+              <div className="space-y-4">
+                <div className="grid grid-cols-2 gap-4">
+                  <div className="bg-gray-700 border-2 border-gray-500 rounded-xl p-5">
+                    <h3 className="text-xl font-bold text-white mb-4">Cấu hình của bạn</h3>
+                    <div className="space-y-3 text-base">
+                      <div className="flex items-start gap-3 bg-gray-600/50 p-3 rounded-lg">
+                        <span className="text-gray-300 font-medium w-24 flex-shrink-0">CPU:</span>
+                        <span className="text-white font-semibold">{selectedSpecs.cpu || 'Chưa chọn'}</span>
+                      </div>
+                      <div className="flex items-start gap-3 bg-gray-600/50 p-3 rounded-lg">
+                        <span className="text-gray-300 font-medium w-24 flex-shrink-0">GPU:</span>
+                        <span className="text-white font-semibold">{selectedSpecs.gpu || 'Chưa chọn'}</span>
+                      </div>
+                      <div className="flex items-start gap-3 bg-gray-600/50 p-3 rounded-lg">
+                        <span className="text-gray-300 font-medium w-24 flex-shrink-0">RAM:</span>
+                        <span className="text-white font-semibold">{formatGBValue(selectedSpecs.ramGB)}</span>
+                      </div>
+                      <div className="flex items-start gap-3 bg-gray-600/50 p-3 rounded-lg">
+                        <span className="text-gray-300 font-medium w-24 flex-shrink-0">Storage:</span>
+                        <span className="text-white font-semibold">{formatGBValue(selectedSpecs.storageGB)}</span>
+                      </div>
+                    </div>
+                  </div>
+                  
+                  <div className="bg-gray-700 border-2 border-gray-500 rounded-xl p-5">
+                    <h3 className="text-xl font-bold text-white mb-4">Yêu cầu tối thiểu</h3>
+                    <div className="space-y-3 text-base">
+                      <div className="flex items-start gap-3 bg-gray-600/50 p-3 rounded-lg">
+                        <span className="text-gray-300 font-medium w-24 flex-shrink-0">CPU:</span>
+                        <span className="text-white font-semibold">{gameToCompare.minimumDetail.cpu || 'Chưa xác định'}</span>
+                      </div>
+                      <div className="flex items-start gap-3 bg-gray-600/50 p-3 rounded-lg">
+                        <span className="text-gray-300 font-medium w-24 flex-shrink-0">GPU:</span>
+                        <span className="text-white font-semibold">{gameToCompare.minimumDetail.gpu || 'Chưa xác định'}</span>
+                      </div>
+                      <div className="flex items-start gap-3 bg-gray-600/50 p-3 rounded-lg">
+                        <span className="text-gray-300 font-medium w-24 flex-shrink-0">RAM:</span>
+                        <span className={`font-semibold ${selectedSpecs.ramGB && gameToCompare.minimumDetail.ramGB && selectedSpecs.ramGB >= gameToCompare.minimumDetail.ramGB ? 'text-green-400' : selectedSpecs.ramGB && gameToCompare.minimumDetail.ramGB ? 'text-red-400' : 'text-white'}`}>
+                          {formatGBValue(gameToCompare.minimumDetail.ramGB)}
+                        </span>
+                      </div>
+                      <div className="flex items-start gap-3 bg-gray-600/50 p-3 rounded-lg">
+                        <span className="text-gray-300 font-medium w-24 flex-shrink-0">Storage:</span>
+                        <span className={`font-semibold ${selectedSpecs.storageGB && gameToCompare.minimumDetail.storageGB && selectedSpecs.storageGB >= gameToCompare.minimumDetail.storageGB ? 'text-green-400' : selectedSpecs.storageGB && gameToCompare.minimumDetail.storageGB ? 'text-red-400' : 'text-white'}`}>
+                          {formatGBValue(gameToCompare.minimumDetail.storageGB)}
+                        </span>
+                      </div>
+                    </div>
+                  </div>
+                </div>
+                
+                <div className="bg-gray-700 border-2 border-gray-500 rounded-xl p-5">
+                  <h3 className="text-xl font-bold text-white mb-4">Kết quả so sánh</h3>
+                  <div className="space-y-3 text-base">
+                    {selectedSpecs.ramGB && gameToCompare.minimumDetail.ramGB && (
+                      <div className={`flex items-center justify-between p-4 rounded-lg font-semibold ${selectedSpecs.ramGB >= gameToCompare.minimumDetail.ramGB ? 'bg-green-500/30 text-green-200 border-2 border-green-500/50' : 'bg-red-500/30 text-red-200 border-2 border-red-500/50'}`}>
+                        <span>RAM:</span>
+                        <span className="text-lg">
+                          {selectedSpecs.ramGB >= gameToCompare.minimumDetail.ramGB ? '✓ Đạt yêu cầu' : '✗ Không đạt yêu cầu'}
+                        </span>
+                      </div>
+                    )}
+                    {selectedSpecs.storageGB && gameToCompare.minimumDetail.storageGB && (
+                      <div className={`flex items-center justify-between p-4 rounded-lg font-semibold ${selectedSpecs.storageGB >= gameToCompare.minimumDetail.storageGB ? 'bg-green-500/30 text-green-200 border-2 border-green-500/50' : 'bg-red-500/30 text-red-200 border-2 border-red-500/50'}`}>
+                        <span>Storage:</span>
+                        <span className="text-lg">
+                          {selectedSpecs.storageGB >= gameToCompare.minimumDetail.storageGB ? '✓ Đạt yêu cầu' : '✗ Không đạt yêu cầu'}
+                        </span>
+                      </div>
+                    )}
+                  </div>
+                </div>
+              </div>
+            ) : (
+              <div className="text-gray-300 text-center py-8 bg-gray-700/50 rounded-xl">
+                <p className="text-lg">Chưa có thông tin cấu hình để so sánh</p>
+              </div>
+            )}
+            
+            <button
+              onClick={() => {
+                setShowCompareModal(false)
+                setGameToCompare(null)
+              }}
+              className="w-full mt-6 px-6 py-3 bg-gradient-to-r from-blue-600 to-cyan-600 text-white font-semibold rounded-xl hover:from-blue-700 hover:to-cyan-700 transition-all shadow-lg"
+            >
+              Đóng
+            </button>
+          </div>
+        </div>
+      )}
     </div>
   )
 }

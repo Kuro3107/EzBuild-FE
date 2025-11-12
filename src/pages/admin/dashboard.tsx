@@ -91,7 +91,7 @@ function AdminDashboardPage() {
       const totalRevenue = payments
         .filter(p => {
           const status = (p as PaymentLike).status
-          return status === 'PAID' || status === 'SUCCESS'
+          return status === 'SUCCESS'
         })
         .reduce((sum, p) => sum + (Number((p as PaymentLike).amount) || 0), 0)
       
@@ -124,7 +124,7 @@ function AdminDashboardPage() {
     paymentsDataForChart
       .filter(p => {
         const status = (p as PaymentLike).status
-        return status === 'PAID' || status === 'SUCCESS'
+        return status === 'SUCCESS'
       })
       .forEach(p => {
         const pay = p as PaymentLike

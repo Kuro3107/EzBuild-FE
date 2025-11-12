@@ -53,8 +53,138 @@ function StaffFeedbacksPage() {
       ])
       
       // Normalize order feedbacks - lấy comment và createdAt từ nhiều nguồn
-      const normalizedOrderFeedbacks: OrderFeedback[] = orderData.map((f: Record<string, unknown>) => {
-        const comment = (f.comment as string) 
+      console.log('=== NORMALIZING ORDER FEEDBACKS ===')
+      console.log('Raw order data:', orderData)
+      console.log('Raw order data (JSON):', JSON.stringify(orderData, null, 2))
+      
+      // Kiểm tra xem có field nào khác không
+      if (orderData.length > 0) {
+        const firstFeedback = orderData[0] as Record<string, unknown>
+        console.log('=== CHECKING ALL POSSIBLE FIELDS ===')
+        console.log('All fields in first feedback:', Object.keys(firstFeedback))
+        for (const key of Object.keys(firstFeedback)) {
+          console.log(`  ${key}:`, firstFeedback[key], `(type: ${typeof firstFeedback[key]})`)
+        }
+      }
+      
+      // Thử enrich data bằng cách gọi API từng feedback nếu thiếu thông tin
+      // Vì backend có thể không trả về order_id và user_id trong list endpoint
+      const enrichedOrderData = await Promise.all(
+        orderData.map(async (f: Record<string, unknown>) => {
+          // Kiểm tra xem đã có order_id và user_id chưa - ưu tiên kiểm tra trực tiếp trước
+          // Không phụ thuộc vào order/user object vì chúng có thể là null
+          const hasOrderId = 
+            (f.order_id !== null && f.order_id !== undefined && f.order_id !== 0 && f.order_id !== '0' && String(f.order_id).trim() !== '') ||
+            (f.orderId !== null && f.orderId !== undefined && f.orderId !== 0 && f.orderId !== '0' && String(f.orderId).trim() !== '') ||
+            (f.order && f.order !== null && typeof f.order === 'object' && (f.order as Record<string, unknown>).id !== null && (f.order as Record<string, unknown>).id !== undefined && (f.order as Record<string, unknown>).id !== 0)
+          
+          const hasUserId = 
+            (f.user_id !== null && f.user_id !== undefined && f.user_id !== 0 && f.user_id !== '0' && String(f.user_id).trim() !== '') ||
+            (f.userId !== null && f.userId !== undefined && f.userId !== 0 && f.userId !== '0' && String(f.userId).trim() !== '') ||
+            (f.user && f.user !== null && typeof f.user === 'object' && (f.user as Record<string, unknown>).id !== null && (f.user as Record<string, unknown>).id !== undefined && (f.user as Record<string, unknown>).id !== 0) ||
+            (f.order && f.order !== null && typeof f.order === 'object' && 
+             (f.order as Record<string, unknown>).user !== null && 
+             typeof (f.order as Record<string, unknown>).user === 'object' &&
+             ((f.order as Record<string, unknown>).user as Record<string, unknown>).id !== null &&
+             ((f.order as Record<string, unknown>).user as Record<string, unknown>).id !== undefined &&
+             ((f.order as Record<string, unknown>).user as Record<string, unknown>).id !== 0)
+          
+          if (hasOrderId && hasUserId) {
+            console.log(`✓ Feedback #${f.id} already has orderId and userId`)
+            console.log(`  order_id:`, f.order_id, `orderId:`, f.orderId)
+            console.log(`  user_id:`, f.user_id, `userId:`, f.userId)
+            return f
+          }
+          
+          // Nếu thiếu, thử gọi API để lấy feedback chi tiết
+          // API chi tiết có thể trả về đầy đủ thông tin hơn
+          try {
+            const feedbackId = Number(f.id)
+            if (feedbackId > 0) {
+              console.log(`⚠️ Missing orderId or userId for feedback #${feedbackId}, fetching details...`)
+              console.log(`  Current feedback data:`, f)
+              console.log(`  Current keys:`, Object.keys(f))
+              console.log(`  Has order_id?`, f.order_id, `Has orderId?`, f.orderId)
+              console.log(`  Has user_id?`, f.user_id, `Has userId?`, f.userId)
+              
+              const detailed = await ApiService.getOrderFeedbackById(feedbackId)
+              console.log(`✓ Got detailed feedback #${feedbackId}:`, detailed)
+              console.log(`  Detailed keys:`, Object.keys(detailed))
+              console.log(`  Detailed order_id:`, detailed.order_id)
+              console.log(`  Detailed user_id:`, detailed.user_id)
+              console.log(`  Detailed order:`, detailed.order)
+              console.log(`  Detailed user:`, detailed.user)
+              
+              // Kiểm tra tất cả các keys có thể chứa order_id và user_id
+              Object.keys(detailed).forEach(key => {
+                const value = detailed[key]
+                if (typeof value === 'number' && value > 0) {
+                  console.log(`  Key "${key}" has numeric value:`, value)
+                }
+                // Kiểm tra cả string có thể convert sang number
+                if (typeof value === 'string' && !isNaN(Number(value)) && Number(value) > 0) {
+                  console.log(`  Key "${key}" has string numeric value:`, value)
+                }
+                if (key.toLowerCase().includes('order') || key.toLowerCase().includes('user')) {
+                  console.log(`  Key "${key}" (order/user related):`, value)
+                }
+              })
+              
+              // Merge thông tin, ưu tiên detailed response nhưng giữ lại dữ liệu ban đầu nếu detailed không có
+              const merged = { ...f, ...detailed }
+              // Nếu detailed có order_id/user_id nhưng merged không có, thêm vào
+              if (detailed.order_id && !merged.order_id) {
+                merged.order_id = detailed.order_id
+              }
+              if (detailed.user_id && !merged.user_id) {
+                merged.user_id = detailed.user_id
+              }
+              if (detailed.orderId && !merged.orderId) {
+                merged.orderId = detailed.orderId
+              }
+              if (detailed.userId && !merged.userId) {
+                merged.userId = detailed.userId
+              }
+              
+              console.log(`  Merged keys:`, Object.keys(merged))
+              console.log(`  Merged order_id:`, merged.order_id, `orderId:`, merged.orderId)
+              console.log(`  Merged user_id:`, merged.user_id, `userId:`, merged.userId)
+              return merged
+            }
+          } catch (err) {
+            console.error(`❌ Error fetching detailed feedback #${f.id}:`, err)
+            console.error(`  Error details:`, JSON.stringify(err, null, 2))
+            // Vẫn trả về f ban đầu nếu có lỗi
+          }
+          
+          return f
+        })
+      )
+      
+      const normalizedOrderFeedbacks: OrderFeedback[] = enrichedOrderData.map((f: Record<string, unknown>, index: number) => {
+        console.log(`\n--- Processing Feedback #${index + 1} ---`)
+        console.log('Raw feedback object:', f)
+        console.log('All keys in feedback:', Object.keys(f))
+        
+        // Log tất cả các keys và values để debug
+        Object.keys(f).forEach(key => {
+          console.log(`  ${key}:`, f[key], `(type: ${typeof f[key]})`)
+        })
+        
+        const toPositiveNumber = (value: unknown): number | null => {
+          if (value === null || value === undefined) return null
+          const num = Number(value)
+          if (Number.isNaN(num)) return null
+          return num > 0 ? num : null
+        }
+        const toStringSafe = (value: unknown): string => {
+          if (value === null || value === undefined) return ''
+          return String(value)
+        }
+        
+        // Database dùng 'comments' (số nhiều) - ưu tiên lấy từ đây
+        const comment = (f.comments as string) 
+          ?? (f.comment as string)
           ?? (f.comment_text as string)
           ?? (f.commentText as string)
           ?? ''
@@ -64,23 +194,214 @@ function StaffFeedbacksPage() {
           ?? (f.createdAtDate as string)
           ?? new Date().toISOString()
         
-        return {
+        // Ưu tiên sử dụng giá trị sẵn có trước khi fallback
+        const initialOrderId =
+          toPositiveNumber((f as { order_id?: unknown }).order_id) ??
+          toPositiveNumber((f as { orderId?: unknown }).orderId) ??
+          (toPositiveNumber(((f as { order?: { id?: unknown } }).order)?.id))
+        
+        let orderId = initialOrderId ?? 0
+        
+        // Hàm helper để extract number từ nhiều format
+        // Theo Swagger, backend trả về order.id (nested object)
+        const extractOrderId = (obj: Record<string, unknown>): number => {
+          // ƯU TIÊN 1: Kiểm tra nested order.id (theo Swagger response structure)
+          if (obj.order && typeof obj.order === 'object' && obj.order !== null) {
+            const order = obj.order as Record<string, unknown>
+            if (order.id !== null && order.id !== undefined && order.id !== 0 && order.id !== '0' && order.id !== '') {
+              const num = Number(order.id)
+              if (!isNaN(num) && num > 0) {
+                console.log(`✓ Found orderId from order.id: ${num}`)
+                return num
+              }
+            }
+          }
+          
+          // ƯU TIÊN 2: Kiểm tra order_id trực tiếp (snake_case từ database)
+          if (obj.order_id !== null && obj.order_id !== undefined && obj.order_id !== 0 && obj.order_id !== '0' && obj.order_id !== '') {
+            const num = Number(obj.order_id)
+            if (!isNaN(num) && num > 0) {
+              console.log(`✓ Found orderId from order_id: ${num}`)
+              return num
+            }
+          }
+          
+          // ƯU TIÊN 3: Kiểm tra orderId (camelCase)
+          if (obj.orderId !== null && obj.orderId !== undefined && obj.orderId !== 0 && obj.orderId !== '0' && obj.orderId !== '') {
+            const num = Number(obj.orderId)
+            if (!isNaN(num) && num > 0) {
+              console.log(`✓ Found orderId from orderId: ${num}`)
+              return num
+            }
+          }
+          
+          // FALLBACK: Kiểm tra nested order object với các keys khác
+          if (obj.order && typeof obj.order === 'object' && obj.order !== null) {
+            const order = obj.order as Record<string, unknown>
+            for (const key of ['orderId', 'order_id', 'ID']) {
+              if (key in order) {
+                const value = order[key]
+                if (value !== null && value !== undefined && value !== 0 && value !== '0' && value !== '') {
+                  const num = Number(value)
+                  if (!isNaN(num) && num > 0) {
+                    console.log(`✓ Found orderId from order.${key}: ${num}`)
+                    return num
+                  }
+                }
+              }
+            }
+          }
+          
+          console.log(`✗ Could not find orderId in object`)
+          return 0
+        }
+        
+        if (!orderId || orderId <= 0) {
+          orderId = extractOrderId(f)
+        } else {
+          console.log(`✓ Using pre-existing orderId: ${orderId}`)
+        }
+        
+        let userEmail = ''
+        let userFullname = ''
+        
+        const nestedOrderUser = ((f as { order?: { user?: Record<string, unknown> } }).order?.user ?? null) as Record<string, unknown> | null
+        const nestedUser = ((f as { user?: Record<string, unknown> }).user ?? null) as Record<string, unknown> | null
+        
+        const nestedOrderUserId = nestedOrderUser ? toPositiveNumber(nestedOrderUser['id']) : null
+        const nestedUserId = nestedUser ? toPositiveNumber(nestedUser['id']) : null
+        
+        const initialUserId =
+          nestedOrderUserId ??
+          nestedUserId ??
+          toPositiveNumber((f as { user_id?: unknown }).user_id) ??
+          toPositiveNumber((f as { userId?: unknown }).userId)
+        
+        // Lấy user_id từ TẤT CẢ các nguồn có thể - ưu tiên nested object theo Swagger
+        let userId = initialUserId ?? 0
+        if (nestedOrderUserId && nestedOrderUser) {
+          userEmail = toStringSafe(nestedOrderUser['email'] ?? nestedOrderUser['emailAddress'])
+          userFullname = toStringSafe(nestedOrderUser['fullname'] ?? nestedOrderUser['fullName'] ?? nestedOrderUser['name'])
+        } else if (nestedUserId && nestedUser) {
+          userEmail = toStringSafe(nestedUser['email'] ?? nestedUser['emailAddress'])
+          userFullname = toStringSafe(nestedUser['fullname'] ?? nestedUser['fullName'] ?? nestedUser['name'])
+        }
+        
+        // Theo Swagger, backend trả về order.user.id (nested trong order object)
+        const extractUserId = (obj: Record<string, unknown>): number => {
+          // ƯU TIÊN 1: Kiểm tra order.user.id (theo Swagger response structure)
+          if (obj.order && typeof obj.order === 'object' && obj.order !== null) {
+            const order = obj.order as Record<string, unknown>
+            if (order.user && typeof order.user === 'object' && order.user !== null) {
+              const user = order.user as Record<string, unknown>
+              if (user.id !== null && user.id !== undefined && user.id !== 0 && user.id !== '0' && user.id !== '') {
+                const num = Number(user.id)
+                if (!isNaN(num) && num > 0) {
+                  console.log(`✓ Found userId from order.user.id: ${num}`)
+                  // Lấy thêm email và fullname từ order.user
+                  userEmail = toStringSafe((user as Record<string, unknown>)['email'] ?? (user as Record<string, unknown>)['emailAddress'])
+                  userFullname = toStringSafe((user as Record<string, unknown>)['fullname'] ?? (user as Record<string, unknown>)['fullName'] ?? (user as Record<string, unknown>)['name'])
+                  return num
+                }
+              }
+            }
+          }
+          
+          // ƯU TIÊN 2: Kiểm tra user.id trực tiếp (nested user object ở top level)
+          if (obj.user && typeof obj.user === 'object' && obj.user !== null) {
+            const user = obj.user as Record<string, unknown>
+            if (user.id !== null && user.id !== undefined && user.id !== 0 && user.id !== '0' && user.id !== '') {
+              const num = Number(user.id)
+              if (!isNaN(num) && num > 0) {
+                console.log(`✓ Found userId from user.id: ${num}`)
+                // Lấy thêm email và fullname
+                userEmail = toStringSafe((user as Record<string, unknown>)['email'] ?? (user as Record<string, unknown>)['emailAddress'])
+                userFullname = toStringSafe((user as Record<string, unknown>)['fullname'] ?? (user as Record<string, unknown>)['fullName'] ?? (user as Record<string, unknown>)['name'])
+                return num
+              }
+            }
+          }
+          
+          // ƯU TIÊN 3: Kiểm tra user_id trực tiếp (snake_case từ database)
+          if (obj.user_id !== null && obj.user_id !== undefined && obj.user_id !== 0 && obj.user_id !== '0' && obj.user_id !== '') {
+            const num = Number(obj.user_id)
+            if (!isNaN(num) && num > 0) {
+              console.log(`✓ Found userId from user_id: ${num}`)
+              return num
+            }
+          }
+          
+          // ƯU TIÊN 4: Kiểm tra userId (camelCase)
+          if (obj.userId !== null && obj.userId !== undefined && obj.userId !== 0 && obj.userId !== '0' && obj.userId !== '') {
+            const num = Number(obj.userId)
+            if (!isNaN(num) && num > 0) {
+              console.log(`✓ Found userId from userId: ${num}`)
+              return num
+            }
+          }
+          
+          // FALLBACK: Kiểm tra nested user object với các keys khác
+          if (obj.user && typeof obj.user === 'object' && obj.user !== null) {
+            const user = obj.user as Record<string, unknown>
+            for (const key of ['userId', 'user_id', 'ID']) {
+              if (key in user) {
+                const value = user[key]
+                if (value !== null && value !== undefined && value !== 0 && value !== '0' && value !== '') {
+                  const num = Number(value)
+                  if (!isNaN(num) && num > 0) {
+                    console.log(`✓ Found userId from user.${key}: ${num}`)
+                    // Lấy thêm email và fullname nếu có
+                    userEmail = String(user.email || user.emailAddress || '')
+                    userFullname = String(user.fullname || user.fullName || user.name || '')
+                    return num
+                  }
+                }
+              }
+            }
+          }
+          
+          console.log(`✗ Could not find userId in object`)
+          return 0
+        }
+        
+        if (!userId || userId <= 0) {
+          userId = extractUserId(f)
+        } else {
+          console.log(`✓ Using pre-existing userId: ${userId}`)
+        }
+        
+        // Nếu vẫn không tìm thấy, thử gọi API để lấy feedback chi tiết
+        if ((orderId === 0 || userId === 0) && f.id) {
+          console.log(`⚠️ Missing orderId or userId, trying to fetch detailed feedback #${f.id}...`)
+          // Không await ở đây vì sẽ làm chậm, chỉ log để debug
+        }
+        
+        const normalized = {
           id: Number(f.id) || 0,
-          orderId: Number(f.orderId ?? f.order_id ?? f.orderIdNumber) || 0,
+          orderId: orderId,
           rating: Number(f.rating) || 0,
           comment: String(comment),
           createdAt: String(createdAt),
-          user: f.user && typeof f.user === 'object' ? {
-            id: Number((f.user as { id?: unknown }).id) || 0,
-            email: String((f.user as { email?: unknown }).email || ''),
-            fullname: String((f.user as { fullname?: unknown }).fullname || '')
+          user: userId > 0 ? {
+            id: userId,
+            email: userEmail,
+            fullname: userFullname
           } : undefined
         } as OrderFeedback
+        
+        console.log(`→ Final normalized: orderId=${normalized.orderId}, userId=${userId}`)
+        
+        return normalized
       })
       
       // Normalize service feedbacks - lấy comment và createdAt từ nhiều nguồn
+      console.log('=== NORMALIZING SERVICE FEEDBACKS ===')
+      console.log('Raw service data:', serviceData)
+      
       const normalizedServiceFeedbacks: ServiceFeedback[] = serviceData.map((f: Record<string, unknown>) => {
-        const comment = (f.comment as string) 
+        // Database dùng 'comments' (số nhiều) - ưu tiên lấy từ đây
+        const comment = (f.comments as string) 
+          ?? (f.comment as string)
           ?? (f.comment_text as string)
           ?? (f.commentText as string)
           ?? ''
@@ -90,18 +411,64 @@ function StaffFeedbacksPage() {
           ?? (f.createdAtDate as string)
           ?? new Date().toISOString()
         
-        return {
+        // Lấy service_id từ nhiều nguồn - ưu tiên snake_case từ database
+        let serviceId = 0
+        
+        // Ưu tiên 1: service_id (snake_case) - trực tiếp từ database
+        if (f.service_id !== null && f.service_id !== undefined) {
+          serviceId = Number(f.service_id)
+        }
+        // Ưu tiên 2: serviceId (camelCase)
+        else if (f.serviceId !== null && f.serviceId !== undefined) {
+          serviceId = Number(f.serviceId)
+        }
+        // Ưu tiên 3: service object với id bên trong
+        else if (f.service && typeof f.service === 'object') {
+          const serviceObj = f.service as { id?: unknown }
+          if (serviceObj.id !== null && serviceObj.id !== undefined) {
+            serviceId = Number(serviceObj.id)
+          }
+        }
+        
+        // Lấy user_id từ nhiều nguồn
+        let userId = 0
+        let userEmail = ''
+        let userFullname = ''
+        
+        // Ưu tiên 1: user_id (snake_case) - trực tiếp từ database
+        if (f.user_id !== null && f.user_id !== undefined) {
+          userId = Number(f.user_id)
+        }
+        // Ưu tiên 2: userId (camelCase)
+        else if (f.userId !== null && f.userId !== undefined) {
+          userId = Number(f.userId)
+        }
+        // Ưu tiên 3: user object với id bên trong
+        if (f.user && typeof f.user === 'object') {
+          const userObj = f.user as { id?: unknown; email?: unknown; fullname?: unknown }
+          if (userObj.id !== null && userObj.id !== undefined) {
+            userId = Number(userObj.id)
+          }
+          userEmail = String(userObj.email || '')
+          userFullname = String(userObj.fullname || '')
+        }
+        
+        const normalized = {
           id: Number(f.id) || 0,
-          serviceId: Number(f.serviceId ?? f.service_id ?? f.serviceIdNumber) || 0,
+          serviceId: serviceId,
           rating: Number(f.rating) || 0,
           comment: String(comment),
           createdAt: String(createdAt),
-          user: f.user && typeof f.user === 'object' ? {
-            id: Number((f.user as { id?: unknown }).id) || 0,
-            email: String((f.user as { email?: unknown }).email || ''),
-            fullname: String((f.user as { fullname?: unknown }).fullname || '')
+          user: userId > 0 ? {
+            id: userId,
+            email: userEmail,
+            fullname: userFullname
           } : undefined
         } as ServiceFeedback
+        
+        console.log(`Service Feedback #${normalized.id}: serviceId=${normalized.serviceId}, userId=${userId}, comment="${normalized.comment.substring(0, 20)}..."`)
+        
+        return normalized
       })
       
       setOrderFeedbacks(normalizedOrderFeedbacks)
@@ -225,7 +592,7 @@ function StaffFeedbacksPage() {
         if (!isNaN(date.getTime())) {
           createdAtDate = date.toISOString().split('T')[0]
         }
-      } catch (e) {
+      } catch {
         createdAtDate = new Date().toISOString().split('T')[0]
       }
     } else {
