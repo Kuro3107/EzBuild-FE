@@ -48,7 +48,7 @@ type Props = {
   checking?: boolean
 }
 
-const apiBase = (import.meta as any)?.env?.VITE_API_BASE_URL || 'https://exe201-ezbuildvn-be.onrender.com'
+const apiBase = (import.meta.env.VITE_API_BASE_URL as string | undefined) || 'https://exe201-ezbuildvn-be.onrender.com'
 
 export const BuildRollerCard: React.FC<Props> = ({ allBuilds, currentIndex, onRoll, onApply, disableApply, onCheck, disableCheck, checking }) => {
   const build = allBuilds[currentIndex]
@@ -72,8 +72,8 @@ export const BuildRollerCard: React.FC<Props> = ({ allBuilds, currentIndex, onRo
         if (!res.ok) throw new Error(`HTTP ${res.status}`)
         const data: BuildDetail = await res.json()
         if (!cancelled) setDetail(data)
-      } catch (e: any) {
-        if (!cancelled) setError(e?.message || 'Load build failed')
+      } catch (e: unknown) {
+        if (!cancelled) setError(e instanceof Error ? e.message : 'Load build failed')
       } finally {
         if (!cancelled) setLoading(false)
       }
@@ -82,7 +82,7 @@ export const BuildRollerCard: React.FC<Props> = ({ allBuilds, currentIndex, onRo
     return () => {
       cancelled = true
     }
-  }, [build?.id])
+  }, [build])
 
   const itemsView = useMemo(() => {
     if (!detail?.items) return null
@@ -118,6 +118,8 @@ export const BuildRollerCard: React.FC<Props> = ({ allBuilds, currentIndex, onRo
 
           const displayName = productName || `Item #${it.product_price_id || it.id}`
 
+          const priceLabel = price > 0 ? `${price.toLocaleString('vi-VN')}₫` : 'Liên hệ'
+
           return (
             <li
               key={it.id}
@@ -128,10 +130,13 @@ export const BuildRollerCard: React.FC<Props> = ({ allBuilds, currentIndex, onRo
                 borderBottom: '1px solid rgba(148, 163, 184, 0.1)'
               }}
             >
-              <span style={{ color: '#93c5fd', fontWeight: 600 }}>
-                {categoryLabel}:
-              </span>{' '}
-              <span>{displayName}</span>
+              <div style={{ display: 'flex', justifyContent: 'space-between', gap: '8px', alignItems: 'center' }}>
+                <span>
+                  <span style={{ color: '#93c5fd', fontWeight: 600 }}>{categoryLabel}:</span>{' '}
+                  <span>{displayName}</span>
+                </span>
+                <span style={{ color: '#FDE68A', fontWeight: 600 }}>{priceLabel}</span>
+              </div>
             </li>
           )
         })}

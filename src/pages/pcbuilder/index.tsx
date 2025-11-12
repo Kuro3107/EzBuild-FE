@@ -22,6 +22,9 @@ interface ApiProduct {
     id?: number
     name?: string
   }
+  categoryId?: number
+  category_id?: number
+  categoryName?: string
   capacity?: string
   color?: string
   size?: string
@@ -320,17 +323,17 @@ function PCBuilderPage() {
         let categoryId = 0
         let priceNum = 0
         let productPriceId = 0
-        let baseProduct: Record<string, unknown> | undefined = undefined
+        let baseProduct: ApiProduct | undefined = undefined
         
         if (item.productPrice) {
           // Format cũ (nested)
           const productPrice = item.productPrice
-          baseProduct = productPrice.product as Record<string, unknown> | undefined
+          baseProduct = productPrice.product as ApiProduct | undefined
           productId = Number(baseProduct?.id ?? 0)
           productPriceId = Number(productPrice.id ?? 0)
           priceNum = Number(productPrice.price ?? 0)
-          const catFromProduct = (baseProduct?.['category'] as { id?: number; name?: string } | undefined)
-          categoryId = Number(catFromProduct?.id ?? baseProduct?.['categoryId'] ?? baseProduct?.['category_id'] ?? 0)
+          const catFromProduct = baseProduct?.category
+          categoryId = Number(catFromProduct?.id ?? baseProduct?.categoryId ?? baseProduct?.category_id ?? 0)
         } else {
           // Format mới (flat) từ backend
           productId = Number(item.product_id ?? 0)
@@ -340,7 +343,7 @@ function PCBuilderPage() {
         }
         
         // Nếu có productId, fetch chi tiết từ API
-        let productData: Record<string, unknown> | undefined = baseProduct
+        let productData: ApiProduct | undefined = baseProduct
         if (productId) {
           try {
             productData = await ApiService.getProductById(productId)
@@ -351,18 +354,18 @@ function PCBuilderPage() {
         
         // Xác định categoryId nếu chưa có
         if (!categoryId && productData) {
-          const catFromProduct = (productData?.['category'] as { id?: number; name?: string } | undefined)
+          const catFromProduct = productData?.category
           categoryId = Number(
             catFromProduct?.id ??
-            productData?.['categoryId'] ??
-            productData?.['category_id'] ??
+            productData?.categoryId ??
+            productData?.category_id ??
             item.category_id ??
             0
           )
           if (!categoryId) {
             const catNameRaw = String(
               catFromProduct?.name ??
-              productData?.['categoryName'] ??
+              productData?.categoryName ??
               item.category_name ??
               ''
             ).toLowerCase()
@@ -378,19 +381,18 @@ function PCBuilderPage() {
         const component: PCComponent = {
           id: productId || 0,
           name: String(
-            productData?.['name'] ??
+            productData?.name ??
             item.product_name ??
-            baseProduct?.['name'] ??
+            baseProduct?.name ??
             `Linh kiện #${productPriceId || item.id}`
           ),
-          brand: String(productData?.['brand'] ?? baseProduct?.['brand'] ?? ''),
-          model: String(productData?.['model'] ?? baseProduct?.['model'] ?? ''),
-          specs: String(productData?.['specs'] ?? baseProduct?.['specs'] ?? ''),
-          image: String(productData?.['imageUrl1'] ?? baseProduct?.['imageUrl1'] ?? ''),
+          brand: String(productData?.brand ?? baseProduct?.brand ?? ''),
+          model: String(productData?.model ?? baseProduct?.model ?? ''),
+          specs: String(productData?.specs ?? baseProduct?.specs ?? ''),
+          image: String(productData?.imageUrl1 ?? baseProduct?.imageUrl1 ?? ''),
           price: priceNum > 0 ? `${priceNum.toLocaleString('vi-VN')} VND` : 'Liên hệ',
           category: String(
-            productData?.['category']?.['name'] ??
-            (productData?.['category'] as { name?: string } | undefined)?.name ??
+            productData?.category?.name ??
             item.category_name ??
             categoryMap[categoryId] ??
             ''
