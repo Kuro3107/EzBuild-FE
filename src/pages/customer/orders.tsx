@@ -17,12 +17,87 @@ interface OrderDTO {
   user?: { id?: number }
 }
 
+interface OrderFeedbackEntry {
+  id: number
+  orderId: number
+  rating: number
+  comment: string
+  createdAt: string
+  userId?: number
+}
+
 function CustomerOrdersPage() {
   const currentUser = ApiService.getCurrentUser()
   const [orders, setOrders] = useState<OrderDTO[]>([])
   const [selected, setSelected] = useState<OrderDTO | null>(null)
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState<string | null>(null)
+  const [orderFeedbacks, setOrderFeedbacks] = useState<OrderFeedbackEntry[]>([])
+  const [isFeedbackModalOpen, setIsFeedbackModalOpen] = useState(false)
+  const [feedbackRating, setFeedbackRating] = useState(5)
+  const [feedbackComment, setFeedbackComment] = useState('')
+  const [feedbackEditingId, setFeedbackEditingId] = useState<number | null>(null)
+  const [isSubmittingFeedback, setIsSubmittingFeedback] = useState(false)
+
+  const userNumericId = Number(currentUser?.id || currentUser?.userId || 0)
+
+  const renderRatingStars = (value: number) => (
+    <div className="flex gap-1">
+      {[1, 2, 3, 4, 5].map((star) => (
+        <svg
+          key={star}
+          className="w-4 h-4"
+          viewBox="0 0 24 24"
+          fill={star <= value ? '#facc15' : 'none'}
+          stroke="#facc15"
+          strokeWidth={1.5}
+        >
+          <path d="M12 17.27L18.18 21l-1.64-7.03L22 9.24l-7.19-.62L12 2 9.19 8.62 2 9.24l5.46 4.73L5.82 21z" />
+        </svg>
+      ))}
+    </div>
+  )
+
+  const loadFeedbacks = async (uid: number) => {
+    try {
+      const data = await ApiService.getAllOrderFeedbacks()
+      const normalized: OrderFeedbackEntry[] = (data as Record<string, unknown>[]).map((f) => {
+        const comment =
+          (f.comment as string) ??
+          (f.comment_text as string) ??
+          (f.commentText as string) ??
+          ''
+        const createdAt =
+          (f.createdAt as string) ??
+          (f.created_at as string) ??
+          new Date().toISOString()
+        const orderId =
+          Number(
+            f.orderId ??
+            f.order_id ??
+            (typeof f.order === 'object' && f.order ? (f.order as { id?: unknown }).id : undefined)
+          ) || 0
+        const userId =
+          Number(
+            (typeof f.user === 'object' && f.user ? (f.user as { id?: unknown }).id : undefined) ??
+            f.userId ??
+            f.user_id
+          ) || undefined
+        return {
+          id: Number(f.id) || 0,
+          orderId,
+          rating: Number(f.rating) || 0,
+          comment: String(comment),
+          createdAt: String(createdAt),
+          userId
+        }
+      })
+      const filtered = uid > 0 ? normalized.filter((f) => f.userId === uid || !f.userId) : normalized
+      setOrderFeedbacks(filtered)
+    } catch (err) {
+      console.error('Không thể tải feedback:', err)
+    }
+  }
 
   useEffect(() => {
     const run = async () => {
@@ -38,6 +113,9 @@ function CustomerOrdersPage() {
         const data = await ApiService.getOrdersByUser(uid)
         setOrders(data as unknown as OrderDTO[])
         setSelected((data as unknown as OrderDTO[])[0] || null)
+        if (userNumericId > 0) {
+          await loadFeedbacks(userNumericId)
+        }
       } catch {
         setError('Không thể tải danh sách đơn hàng')
       } finally {
@@ -45,9 +123,13 @@ function CustomerOrdersPage() {
       }
     }
     run()
-  }, [currentUser?.id, currentUser?.userId])
+  }, [currentUser?.id, currentUser?.userId, userNumericId])
 
   const totalOrders = useMemo(() => orders.length, [orders])
+  const feedbackForSelected = useMemo(() => {
+    if (!selected) return undefined
+    return orderFeedbacks.find((feedback) => feedback.orderId === selected.id)
+  }, [selected, orderFeedbacks])
 
   return (
     <div className="page bg-grid-dark">
@@ -202,6 +284,48 @@ function CustomerOrdersPage() {
                           </div>
                         </div>
                       )}
+
+                      {(selected.status === 'PAID' || selected.status === 'DONE') && (
+                        <div className="mt-4 p-4 bg-white/5 border border-white/10 rounded-lg space-y-3">
+                          <div className="flex items-center justify-between">
+                            <div>
+                              <p className="text-sm text-gray-200 font-semibold">Phản hồi của bạn</p>
+                              <p className="text-xs text-gray-400">
+                                Chia sẻ trải nghiệm sau khi đã thanh toán đầy đủ để EzBuild phục vụ tốt hơn.
+                              </p>
+                            </div>
+                            <button
+                              onClick={() => {
+                                setFeedbackEditingId(feedbackForSelected?.id ?? null)
+                                setFeedbackRating(feedbackForSelected?.rating ?? 5)
+                                setFeedbackComment(feedbackForSelected?.comment ?? '')
+                                setIsFeedbackModalOpen(true)
+                              }}
+                              className="px-3 py-2 bg-gradient-to-r from-blue-500 to-cyan-500 text-white rounded-lg text-xs font-semibold hover:from-blue-600 hover:to-cyan-600 transition-all shadow-lg"
+                            >
+                              {feedbackForSelected ? 'Cập nhật đánh giá' : 'Đánh giá đơn hàng'}
+                            </button>
+                          </div>
+                          {feedbackForSelected ? (
+                            <div className="bg-white/5 border border-white/10 rounded-xl p-3 text-sm text-gray-200 space-y-2">
+                              <div className="flex items-center gap-2">
+                                {renderRatingStars(feedbackForSelected.rating)}
+                                <span className="text-xs text-gray-400">
+                                  Đánh giá: {feedbackForSelected.rating}/5
+                                </span>
+                              </div>
+                              <p className="text-gray-200">{feedbackForSelected.comment || 'Không có nhận xét.'}</p>
+                              <p className="text-xs text-gray-500">
+                                Gửi ngày {new Date(feedbackForSelected.createdAt).toLocaleString('vi-VN')}
+                              </p>
+                            </div>
+                          ) : (
+                            <p className="text-sm text-gray-300">
+                              Chưa có phản hồi cho đơn hàng này. Hãy cho EzBuild biết trải nghiệm của bạn nhé!
+                            </p>
+                          )}
+                        </div>
+                      )}
                       
                       <div className="pt-2">
                         <Link className="text-blue-400 underline" to="/builds">Xem Build đã lưu</Link>
@@ -214,6 +338,143 @@ function CustomerOrdersPage() {
           </div>
         </main>
       </div>
+
+      {isFeedbackModalOpen && selected && (
+        <div
+          style={{
+            position: 'fixed',
+            top: 0,
+            left: 0,
+            right: 0,
+            bottom: 0,
+            backgroundColor: 'rgba(0, 0, 0, 0.6)',
+            display: 'flex',
+            alignItems: 'center',
+            justifyContent: 'center',
+            zIndex: 20000,
+            padding: '20px'
+          }}
+        >
+          <div
+            style={{
+              width: '100%',
+              maxWidth: '520px',
+              backgroundColor: '#111827',
+              borderRadius: '16px',
+              border: '1px solid rgba(255,255,255,0.1)',
+              boxShadow: '0 20px 60px rgba(15,23,42,0.35)',
+              padding: '24px'
+            }}
+          >
+            <div className="flex items-start justify-between mb-4">
+              <div>
+                <h3 className="text-xl font-semibold text-white">Phản hồi về Order #{selected.id}</h3>
+                <p className="text-sm text-gray-400 mt-1">
+                  Đánh giá của bạn giúp EzBuild cải thiện dịch vụ tốt hơn.
+                </p>
+              </div>
+              <button
+                onClick={() => {
+                  setIsFeedbackModalOpen(false)
+                  setFeedbackEditingId(null)
+                  setFeedbackComment('')
+                  setFeedbackRating(5)
+                }}
+                className="text-gray-400 hover:text-white"
+              >
+                ×
+              </button>
+            </div>
+
+            <div className="space-y-4">
+              <div>
+                <p className="text-sm font-medium text-gray-200 mb-2">Đánh giá tổng thể</p>
+                <div className="flex items-center gap-2">
+                  {[1, 2, 3, 4, 5].map((value) => (
+                    <button
+                      key={value}
+                      onClick={() => setFeedbackRating(value)}
+                      className="focus:outline-none transition-transform"
+                      style={{ transform: value === feedbackRating ? 'scale(1.1)' : 'scale(1)' }}
+                    >
+                      <svg
+                        className="w-8 h-8"
+                        viewBox="0 0 24 24"
+                        fill={value <= feedbackRating ? '#facc15' : 'none'}
+                        stroke="#facc15"
+                        strokeWidth={1.5}
+                      >
+                        <path d="M12 17.27L18.18 21l-1.64-7.03L22 9.24l-7.19-.62L12 2 9.19 8.62 2 9.24l5.46 4.73L5.82 21z" />
+                      </svg>
+                    </button>
+                  ))}
+                </div>
+              </div>
+
+              <div>
+                <p className="text-sm font-medium text-gray-200 mb-2">Nhận xét của bạn</p>
+                <textarea
+                  value={feedbackComment}
+                  onChange={(e) => setFeedbackComment(e.target.value)}
+                  placeholder="Hãy chia sẻ trải nghiệm giao hàng, chất lượng sản phẩm, thái độ nhân viên..."
+                  rows={4}
+                  className="w-full px-4 py-3 bg-white/5 border border-white/10 rounded-xl text-gray-100 placeholder-gray-500 focus:outline-none focus:ring-2 focus:ring-blue-500"
+                />
+              </div>
+            </div>
+
+            <div className="mt-6 flex justify-end gap-3">
+              <button
+                onClick={() => {
+                  setIsFeedbackModalOpen(false)
+                  setFeedbackEditingId(null)
+                  setFeedbackComment('')
+                  setFeedbackRating(5)
+                }}
+                className="px-4 py-2 border border-white/20 text-sm text-gray-300 rounded-lg hover:bg-white/10 transition-colors"
+              >
+                Hủy
+              </button>
+              <button
+                onClick={async () => {
+                  if (!selected?.id) return
+                  try {
+                    setIsSubmittingFeedback(true)
+                    if (feedbackEditingId) {
+                      await ApiService.updateOrderFeedback(feedbackEditingId, {
+                        rating: feedbackRating,
+                        comment: feedbackComment
+                      })
+                    } else {
+                      await ApiService.createOrderFeedback({
+                        orderId: Number(selected.id),
+                        rating: feedbackRating,
+                        comment: feedbackComment,
+                        userId: userNumericId || undefined
+                      })
+                    }
+                    await loadFeedbacks(userNumericId)
+                    setIsFeedbackModalOpen(false)
+                    setFeedbackEditingId(null)
+                    setFeedbackComment('')
+                    setFeedbackRating(5)
+                    alert('Cảm ơn bạn đã gửi phản hồi!')
+                  } catch (err) {
+                    console.error('Feedback error:', err)
+                    alert('Không thể gửi feedback. Vui lòng thử lại sau.')
+                  } finally {
+                    setIsSubmittingFeedback(false)
+                  }
+                }}
+                className="px-4 py-2 bg-gradient-to-r from-blue-500 to-cyan-500 text-white rounded-lg text-sm font-semibold hover:from-blue-600 hover:to-cyan-600 transition-colors shadow-lg disabled:opacity-60 disabled:cursor-not-allowed"
+                disabled={isSubmittingFeedback}
+              >
+                {isSubmittingFeedback ? 'Đang gửi...' : feedbackEditingId ? 'Cập nhật' : 'Gửi phản hồi'}
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
     </div>
   )
 }
