@@ -2310,7 +2310,7 @@ export class ApiService {
     }
   }
 
-  static async createOrderFeedback(data: { orderId: number; rating: number; comment: string; userId?: number; createdAt?: string }): Promise<Record<string, unknown>> {
+  static async createOrderFeedback(data: { orderId: number; userId: number; rating?: number; comment?: string }): Promise<Record<string, unknown>> {
     try {
       // Đảm bảo orderId và userId có giá trị hợp lệ
       if (!data.orderId || data.orderId === 0) {
@@ -2318,29 +2318,28 @@ export class ApiService {
       }
       
       if (!data.userId || data.userId === 0) {
-        console.warn('⚠️ User ID không có hoặc = 0, sẽ không gửi user object')
+        throw new Error('User ID không hợp lệ')
       }
 
-      // Backend expect format: { order: { id: ... }, user: { id: ... }, rating, comments }
+      const token = localStorage.getItem('authToken')
+
+      // Gửi payload với đầy đủ format (camelCase + snake_case + nested object)
       const payload: Record<string, unknown> = {
-        order: {
-          id: data.orderId
-        },
-        rating: data.rating,
-        comments: data.comment || '',  // Backend dùng 'comments' (số nhiều)
-      }
-      
-      // Chỉ thêm user object nếu có userId hợp lệ
-      if (data.userId && data.userId > 0) {
-        payload.user = {
-          id: data.userId
-        }
+        orderId: data.orderId,
+        order_id: data.orderId,
+        order: { id: data.orderId },
+        userId: data.userId,
+        user_id: data.userId,
+        user: { id: data.userId },
       }
 
-      // Gửi thêm snake_case format để đảm bảo tương thích
-      payload.order_id = data.orderId
-      if (data.userId && data.userId > 0) {
-        payload.user_id = data.userId
+      if (data.rating !== undefined) {
+        payload.rating = data.rating
+      }
+
+      if (data.comment !== undefined) {
+        payload.comment = data.comment
+        payload.comments = data.comment
       }
 
       console.log('=== CREATE ORDER FEEDBACK ===')
@@ -2350,11 +2349,18 @@ export class ApiService {
       console.log('Payload to send:', payload)
       console.log('Payload JSON string:', JSON.stringify(payload))
 
+      const headers: Record<string, string> = {
+        'Content-Type': 'application/json',
+        'Accept': 'application/json',
+      }
+
+      if (token) {
+        headers['Authorization'] = `Bearer ${token}`
+      }
+
       const response = await fetch(`${API_BASE_URL}/api/order-feedback`, {
         method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-        },
+        headers,
         body: JSON.stringify(payload),
       })
       
@@ -2375,23 +2381,48 @@ export class ApiService {
     }
   }
 
-  static async updateOrderFeedback(id: number, data: { orderId?: number; rating?: number; comment?: string; createdAt?: string }): Promise<Record<string, unknown>> {
+  static async updateOrderFeedback(id: number, data: { orderId?: number; userId?: number; rating?: number; comment?: string }): Promise<Record<string, unknown>> {
     try {
+      const token = localStorage.getItem('authToken')
+
       // Convert camelCase sang snake_case để match với database
       const payload: Record<string, unknown> = {}
       
-      if (data.orderId !== undefined) payload.order_id = data.orderId
-      if (data.rating !== undefined) payload.rating = data.rating
-      if (data.comment !== undefined) payload.comments = data.comment  // Database dùng 'comments'
-      if (data.createdAt !== undefined) payload.created_at = data.createdAt
+      if (data.orderId !== undefined) {
+        payload.orderId = data.orderId
+        payload.order_id = data.orderId
+        payload.order = { id: data.orderId }
+      }
+
+      if (data.userId !== undefined) {
+        payload.userId = data.userId
+        payload.user_id = data.userId
+        payload.user = { id: data.userId }
+      }
+
+      if (data.rating !== undefined) {
+        payload.rating = data.rating
+      }
+
+      if (data.comment !== undefined) {
+        payload.comment = data.comment
+        payload.comments = data.comment
+      }
 
       console.log('Updating order feedback with payload:', payload)
 
+      const headers: Record<string, string> = {
+        'Content-Type': 'application/json',
+        'Accept': 'application/json',
+      }
+
+      if (token) {
+        headers['Authorization'] = `Bearer ${token}`
+      }
+
       const response = await fetch(`${API_BASE_URL}/api/order-feedback/${id}`, {
         method: 'PUT',
-        headers: {
-          'Content-Type': 'application/json',
-        },
+        headers,
         body: JSON.stringify(payload),
       })
 
@@ -2440,12 +2471,13 @@ export class ApiService {
     }
   }
 
-  static async updateServiceFeedback(id: number, data: { serviceId?: number; rating?: number; comment?: string; createdAt?: string }): Promise<Record<string, unknown>> {
+  static async updateServiceFeedback(id: number, data: { serviceId?: number; userId?: number; rating?: number; comment?: string; createdAt?: string }): Promise<Record<string, unknown>> {
     try {
       // Convert camelCase sang snake_case để match với database
       const payload: Record<string, unknown> = {}
       
       if (data.serviceId !== undefined) payload.service_id = data.serviceId
+      if (data.userId !== undefined) payload.user_id = data.userId
       if (data.rating !== undefined) payload.rating = data.rating
       if (data.comment !== undefined) payload.comments = data.comment  // Database dùng 'comments'
       if (data.createdAt !== undefined) payload.created_at = data.createdAt
