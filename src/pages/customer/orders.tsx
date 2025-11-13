@@ -188,8 +188,15 @@ function CustomerOrdersPage() {
         }
         const uid = String(currentUser.id || currentUser.userId)
         const data = await ApiService.getOrdersByUser(uid)
-        setOrders(data as unknown as OrderDTO[])
-        setSelected((data as unknown as OrderDTO[])[0] || null)
+        const normalizeDate = (order: OrderDTO) => {
+          const raw = order.createdAt || order.created_at
+          const time = raw ? new Date(raw).getTime() : 0
+          if (!Number.isNaN(time) && time > 0) return time
+          return typeof order.id === 'number' ? order.id : Number(order.id || 0)
+        }
+        const sortedOrders = [...(data as unknown as OrderDTO[])].sort((a, b) => normalizeDate(b) - normalizeDate(a))
+        setOrders(sortedOrders)
+        setSelected(sortedOrders[0] || null)
         if (userNumericId > 0) {
           await loadFeedbacks(userNumericId)
         }
@@ -672,15 +679,17 @@ function CustomerOrdersPage() {
                                       setIsSubmittingFeedback(true)
                                       if (feedbackEditingId) {
                                         await ApiService.updateOrderFeedback(feedbackEditingId, {
+                                          orderId,
+                                          userId,
                                           rating: feedbackRating,
                                           comment: feedbackComment
                                         })
                                       } else {
                                         await ApiService.createOrderFeedback({
-                                          orderId: orderId,
+                                          orderId,
+                                          userId,
                                           rating: feedbackRating,
                                           comment: feedbackComment,
-                                          userId: userId
                                         })
                                       }
                                       await loadFeedbacks(userId)

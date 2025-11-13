@@ -1,4 +1,4 @@
-import { useEffect, useState } from 'react'
+import { useCallback, useEffect, useState } from 'react'
 import { ApiService } from '../../services/api'
 import '../../Homepage.css'
 
@@ -27,6 +27,30 @@ interface Payment {
   paidAt?: string
 }
 
+const parseDateTime = (value?: string): number => {
+  if (!value) return 0
+  const time = new Date(value).getTime()
+  return Number.isNaN(time) ? 0 : time
+}
+
+const sortOrdersByNewest = (list: Order[]): Order[] => {
+  return [...list].sort((a, b) => {
+    const timeA = parseDateTime(a.createdAt) || parseDateTime(a.created_at)
+    const timeB = parseDateTime(b.createdAt) || parseDateTime(b.created_at)
+    if (timeA !== timeB) return timeB - timeA
+    return (b.id ?? 0) - (a.id ?? 0)
+  })
+}
+
+const sortPaymentsByNewest = (list: Payment[]): Payment[] => {
+  return [...list].sort((a, b) => {
+    const timeA = parseDateTime(a.paidAt) || parseDateTime(a.createdAt)
+    const timeB = parseDateTime(b.paidAt) || parseDateTime(b.createdAt)
+    if (timeA !== timeB) return timeB - timeA
+    return (b.id ?? 0) - (a.id ?? 0)
+  })
+}
+
 function StaffOrdersPage() {
   const [orders, setOrders] = useState<Order[]>([])
   const [payments, setPayments] = useState<Payment[]>([])
@@ -35,19 +59,7 @@ function StaffOrdersPage() {
   const [selectedOrder, setSelectedOrder] = useState<Order | null>(null)
   const [filterStatus, setFilterStatus] = useState<string>('ALL')
 
-  useEffect(() => {
-    loadData(true)
-    
-    const pollInterval = setInterval(() => {
-      loadData(false)
-    }, 5000)
-    
-    return () => {
-      clearInterval(pollInterval)
-    }
-  }, [])
-
-  const loadData = async (showLoading = true) => {
+  const loadData = useCallback(async (showLoading = true) => {
     try {
       if (showLoading) {
         setLoading(true)
@@ -59,8 +71,8 @@ function StaffOrdersPage() {
         ApiService.getAllPayments()
       ])
       
-      const orders = ordersData as unknown as Order[]
-      const payments = paymentsData as unknown as Payment[]
+      const orders = sortOrdersByNewest(ordersData as unknown as Order[])
+      const payments = sortPaymentsByNewest(paymentsData as unknown as Payment[])
       
       const ordersToUpdate: Array<{ orderId: number; newStatus: string }> = []
       
@@ -95,7 +107,8 @@ function StaffOrdersPage() {
           ApiService.getOrders()
         ])
         
-        setOrders(updatedOrdersData as unknown as Order[])
+        const refreshedOrders = sortOrdersByNewest(updatedOrdersData as unknown as Order[])
+        setOrders(refreshedOrders)
         setPayments(payments)
       } else {
         setOrders(orders)
@@ -109,15 +122,30 @@ function StaffOrdersPage() {
         setLoading(false)
       }
     }
-  }
+  }, [])
+
+  useEffect(() => {
+    void loadData(true)
+    
+    const pollInterval = setInterval(() => {
+      void loadData(false)
+    }, 5000)
+    
+    return () => {
+      clearInterval(pollInterval)
+    }
+  }, [loadData])
 
   const updateOrderStatus = async (orderId: number, newStatus: string) => {
     try {
       await ApiService.updateOrderStatus(orderId, newStatus)
       
-      setOrders(prev => prev.map(order => 
-        order.id === orderId ? { ...order, status: newStatus, updatedAt: new Date().toISOString() } : order
-      ))
+      setOrders(prev => {
+        const updated = prev.map(order => 
+          order.id === orderId ? { ...order, status: newStatus, updatedAt: new Date().toISOString() } : order
+        )
+        return sortOrdersByNewest(updated)
+      })
       
       alert(`Đã cập nhật trạng thái đơn hàng thành: ${newStatus}`)
     } catch (err) {
@@ -197,7 +225,7 @@ function StaffOrdersPage() {
             <div className="text-red-400 text-6xl mb-4">⚠️</div>
             <p className="text-red-300 mb-6 text-xl">{error}</p>
             <button 
-              onClick={() => loadData(true)}
+              onClick={() => { void loadData(true) }}
               className="px-6 py-3 bg-gradient-to-r from-blue-500 to-cyan-500 text-white rounded-xl hover:from-blue-600 hover:to-cyan-600 transition-all shadow-lg hover:shadow-xl"
             >
               Thử lại
@@ -223,7 +251,7 @@ function StaffOrdersPage() {
               <p className="text-gray-300 text-lg">Theo dõi và xử lý tất cả đơn hàng trong hệ thống</p>
             </div>
             <button
-              onClick={() => loadData(true)}
+              onClick={() => { void loadData(true) }}
               className="px-6 py-3 bg-gradient-to-r from-green-500 to-emerald-500 text-white rounded-xl hover:from-green-600 hover:to-emerald-600 transition-all shadow-lg hover:shadow-xl flex items-center gap-2"
             >
               <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">

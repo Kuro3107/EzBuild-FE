@@ -1,4 +1,4 @@
-import { useEffect, useState } from 'react'
+import { useCallback, useEffect, useState } from 'react'
 import { ApiService } from '../../services/api'
 import '../../Homepage.css'
 
@@ -8,6 +8,7 @@ interface OrderFeedback {
   rating: number
   comment: string
   createdAt: string
+  userId?: number
   user?: { id: number; email: string; fullname: string }
 }
 
@@ -17,7 +18,23 @@ interface ServiceFeedback {
   rating: number
   comment: string
   createdAt: string
+  userId?: number
   user?: { id: number; email: string; fullname: string }
+}
+
+const parseDateTime = (value?: string): number => {
+  if (!value) return 0
+  const time = new Date(value).getTime()
+  return Number.isNaN(time) ? 0 : time
+}
+
+const sortFeedbacksByNewest = <T extends { createdAt: string; id: number }>(list: T[]): T[] => {
+  return [...list].sort((a, b) => {
+    const timeA = parseDateTime(a.createdAt)
+    const timeB = parseDateTime(b.createdAt)
+    if (timeA !== timeB) return timeB - timeA
+    return (b.id ?? 0) - (a.id ?? 0)
+  })
 }
 
 function StaffFeedbacksPage() {
@@ -34,16 +51,13 @@ function StaffFeedbacksPage() {
   const [formData, setFormData] = useState({
     orderId: 0,
     serviceId: 0,
+    userId: 0,
     rating: 5,
     comment: '',
     createdAt: new Date().toISOString().split('T')[0] // Format: YYYY-MM-DD
   })
 
-  useEffect(() => {
-    loadData()
-  }, [])
-
-  const loadData = async () => {
+  const loadData = useCallback(async () => {
     try {
       setLoading(true)
       setError(null)
@@ -382,6 +396,7 @@ function StaffFeedbacksPage() {
           rating: Number(f.rating) || 0,
           comment: String(comment),
           createdAt: String(createdAt),
+        userId,
           user: userId > 0 ? {
             id: userId,
             email: userEmail,
@@ -459,6 +474,7 @@ function StaffFeedbacksPage() {
           rating: Number(f.rating) || 0,
           comment: String(comment),
           createdAt: String(createdAt),
+        userId,
           user: userId > 0 ? {
             id: userId,
             email: userEmail,
@@ -471,15 +487,19 @@ function StaffFeedbacksPage() {
         return normalized
       })
       
-      setOrderFeedbacks(normalizedOrderFeedbacks)
-      setServiceFeedbacks(normalizedServiceFeedbacks)
+      setOrderFeedbacks(sortFeedbacksByNewest(normalizedOrderFeedbacks))
+      setServiceFeedbacks(sortFeedbacksByNewest(normalizedServiceFeedbacks))
     } catch (err) {
       setError('Không thể tải dữ liệu')
       console.error('Error loading data:', err)
     } finally {
       setLoading(false)
     }
-  }
+  }, [])
+
+  useEffect(() => {
+    void loadData()
+  }, [loadData])
 
   const handleDeleteOrderFeedback = (id: number) => {
     setSelectedFeedback({ id, type: 'order', name: `Order Feedback #${id}` })
@@ -512,15 +532,32 @@ function StaffFeedbacksPage() {
   const handleAddFeedback = async () => {
     try {
       if (activeTab === 'orders') {
+        if (!formData.orderId || formData.orderId <= 0) {
+          alert('Vui lòng nhập Order ID hợp lệ')
+          return
+        }
+        if (!formData.userId || formData.userId <= 0) {
+          alert('Vui lòng nhập User ID hợp lệ')
+          return
+        }
+      } else {
+        if (!formData.serviceId || formData.serviceId <= 0) {
+          alert('Vui lòng nhập Service ID hợp lệ')
+          return
+        }
+      }
+
+      if (activeTab === 'orders') {
         await ApiService.createOrderFeedback({
           orderId: formData.orderId,
+          userId: formData.userId,
           rating: formData.rating,
-          comment: formData.comment,
-          createdAt: formData.createdAt ? new Date(formData.createdAt).toISOString() : undefined
+          comment: formData.comment
         })
       } else {
         await ApiService.createServiceFeedback({
           serviceId: formData.serviceId,
+          userId: formData.userId || undefined,
           rating: formData.rating,
           comment: formData.comment,
           createdAt: formData.createdAt ? new Date(formData.createdAt).toISOString() : undefined
@@ -541,15 +578,32 @@ function StaffFeedbacksPage() {
     
     try {
       if (activeTab === 'orders') {
+        if (!formData.orderId || formData.orderId <= 0) {
+          alert('Vui lòng nhập Order ID hợp lệ')
+          return
+        }
+        if (!formData.userId || formData.userId <= 0) {
+          alert('Vui lòng nhập User ID hợp lệ')
+          return
+        }
+      } else {
+        if (!formData.serviceId || formData.serviceId <= 0) {
+          alert('Vui lòng nhập Service ID hợp lệ')
+          return
+        }
+      }
+
+      if (activeTab === 'orders') {
         await ApiService.updateOrderFeedback(editingFeedback.id, {
           orderId: formData.orderId,
+          userId: formData.userId,
           rating: formData.rating,
-          comment: formData.comment,
-          createdAt: formData.createdAt ? new Date(formData.createdAt).toISOString() : undefined
+          comment: formData.comment
         })
       } else {
         await ApiService.updateServiceFeedback(editingFeedback.id, {
           serviceId: formData.serviceId,
+          userId: formData.userId || undefined,
           rating: formData.rating,
           comment: formData.comment,
           createdAt: formData.createdAt ? new Date(formData.createdAt).toISOString() : undefined
@@ -570,6 +624,7 @@ function StaffFeedbacksPage() {
     setFormData({
       orderId: 0,
       serviceId: 0,
+      userId: 0,
       rating: 5,
       comment: '',
       createdAt: new Date().toISOString().split('T')[0]
@@ -604,6 +659,7 @@ function StaffFeedbacksPage() {
       setFormData({
         orderId: orderFeedback.orderId,
         serviceId: 0,
+        userId: orderFeedback.user?.id ?? orderFeedback.userId ?? 0,
         rating: orderFeedback.rating,
         comment: orderFeedback.comment || '',
         createdAt: createdAtDate
@@ -613,6 +669,7 @@ function StaffFeedbacksPage() {
       setFormData({
         orderId: 0,
         serviceId: serviceFeedback.serviceId,
+        userId: serviceFeedback.user?.id ?? serviceFeedback.userId ?? 0,
         rating: serviceFeedback.rating,
         comment: serviceFeedback.comment || '',
         createdAt: createdAtDate
@@ -957,6 +1014,30 @@ function StaffFeedbacksPage() {
                   fontSize: '14px'
                 }}
                 placeholder={`Nhập ${activeTab === 'orders' ? 'Order' : 'Service'} ID`}
+              />
+            </div>
+
+            <div style={{ marginBottom: '16px' }}>
+              <label style={{ display: 'block', color: 'white', marginBottom: '8px', fontSize: '14px', fontWeight: '500' }}>
+                User ID {activeTab === 'orders' ? '*' : '(tùy chọn)'}
+              </label>
+              <input
+                type="number"
+                value={formData.userId}
+                onChange={(e) => setFormData({
+                  ...formData,
+                  userId: Number(e.target.value) || 0
+                })}
+                style={{
+                  width: '100%',
+                  padding: '10px 12px',
+                  backgroundColor: '#374151',
+                  border: '1px solid rgba(255, 255, 255, 0.2)',
+                  borderRadius: '8px',
+                  color: 'white',
+                  fontSize: '14px'
+                }}
+                placeholder="Nhập User ID"
               />
             </div>
 

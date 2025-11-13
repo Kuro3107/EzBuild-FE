@@ -1,4 +1,4 @@
-import { useEffect, useState } from 'react'
+import { useCallback, useEffect, useState } from 'react'
 import { ApiService } from '../../services/api'
 import '../../Homepage.css'
 
@@ -18,6 +18,32 @@ interface Order {
   status: string
   totalPrice: number
   user?: { id: number; email: string; fullname: string }
+  createdAt?: string
+  created_at?: string
+}
+
+const parseDateTime = (value?: string): number => {
+  if (!value) return 0
+  const time = new Date(value).getTime()
+  return Number.isNaN(time) ? 0 : time
+}
+
+const sortPaymentsByNewest = (list: Payment[]): Payment[] => {
+  return [...list].sort((a, b) => {
+    const timeA = parseDateTime(a.paidAt) || parseDateTime(a.createdAt)
+    const timeB = parseDateTime(b.paidAt) || parseDateTime(b.createdAt)
+    if (timeA !== timeB) return timeB - timeA
+    return (b.id ?? 0) - (a.id ?? 0)
+  })
+}
+
+const sortOrdersByNewest = (list: Order[]): Order[] => {
+  return [...list].sort((a, b) => {
+    const timeA = parseDateTime(a.createdAt) || parseDateTime(a.created_at)
+    const timeB = parseDateTime(b.createdAt) || parseDateTime(b.created_at)
+    if (timeA !== timeB) return timeB - timeA
+    return (b.id ?? 0) - (a.id ?? 0)
+  })
 }
 
 function StaffPaymentsPage() {
@@ -29,11 +55,7 @@ function StaffPaymentsPage() {
   const [filterStatus, setFilterStatus] = useState<string>('ALL')
   const [searchTerm, setSearchTerm] = useState('')
 
-  useEffect(() => {
-    loadData()
-  }, [])
-
-  const loadData = async () => {
+  const loadData = useCallback(async () => {
     try {
       setLoading(true)
       setError(null)
@@ -43,15 +65,19 @@ function StaffPaymentsPage() {
         ApiService.getOrders()
       ])
       
-      setPayments(paymentsData as unknown as Payment[])
-      setOrders(ordersData as unknown as Order[])
+      setPayments(sortPaymentsByNewest(paymentsData as unknown as Payment[]))
+      setOrders(sortOrdersByNewest(ordersData as unknown as Order[]))
     } catch (err) {
       setError('Không thể tải dữ liệu')
       console.error('Error loading data:', err)
     } finally {
       setLoading(false)
     }
-  }
+  }, [])
+
+  useEffect(() => {
+    void loadData()
+  }, [loadData])
 
   const getStatusColor = (status: string) => {
     switch (status) {
@@ -142,7 +168,7 @@ function StaffPaymentsPage() {
               <p className="text-gray-300 text-lg">Theo dõi các giao dịch thanh toán trong hệ thống</p>
             </div>
             <button
-              onClick={loadData}
+              onClick={() => { void loadData() }}
               className="px-6 py-3 bg-gradient-to-r from-green-500 to-emerald-500 text-white rounded-xl hover:from-green-600 hover:to-emerald-600 transition-all shadow-lg hover:shadow-xl flex items-center gap-2"
             >
               <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
