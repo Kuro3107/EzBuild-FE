@@ -22,7 +22,7 @@ function OAuth2RedirectHandler() {
         console.log('Current URL:', window.location.href)
         console.log('Search params:', window.location.search)
         console.log('Current origin:', window.location.origin)
-        console.log('Expected redirect URL from backend: http://localhost:5173/oauth2/redirect')
+        console.log('Expected redirect URL from backend: https://ez-build-fe-f47r.vercel.app/oauth2/redirect')
         
         const params = new URLSearchParams(window.location.search)
         const token = params.get("token") || params.get("access_token") || params.get("accessToken")

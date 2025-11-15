@@ -11,7 +11,13 @@
       "LIGHTNINGCSS_IGNORE_NODE": "1",
       "TAILWIND_DISABLE_LIGHTNINGCSS": "1"
     }
-  }
+  },
+  "rewrites": [
+    {
+      "source": "/(.*)",
+      "destination": "/index.html"
+    }
+  ]
 }
 
 
